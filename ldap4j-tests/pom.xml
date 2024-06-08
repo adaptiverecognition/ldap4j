@@ -9,7 +9,7 @@
     <parent>
         <artifactId>ldap4j</artifactId>
         <groupId>com.adaptiverecognition</groupId>
-        <version>0.1</version>
+        <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -17,7 +17,7 @@
         <dependency>
             <groupId>com.adaptiverecognition</groupId>
             <artifactId>ldap4j-java</artifactId>
-            <version>0.1</version>
+            <version>${revision}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -28,7 +28,7 @@
         <dependency>
             <groupId>com.adaptiverecognition</groupId>
             <artifactId>ldap4j-mina</artifactId>
-            <version>0.1</version>
+            <version>${revision}</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -40,7 +40,7 @@
         <dependency>
             <groupId>com.adaptiverecognition</groupId>
             <artifactId>ldap4j-netty</artifactId>
-            <version>0.1</version>
+            <version>${revision}</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -52,7 +52,7 @@
         <dependency>
             <groupId>com.adaptiverecognition</groupId>
             <artifactId>ldap4j-slf4j-shim</artifactId>
-            <version>0.1</version>
+            <version>${revision}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
