@@ -1,0 +1,41 @@
+version: 1
+dn: dc=test,dc=ldap4j,dc=gds,dc=hu
+objectClass: domain
+objectClass: top
+dc: test
+
+dn: ou=Groups,dc=test,dc=ldap4j,dc=gds,dc=hu
+objectClass: organizationalUnit
+objectClass: top
+ou: Groups
+
+dn: ou=Referrals,dc=test,dc=ldap4j,dc=gds,dc=hu
+objectClass: organizationalUnit
+objectClass: top
+ou: Groups
+
+dn: cn=Referral 0,ou=Referrals,dc=test,dc=ldap4j,dc=gds,dc=hu
+#objectClass: inetOrgPerson
+#objectClass: organizationalPerson
+#objectClass: person
+objectClass: top
+objectClass: extensibleObject
+objectClass: referral
+cn: Referral 0
+ref: ldap://test.example.org:10389/dc=test,dc=example,dc=org
+ref: ldap:///dc=foobar
+
+dn: ou=Users,dc=test,dc=ldap4j,dc=gds,dc=hu
+objectClass: organizationalUnit
+objectClass: top
+ou: Users
+
+dn: cn=User 0,ou=Users,dc=test,dc=ldap4j,dc=gds,dc=hu
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: User 0
+sn: User
+uid: user0
+userPassword: 12345

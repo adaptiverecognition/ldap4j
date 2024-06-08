@@ -1,0 +1,11 @@
+.attach_pid*
+.flattened-pom.xml
+.idea/
+target/
+tempkeys/
+*.iws
+*.iml
+*.ipr
+*.p12
+*.pem
+*.secret

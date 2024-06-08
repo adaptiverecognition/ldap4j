@@ -1,0 +1,56 @@
+dn: ou=test,dc=ldap4j,dc=gds,dc=hu
+objectclass: top
+objectclass: organizationalUnit
+ou: test
+
+dn: ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu
+objectclass: top
+objectclass: organizationalUnit
+ou: groups
+
+dn: cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu
+objectclass: top
+objectclass: groupOfNames
+cn: group0
+member: uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu
+member: uid=user1,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu
+
+dn: cn=group1,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu
+objectclass: top
+objectclass: groupOfNames
+cn: group1
+member: uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu
+
+dn: cn=referral0,ou=test,dc=ldap4j,dc=gds,dc=hu
+objectclass: top
+objectclass: referral
+objectclass: extensibleobject
+cn: referral0
+ref: ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu
+ref: ldap://localhost:389/cn=J.%20Duke,ou=NewHires,o=JNDITutorial
+ref: foo
+
+dn: ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu
+objectclass: top
+objectclass: organizationalUnit
+ou: people
+
+dn: uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu
+objectclass: top
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+cn: User 0
+sn: User0
+uid: user0
+userPassword: ZZcDr3YLKAuPl5lc
+
+dn: uid=user1,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu
+objectclass: top
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+cn: User 1
+sn: User1
+uid: user1
+userPassword: 7o5FInTc4PJeM1nr
