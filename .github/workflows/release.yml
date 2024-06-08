@@ -65,6 +65,6 @@ jobs:
           JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.JRELEASER_GPG_PUBLIC_KEY }}
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo $JRELEASER_NEXUS2_USERNAME
-          echo $JRELEASER_NEXUS2_PASSWORD
+          echo $JRELEASER_NEXUS2_USERNAME | base64
+          echo $JRELEASER_NEXUS2_PASSWORD | base64
           mvn -s ./ossrh-settings.xml -Prelease deploy jreleaser:deploy -DaltDeploymentRepository=local::file:./target/staging-deploy
