@@ -8,24 +8,40 @@
     <artifactId>ldap4j</artifactId>
     <version>${revision}</version>
 
-    <packaging>pom</packaging>
+    <name>ldap4j</name>
+    <description>ldap client library for java</description>
+    <url>https://github.com/adaptiverecognition/ldap4j</url>
 
-    <modules>
-        <module>ldap4j-java</module>
-        <module>ldap4j-mina</module>
-        <module>ldap4j-netty</module>
-        <module>ldap4j-reactor-netty</module>
-        <module>ldap4j-samples</module>
-        <module>ldap4j-slf4j-shim</module>
-        <module>ldap4j-tests</module>
-        <module>ldap4j-tests-slf4j</module>
-    </modules>
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/adaptiverecognition/ldap4j</url>
+    </scm>
+
+    <organization>
+        <name>Adaptive Recognition Ltd.</name>
+        <url>https://adaptiverecognition.com/</url>
+    </organization>
+
+    <developers>
+        <developer>
+            <name>Directory Donkey</name>
+        </developer>
+    </developers>
+
+    <packaging>pom</packaging>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <revision>0.8</revision>
+        <revision>0.9</revision>
     </properties>
 
     <dependencyManagement>
@@ -50,7 +66,27 @@
 
     <profiles>
         <profile>
+            <id>development</id>
+            <modules>
+                <module>ldap4j-java</module>
+                <module>ldap4j-mina</module>
+                <module>ldap4j-netty</module>
+                <module>ldap4j-reactor-netty</module>
+                <module>ldap4j-samples</module>
+                <module>ldap4j-slf4j-shim</module>
+                <module>ldap4j-tests</module>
+                <module>ldap4j-tests-slf4j</module>
+            </modules>
+        </profile>
+        <profile>
             <id>release</id>
+            <modules>
+                <module>ldap4j-java</module>
+                <module>ldap4j-mina</module>
+                <module>ldap4j-netty</module>
+                <module>ldap4j-reactor-netty</module>
+                <module>ldap4j-slf4j-shim</module>
+            </modules>
             <build>
                 <plugins>
                     <plugin>
@@ -124,8 +160,43 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.2</version>
+                <executions>
+                    <execution>
+                        <id>update</id>
+                        <goals>
+                            <goal>fix</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>attach-javadoc</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <doclint>all,-missing</doclint>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>3.3.1</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-source</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
