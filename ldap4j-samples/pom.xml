@@ -8,14 +8,14 @@
 
     <parent>
         <artifactId>ldap4j</artifactId>
-        <groupId>hu.gds</groupId>
+        <groupId>com.adaptiverecognition</groupId>
         <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <dependencies>
         <dependency>
-            <groupId>hu.gds</groupId>
+            <groupId>com.adaptiverecognition</groupId>
             <artifactId>ldap4j-reactor-netty</artifactId>
             <version>${revision}</version>
             <exclusions>
