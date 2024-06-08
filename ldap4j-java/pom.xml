@@ -9,7 +9,7 @@
     <parent>
         <artifactId>ldap4j</artifactId>
         <groupId>com.adaptiverecognition</groupId>
-        <version>${revision}</version>
+        <version>0.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
