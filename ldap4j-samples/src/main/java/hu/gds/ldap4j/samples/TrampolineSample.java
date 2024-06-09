@@ -18,7 +18,7 @@ public class TrampolineSample {
         long endNanos=System.nanoTime()+10_000_000_000L;
         TrampolineLdapConnection connection=TrampolineLdapConnection.createJavaPoll(
                 endNanos,
-                Log.systemErr(), // log everything to the standard out
+                Log.systemErr(), // log everything to the standard error
                 new InetSocketAddress("ldap.forumsys.com", 389),
                 TlsSettings.noTls()); // plain-text connection
         try {
