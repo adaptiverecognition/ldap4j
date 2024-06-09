@@ -72,7 +72,7 @@ jobs:
           echo 1003
           PASSPHRASE_FILE="$HOME/gpg.passphrase.secret"
           echo 1004
-          killall -q -9 gpg-agent
+          killall -9 gpg-agent || echo not found
           echo 1005
           rm -rf "$HOMEDIR"
           echo 1006
