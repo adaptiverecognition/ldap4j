@@ -76,33 +76,33 @@ Various dependencies are neatly packaged into submodules. Choose according to yo
 
 ```xml
     <dependency>
-        <groupId>hu.gds</groupId>
+        <groupId>com.adaptiverecognition</groupId>
         <artifactId>ldap4j-java</artifactId>
-        <version>0.1-SNAPSHOT</version>
+        <version>1.0.0</version>
     </dependency>
 ```
 
 ```xml
     <dependency>
-        <groupId>hu.gds</groupId>
+        <groupId>com.adaptiverecognition</groupId>
         <artifactId>ldap4j-mina</artifactId>
-        <version>0.1-SNAPSHOT</version>
+        <version>1.0.0</version>
     </dependency>
 ```
 
 ```xml
     <dependency>
-        <groupId>hu.gds</groupId>
+        <groupId>com.adaptiverecognition</groupId>
         <artifactId>ldap4j-netty</artifactId>
-        <version>0.1-SNAPSHOT</version>
+        <version>1.0.0</version>
     </dependency>
 ```
 
 ```xml
     <dependency>
-        <groupId>hu.gds</groupId>
+        <groupId>com.adaptiverecognition</groupId>
         <artifactId>ldap4j-reactor-netty</artifactId>
-        <version>0.1-SNAPSHOT</version>
+        <version>1.0.0</version>
     </dependency>
 ```
 
