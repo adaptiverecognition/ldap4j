@@ -68,7 +68,7 @@ jobs:
           HOMEDIR="$HOME/.gnupg"
           OSSRH_FILE="$HOME/ossrh-settings.xml.secret"
           PASSPHRASE_FILE="$HOME/gpg.passphrase.secret"
-          killall -9 gpg-agent
+          killall -q -9 gpg-agent
           rm -rf "$HOMEDIR"
           mkdir "$HOMEDIR"
           chmod 700 "$HOMEDIR"
