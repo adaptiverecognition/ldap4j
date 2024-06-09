@@ -65,20 +65,38 @@ jobs:
           JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.JRELEASER_GPG_PUBLIC_KEY }}
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo 1001
           HOMEDIR="$HOME/.gnupg"
+          echo 1002
           OSSRH_FILE="$HOME/ossrh-settings.xml.secret"
+          echo 1003
           PASSPHRASE_FILE="$HOME/gpg.passphrase.secret"
+          echo 1004
           killall -q -9 gpg-agent
+          echo 1005
           rm -rf "$HOMEDIR"
+          echo 1006
           mkdir "$HOMEDIR"
+          echo 1007
           chmod 700 "$HOMEDIR"
+          echo 1008
           echo $JRELEASER_GPG_SECRET_KEY | base64 -d | gpg --homedir "$HOMEDIR" --batch --import -
+          echo 1009
           rm -f "$OSSRH_FILE"
+          echo 1010
           cat ./ossrh-settings.xml | sed "s/magic0/$JRELEASER_NEXUS2_USERNAME/g" | sed "s/magic1/$JRELEASER_NEXUS2_PASSWORD/g" > "$OSSRH_FILE"
+          echo 1011
           rm -f "$PASSPHRASE_FILE"
+          echo 1012
           echo $JRELEASER_GPG_PASSPHRASE > "$PASSPHRASE_FILE"
+          echo 1013
           mvn -s "$OSSRH_FILE" -Prelease clean
+          echo 1014
           mvn -s "$OSSRH_FILE" -Prelease deploy
+          echo 1015
           rm -rf "$HOMEDIR"
+          echo 1016
           rm -f "$OSSRH_FILE"
+          echo 1017
           rm -f "$PASSPHRASE_FILE"
+          echo 1018
