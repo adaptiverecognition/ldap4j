@@ -64,4 +64,21 @@ jobs:
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.JRELEASER_GPG_SECRET_KEY }}
           JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.JRELEASER_GPG_PUBLIC_KEY }}
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mvn -s ./ossrh-settings.xml -Prelease deploy jreleaser:deploy -DaltDeploymentRepository=local::file:./target/staging-deploy
+        run: |
+          HOMEDIR="$HOME/.gnupg"
+          OSSRH_FILE="$HOME/ossrh-settings.xml.secret"
+          PASSPHRASE_FILE="$HOME/gpg.passphrase.secret"
+          killall -9 gpg-agent
+          rm -rf "$HOMEDIR"
+          mkdir "$HOMEDIR"
+          chmod 700 "$HOMEDIR"
+          echo $JRELEASER_GPG_SECRET_KEY | base64 -d | gpg --homedir "$HOMEDIR" --batch --import -
+          rm -f "$OSSRH_FILE"
+          cat ./ossrh-settings.xml | sed "s/magic0/$JRELEASER_NEXUS2_USERNAME/g" | sed "s/magic1/$JRELEASER_NEXUS2_PASSWORD/g" > "$OSSRH_FILE"
+          rm -f "$PASSPHRASE_FILE"
+          echo $JRELEASER_GPG_PASSPHRASE > "$PASSPHRASE_FILE"
+          mvn -s "$OSSRH_FILE" -Prelease clean
+          mvn -s "$OSSRH_FILE" -Prelease deploy
+          rm -rf "$HOMEDIR"
+          rm -f "$OSSRH_FILE"
+          rm -f "$PASSPHRASE_FILE"

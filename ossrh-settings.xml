@@ -4,8 +4,8 @@
     <servers>
         <server>
             <id>ossrh</id>
-            <username>env.JRELEASER_NEXUS2_USERNAME</username>
-            <password>env.JRELEASER_NEXUS2_PASSWORD</password>
+            <username>magic0</username>
+            <password>magic1</password>
         </server>
     </servers>
 </settings>

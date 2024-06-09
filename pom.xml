@@ -66,7 +66,7 @@
     <profiles>
         <profile>
             <id>development</id>
-            
+
             <modules>
                 <module>ldap4j-java</module>
                 <module>ldap4j-mina</module>
@@ -104,7 +104,12 @@
                             </execution>
                         </executions>
                         <configuration>
-                            <homedir>/home/peter.nagy@ar.local/tothl/gpghome</homedir>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                                <gpgArgument>--passphrase-file</gpgArgument>
+                                <gpgArgument>${env.HOME}/gpg.passphrase.secret</gpgArgument>
+                            </gpgArguments>
                         </configuration>
                     </plugin>
 
@@ -152,7 +157,7 @@
                     </plugin>
                 </plugins>
             </build>
-            
+
             <modules>
                 <module>ldap4j-java</module>
                 <module>ldap4j-mina</module>
