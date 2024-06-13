@@ -82,6 +82,14 @@
         <profile>
             <id>release</id>
 
+            <modules>
+                <module>ldap4j-java</module>
+                <module>ldap4j-mina</module>
+                <module>ldap4j-netty</module>
+                <module>ldap4j-reactor-netty</module>
+                <module>ldap4j-slf4j-shim</module>
+            </modules>
+
             <build>
                 <plugins>
                     <plugin>
@@ -157,14 +165,6 @@
                     </plugin>
                 </plugins>
             </build>
-
-            <modules>
-                <module>ldap4j-java</module>
-                <module>ldap4j-mina</module>
-                <module>ldap4j-netty</module>
-                <module>ldap4j-reactor-netty</module>
-                <module>ldap4j-slf4j-shim</module>
-            </modules>
         </profile>
     </profiles>
 

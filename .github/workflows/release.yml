@@ -25,11 +25,21 @@ jobs:
         id: vars
         shell: bash
         run: |
+          echo "get version"
           VERSION=${{ github.event.inputs.version }}
+          echo "set git email"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo "set git user"
           git config --global user.name "GitHub Action"
+          echo "set pom.xml revision"
+          mvn -B -Prelease versions:set-property -Dproperty=revision "-DnewVersion=$VERSION" -DgenerateBackupPoms=false
+          echo "git add pom.xml"
+          git add pom.xml
+          echo "git commit"
           git commit --all --allow-empty --message "Releasing version $VERSION"
-          git tag --annotate --message "Releasing version $VERSION" $VERSION
+          echo "git tag"
+          git tag --annotate --message "Releasing version $VERSION" "$VERSION"
+          echo "git push"
           git push --tags origin master
 
   release:
@@ -90,9 +100,9 @@ jobs:
           echo "create passphrase file"
           echo $JRELEASER_GPG_PASSPHRASE > "$PASSPHRASE_FILE"
           echo "maven clean"
-          mvn -s "$OSSRH_FILE" -Prelease clean
+          mvn -B -s "$OSSRH_FILE" -Prelease clean
           echo "maven deploy"
-          mvn -s "$OSSRH_FILE" -Prelease deploy
+          mvn -B -s "$OSSRH_FILE" -Prelease deploy
           echo "remove gpg home dir"
           rm -rf "$HOMEDIR"
           echo "remove ossrh credentials file"
