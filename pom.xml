@@ -9,7 +9,7 @@
     <version>${revision}</version>
 
     <name>ldap4j</name>
-    <description>ldap client library for java</description>
+    <description>Ldap4j is an LDAP client library for Java.</description>
     <url>https://github.com/adaptiverecognition/ldap4j</url>
 
     <licenses>
