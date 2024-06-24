@@ -40,7 +40,7 @@ public sealed interface Either<T, U> {
 
         @Override
         public String toString() {
-            return "Left("+value+")";
+            return "Either.Left("+value+")";
         }
     }
 
@@ -80,7 +80,7 @@ public sealed interface Either<T, U> {
 
         @Override
         public String toString() {
-            return "Right("+value+")";
+            return "Either.Right("+value+")";
         }
     }
 
