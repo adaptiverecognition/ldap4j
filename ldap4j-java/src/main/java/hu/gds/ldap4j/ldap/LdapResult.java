@@ -29,6 +29,13 @@ public record LdapResult(
         }
     }
 
+    public void checkCompare() throws LdapException {
+        if ((!LdapResultCode.COMPARE_FALSE.equals(resultCode2))
+                && (!LdapResultCode.COMPARE_TRUE.equals(resultCode2))) {
+            throw new LdapException(diagnosticMessages, referrals, resultCode, resultCode2);
+        }
+    }
+
     public static @NotNull LdapResult read(@NotNull ByteBuffer.Reader reader) throws Throwable {
         int resultCode=DER.readEnumeratedTag(reader);
         String matchedDn=DER.readUtf8Tag(reader);

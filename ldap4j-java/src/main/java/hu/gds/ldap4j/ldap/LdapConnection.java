@@ -114,6 +114,23 @@ public class LdapConnection implements Connection {
         });
     }
 
+    public @NotNull Lava<@NotNull CompareResponse> compare(
+            @NotNull CompareRequest compareRequest, boolean manageDsaIt) {
+        Objects.requireNonNull(compareRequest, "compareRequest");
+        return Lava.supplier(()->writeMessage(
+                connection(),
+                manageDsaIt
+                        ?List.of(Control.nonCritical(Ldap.MANAGE_DSA_IT_OID))
+                        :List.of(),
+                CompareRequest::write,
+                compareRequest)
+                .compose((messageId)->readLdapMessage(CompareResponse::read, messageId))
+                .compose((CompareResponse)->{
+                    CompareResponse.message().ldapResult().checkCompare();
+                    return Lava.complete(CompareResponse.message());
+                }));
+    }
+
     private @NotNull TlsConnection connection() {
         @Nullable TlsConnection connection2;
         synchronized (lock) {

@@ -7,6 +7,8 @@ import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.ldap.AddRequest;
 import hu.gds.ldap4j.ldap.AddResponse;
 import hu.gds.ldap4j.ldap.BindResponse;
+import hu.gds.ldap4j.ldap.CompareRequest;
+import hu.gds.ldap4j.ldap.CompareResponse;
 import hu.gds.ldap4j.ldap.DeleteRequest;
 import hu.gds.ldap4j.ldap.DeleteResponse;
 import hu.gds.ldap4j.ldap.LdapConnection;
@@ -51,6 +53,12 @@ public record TrampolineLdapConnection(
     public void close(long endNanos) throws Throwable {
         trampoline.contextEndNanos(endNanos)
                 .get(false, true, connection.close());
+    }
+
+    public @NotNull CompareResponse compare(
+            @NotNull CompareRequest compareRequest, long endNanos, boolean manageDsaIt) throws Throwable {
+        return trampoline.contextEndNanos(endNanos)
+                .get(true, true, connection.compare(compareRequest, manageDsaIt));
     }
 
     public static @NotNull TrampolineLdapConnection create(

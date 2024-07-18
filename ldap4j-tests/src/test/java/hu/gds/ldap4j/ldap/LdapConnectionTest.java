@@ -209,6 +209,51 @@ public class LdapConnectionTest {
 
     @ParameterizedTest
     @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
+    public void testCompare(LdapTestParameters testParameters) throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
+             LdapServer ldapServer=new LdapServer(
+                     false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
+            ldapServer.start();
+            String attribute="member";
+            String object="cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu";
+            String user0="uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu";
+            String user2="uid=user2,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu";
+            context.get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
+                            new Function<LdapConnection, Lava<Void>>() {
+                                private @NotNull Lava<Void> assertCompare(
+                                        @NotNull LdapConnection connection, boolean result, String value) {
+                                    return compare(connection, value)
+                                            .compose((result2)->{
+                                                assertEquals(result, result2);
+                                                return Lava.VOID;
+                                            });
+                                }
+
+                                @Override
+                                public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) {
+                                    return assertCompare(connection, true, user0)
+                                            .composeIgnoreResult(()->assertCompare(connection, false, user2));
+                                }
+
+                                private @NotNull Lava<@NotNull Boolean> compare(
+                                        @NotNull LdapConnection connection, String value) {
+                                    return connection.compare(
+                                            new CompareRequest(
+                                                    new Filter.EqualityMatch(value, attribute),
+                                                    object),
+                                            false)
+                                            .compose((response)->Lava.complete(
+                                                    LdapResultCode.COMPARE_TRUE
+                                                            .equals(response.ldapResult().resultCode2())));
+                                }
+                            }));
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
     public void testDERLength(LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
              LdapServer ldapServer=new LdapServer(

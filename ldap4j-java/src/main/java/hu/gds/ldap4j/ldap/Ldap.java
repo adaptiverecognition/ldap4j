@@ -31,6 +31,8 @@ public abstract class Ldap {
     public static final byte PROTOCOL_OP_ADD_RESPONSE=0x69;
     public static final byte PROTOCOL_OP_BIND_REQUEST=0x60;
     public static final byte PROTOCOL_OP_BIND_RESPONSE=0x61;
+    public static final byte PROTOCOL_OP_COMPARE_REQUEST=0x6e;
+    public static final byte PROTOCOL_OP_COMPARE_RESPONSE=0x6f;
     public static final byte PROTOCOL_OP_DELETE_REQUEST=0x4a;
     public static final byte PROTOCOL_OP_DELETE_RESPONSE=0x6b;
     public static final byte PROTOCOL_OP_EXTENDED_REQUEST=0x77;

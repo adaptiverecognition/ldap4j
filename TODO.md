@@ -1,8 +1,6 @@
 # nice to have
 
 - all operations
-  - Compare
-    - managedsait 
   - Abandon
   - sasl bind
 - java docs / manual / guides

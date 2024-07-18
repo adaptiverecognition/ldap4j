@@ -9,6 +9,8 @@ import hu.gds.ldap4j.lava.ScheduledExecutorContext;
 import hu.gds.ldap4j.ldap.AddRequest;
 import hu.gds.ldap4j.ldap.AddResponse;
 import hu.gds.ldap4j.ldap.BindResponse;
+import hu.gds.ldap4j.ldap.CompareRequest;
+import hu.gds.ldap4j.ldap.CompareResponse;
 import hu.gds.ldap4j.ldap.DeleteRequest;
 import hu.gds.ldap4j.ldap.DeleteResponse;
 import hu.gds.ldap4j.ldap.LdapConnection;
@@ -58,6 +60,11 @@ public class FutureLdapConnection {
 
     public @NotNull CompletableFuture<Void> close() {
         return startLava(connection.close());
+    }
+
+    public @NotNull CompletableFuture<@NotNull CompareResponse> compare(
+            @NotNull CompareRequest compareRequest, boolean manageDsaIt) {
+        return startLava(connection.compare(compareRequest, manageDsaIt));
     }
 
     public @NotNull LdapConnection connection() {
