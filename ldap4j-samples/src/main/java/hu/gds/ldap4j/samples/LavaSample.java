@@ -11,6 +11,7 @@ import hu.gds.ldap4j.ldap.Filter;
 import hu.gds.ldap4j.ldap.LdapConnection;
 import hu.gds.ldap4j.ldap.Scope;
 import hu.gds.ldap4j.ldap.SearchRequest;
+import hu.gds.ldap4j.ldap.SearchResult;
 import hu.gds.ldap4j.net.JavaAsyncChannelConnection;
 import hu.gds.ldap4j.net.TlsSettings;
 import java.net.InetSocketAddress;
@@ -53,11 +54,12 @@ public class LavaSample {
                                 })
                                 .compose((searchResults)->{
                                     System.out.println("mathematicians:");
-                                    searchResults.get(0)
-                                            .asEntry()
-                                            .attributes()
-                                            .get("uniqueMember")
-                                            .values()
+                                    searchResults.stream()
+                                            .filter(SearchResult::isEntry)
+                                            .map(SearchResult::asEntry)
+                                            .flatMap((entry)->entry.attributes().stream())
+                                            .filter((attribute)->"uniqueMember".equals(attribute.type()))
+                                            .flatMap((attribute)->attribute.values().stream())
                                             .forEach(System.out::println);
                                     return Lava.VOID;
                                 });

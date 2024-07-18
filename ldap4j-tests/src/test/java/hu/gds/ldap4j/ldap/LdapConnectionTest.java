@@ -13,7 +13,6 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.stream.Streams;
@@ -295,6 +294,96 @@ public class LdapConnectionTest {
 
     @ParameterizedTest
     @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
+    public void testModify(LdapTestParameters testParameters) throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
+             LdapServer ldapServer=new LdapServer(
+                     false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
+            ldapServer.start();
+            String attribute="member";
+            String object="cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu";
+            String user0="uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu";
+            String user1="uid=user1,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu";
+            String user2="uid=user2,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu";
+            String user3="uid=user3,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu";
+            context.get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
+                            new Function<LdapConnection, Lava<Void>>() {
+                                private @NotNull Lava<Void> assertMembers(
+                                        @NotNull LdapConnection connection, String... members) throws Throwable {
+                                    return members(connection)
+                                            .compose((members2)->{
+                                                assertEquals(List.of(members), members2);
+                                                return Lava.VOID;
+                                            });
+                                }
+
+                                @Override
+                                public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) throws Throwable {
+                                    return assertMembers(connection, user0, user1)
+                                            .composeIgnoreResult(()->modify(
+                                                    connection,
+                                                    new ModifyRequest.Change(
+                                                            new PartialAttribute(attribute, List.of(user2, user3)),
+                                                            ModifyRequest.Operation.REPLACE)))
+                                            .composeIgnoreResult(()->assertMembers(connection, user2, user3))
+                                            .composeIgnoreResult(()->modify(
+                                                    connection,
+                                                    new ModifyRequest.Change(
+                                                            new PartialAttribute(attribute, List.of()),
+                                                            ModifyRequest.Operation.DELETE)))
+                                            .composeIgnoreResult(()->assertMembers(connection))
+                                            .composeIgnoreResult(()->modify(
+                                                    connection,
+                                                    new ModifyRequest.Change(
+                                                            new PartialAttribute(attribute, List.of(user0)),
+                                                            ModifyRequest.Operation.ADD),
+                                                    new ModifyRequest.Change(
+                                                            new PartialAttribute(attribute, List.of(user1)),
+                                                            ModifyRequest.Operation.ADD)))
+                                            .composeIgnoreResult(()->assertMembers(connection, user0, user1));
+                                }
+
+                                private @NotNull Lava<@NotNull List<@NotNull String>> members(
+                                        @NotNull LdapConnection connection) throws Throwable {
+                                    return connection.search(
+                                                    false,
+                                                    new SearchRequest(
+                                                            List.of(attribute),
+                                                            object,
+                                                            DerefAliases.NEVER_DEREF_ALIASES,
+                                                            Filter.parse("(objectClass=*)"),
+                                                            Scope.BASE_OBJECT,
+                                                            10,
+                                                            10,
+                                                            false))
+                                            .compose((searchResults)->{
+                                                List<String> members=new ArrayList<>(
+                                                        searchResults.stream()
+                                                                .filter(SearchResult::isEntry)
+                                                                .map(SearchResult::asEntry)
+                                                                .flatMap((entry)->entry.attributes().stream())
+                                                                .filter((attribute2)->attribute.equals(attribute2.type()))
+                                                                .flatMap((attribute2)->attribute2.values().stream())
+                                                                .toList());
+                                                members.sort(null);
+                                                return Lava.complete(members);
+                                            });
+                                }
+
+                                private @NotNull Lava<Void> modify(
+                                        @NotNull LdapConnection connection, ModifyRequest.Change... changes) {
+                                    return connection.modify(
+                                                    false,
+                                                    new ModifyRequest(List.of(changes), object))
+                                            .composeIgnoreResult(()->Lava.VOID);
+                                }
+                            }));
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
     public void testSearchAttributes(LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
              LdapServer ldapServer=new LdapServer(
@@ -306,37 +395,37 @@ public class LdapConnectionTest {
                             (connection)->testSearchAttributes(
                                     connection,
                                     List.of(),
-                                    Set.of("objectClass", "cn", "sn", "uid", "userPassword"))
+                                    List.of("objectClass", "cn", "sn", "uid", "userPassword"))
                                     .composeIgnoreResult(()->testSearchAttributes(
                                             connection,
                                             List.of("cn"),
-                                            Set.of("cn")))
+                                            List.of("cn")))
                                     .composeIgnoreResult(()->testSearchAttributes(
                                             connection,
                                             List.of("cn", "sn"),
-                                            Set.of("cn", "sn")))
+                                            List.of("cn", "sn")))
                                     .composeIgnoreResult(()->testSearchAttributes(
                                             connection,
                                             List.of(Ldap.NO_ATTRIBUTES),
-                                            Set.of()))
+                                            List.of()))
                                     .composeIgnoreResult(()->testSearchAttributes(
                                             connection,
                                             List.of(Ldap.ALL_ATTRIBUTES),
-                                            Set.of("objectClass", "cn", "sn", "uid", "userPassword")))
+                                            List.of("objectClass", "cn", "sn", "uid", "userPassword")))
                                     .composeIgnoreResult(()->testSearchAttributes(
                                             connection,
                                             List.of(Ldap.ALL_ATTRIBUTES, Ldap.NO_ATTRIBUTES),
-                                            Set.of("objectClass", "cn", "sn", "uid", "userPassword")))
+                                            List.of("objectClass", "cn", "sn", "uid", "userPassword")))
                                     .composeIgnoreResult(()->testSearchAttributes(
                                             connection,
                                             List.of(Ldap.NO_ATTRIBUTES, "cn"),
-                                            Set.of("cn")))));
+                                            List.of("cn")))));
         }
     }
 
     private @NotNull Lava<Void> testSearchAttributes(
             @NotNull LdapConnection connection, @NotNull List<@NotNull String> requestAttributes,
-            @NotNull Set<@NotNull String> responseAttributes) throws Throwable {
+            @NotNull List<@NotNull String> responseAttributes) throws Throwable {
         return connection.search(
                         false,
                         new SearchRequest(
@@ -353,7 +442,12 @@ public class LdapConnectionTest {
                     assertTrue(searchResult.get(0).isEntry());
                     assertTrue(searchResult.get(1).isDone());
                     SearchResult.Entry entry=searchResult.get(0).asEntry();
-                    assertEquals(responseAttributes, entry.attributes().keySet());
+                    assertEquals(
+                            responseAttributes,
+                            entry.attributes()
+                                    .stream()
+                                    .map(PartialAttribute::type)
+                                    .toList());
                     return Lava.VOID;
                 });
     }
@@ -508,7 +602,10 @@ public class LdapConnectionTest {
                     SearchResult.Entry entry=result.get(0).asEntry();
                     assertEquals("cn=referral0,ou=test,dc=ldap4j,dc=gds,dc=hu", entry.objectName());
                     assertTrue(result.get(1).isDone());
-                    referrals=new ArrayList<>(entry.attributes().get("ref").values());
+                    assertEquals(1, entry.attributes().size());
+                    PartialAttribute attribute=entry.attributes().get(0);
+                    assertEquals("ref", attribute.type());
+                    referrals=attribute.values();
                 }
                 catch (Throwable throwable) {
                     if (manageDsaIt) {
@@ -622,12 +719,9 @@ public class LdapConnectionTest {
                     String cn=group.substring(group.indexOf('=')+1, group.indexOf(','));
                     assertEquals(
                             new SearchResult.Entry(
-                                    Map.of(
-                                            "objectClass",
-                                            new PartialAttribute("objectClass", Set.of("top", "groupOfNames")),
-                                            "cn",
-                                            new PartialAttribute("cn", Set.of(cn))
-                                    ),
+                                    List.of(
+                                            new PartialAttribute("objectClass", List.of("top", "groupOfNames")),
+                                            new PartialAttribute("cn", List.of(cn))),
                                     group),
                             results.get(ii));
                 }

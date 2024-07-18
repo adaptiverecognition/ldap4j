@@ -35,6 +35,8 @@ public abstract class Ldap {
     public static final byte PROTOCOL_OP_EXTENDED_RESPONSE=0x78;
     public static final byte PROTOCOL_OP_EXTENDED_RESPONSE_NAME=(byte)0x8a;
     public static final byte PROTOCOL_OP_EXTENDED_RESPONSE_VALUE=(byte)0x8b;
+    public static final byte PROTOCOL_OP_MODIFY_REQUEST=0x66;
+    public static final byte PROTOCOL_OP_MODIFY_RESPONSE=0x67;
     public static final byte PROTOCOL_OP_SEARCH_REQUEST=0x63;
     public static final byte PROTOCOL_OP_SEARCH_RESULT_DONE=0x65;
     public static final byte PROTOCOL_OP_SEARCH_RESULT_ENTRY=0x64;

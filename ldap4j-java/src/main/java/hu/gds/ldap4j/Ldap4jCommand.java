@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
@@ -251,12 +250,11 @@ public class Ldap4jCommand {
                 public Void entry(@NotNull SearchResult.Entry entry) {
                     System.out.printf("search entry%n");
                     System.out.printf("\tdn: %s%n", entry.objectName());
-                    for (Map.Entry<String, PartialAttribute> attribute:
-                            entry.attributes().entrySet()) {
+                    for (PartialAttribute attribute: entry.attributes()) {
                         System.out.printf(
                                 "\t%s: %s%n",
-                                attribute.getKey(),
-                                attribute.getValue());
+                                attribute.type(),
+                                attribute.values());
                     }
                     return null;
                 }

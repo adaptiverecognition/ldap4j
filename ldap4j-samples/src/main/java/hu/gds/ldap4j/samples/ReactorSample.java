@@ -5,6 +5,7 @@ import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.Filter;
 import hu.gds.ldap4j.ldap.Scope;
 import hu.gds.ldap4j.ldap.SearchRequest;
+import hu.gds.ldap4j.ldap.SearchResult;
 import hu.gds.ldap4j.net.TlsSettings;
 import hu.gds.ldap4j.reactor.netty.ReactorLdapConnection;
 import hu.gds.ldap4j.reactor.netty.ReactorLdapPool;
@@ -97,11 +98,12 @@ public class ReactorSample {
                     })
                     .flatMap((searchResults)->{
                         output.append("mathematicians:<br>");
-                        searchResults.get(0)
-                                .asEntry()
-                                .attributes()
-                                .get("uniqueMember")
-                                .values()
+                        searchResults.stream()
+                                .filter(SearchResult::isEntry)
+                                .map(SearchResult::asEntry)
+                                .flatMap((entry)->entry.attributes().stream())
+                                .filter((attribute)->"uniqueMember".equals(attribute.type()))
+                                .flatMap((attribute)->attribute.values().stream())
                                 .forEach((value)->{
                                     output.append(value);
                                     output.append("<br>");

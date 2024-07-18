@@ -41,7 +41,7 @@ public class LdapConnection implements Connection {
     /**
      * @return a bind response with success result code
      */
-    public @NotNull Lava<BindResponse> bindSimple(@NotNull String bindDn, char[] password) {
+    public @NotNull Lava<@NotNull BindResponse> bindSimple(@NotNull String bindDn, char[] password) {
         Objects.requireNonNull(bindDn, "bindDn");
         Objects.requireNonNull(password, "password");
         return Lava.supplier(()->writeMessage(
@@ -198,6 +198,22 @@ public class LdapConnection implements Connection {
         return messageIdGenerator;
     }
 
+    public @NotNull Lava<@NotNull ModifyResponse> modify(boolean manageDsaIt, @NotNull ModifyRequest modifyRequest) {
+        Objects.requireNonNull(modifyRequest, "modifyRequest");
+        return Lava.supplier(()->writeMessage(
+                connection(),
+                manageDsaIt
+                        ?List.of(Control.nonCritical(Ldap.MANAGE_DSA_IT_OID))
+                        :List.of(),
+                ModifyRequest::write,
+                modifyRequest)
+                .compose((messageId)->readLdapMessage(ModifyResponse::read, messageId))
+                .compose((modifyResponse)->{
+                    modifyResponse.message().ldapResult().check();
+                    return Lava.complete(modifyResponse.message());
+                }));
+    }
+
     private <T> @NotNull Lava<@NotNull LdapMessage<T>> readLdapMessage(
             @NotNull Function<ByteBuffer.Reader, T> function, int messageId) {
         return Lava.catchErrors(
@@ -303,7 +319,9 @@ public class LdapConnection implements Connection {
             @NotNull SearchRequest searchRequest) {
         return Lava.supplier(()->writeMessage(
                 connection(),
-                manageDsaIt?List.of(Control.nonCritical(Ldap.MANAGE_DSA_IT_OID)):List.of(),
+                manageDsaIt
+                        ?List.of(Control.nonCritical(Ldap.MANAGE_DSA_IT_OID))
+                        :List.of(),
                 SearchRequest::write,
                 searchRequest,
                 messageIdGenerator));

@@ -15,7 +15,6 @@ import hu.gds.ldap4j.ldap.SearchResult;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -66,9 +65,11 @@ public class TrampolineLdapTest {
         assertTrue(searchResults.get(0).isEntry());
         SearchResult.Entry entry=searchResults.get(0).asEntry();
         assertEquals(user.getKey(), entry.objectName());
-        PartialAttribute attribute2=entry.attributes().get(attribute);
+        assertEquals(1, entry.attributes().size());
+        PartialAttribute attribute2=entry.attributes().get(0);
         assertNotNull(attribute2);
-        assertEquals(Set.of(value), attribute2.values());
+        assertEquals(attribute, attribute2.type());
+        assertEquals(List.of(value), attribute2.values());
         assertTrue(searchResults.get(1).isDone());
     }
 

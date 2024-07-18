@@ -6,6 +6,8 @@ import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.ldap.BindResponse;
 import hu.gds.ldap4j.ldap.LdapConnection;
+import hu.gds.ldap4j.ldap.ModifyRequest;
+import hu.gds.ldap4j.ldap.ModifyResponse;
 import hu.gds.ldap4j.ldap.SearchRequest;
 import hu.gds.ldap4j.ldap.SearchResult;
 import hu.gds.ldap4j.net.DuplexConnection;
@@ -95,10 +97,15 @@ public record TrampolineLdapConnection(
                 tlsSettings);
     }
 
-    @NotNull
     public void fastBind(long endNanos) throws Throwable {
         trampoline.contextEndNanos(endNanos)
                 .get(true, true, connection.fastBind());
+    }
+
+    public @NotNull ModifyResponse modify(
+            long endNanos, boolean manageDsaIt, @NotNull ModifyRequest modifyRequest) throws Throwable {
+        return trampoline.contextEndNanos(endNanos)
+                .get(true, true, connection.modify(manageDsaIt, modifyRequest));
     }
 
     public @NotNull List<@NotNull SearchResult> search(

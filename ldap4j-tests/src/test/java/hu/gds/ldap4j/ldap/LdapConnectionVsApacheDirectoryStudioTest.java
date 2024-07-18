@@ -243,16 +243,20 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                         assertEquals(
                                 "cn=Referral 0,ou=Referrals,dc=test,dc=ldap4j,dc=gds,dc=hu",
                                 entry.objectName());
-                        assertEquals(2, entry.attributes().get("ref").values().size());
+                        PartialAttribute refAttribute=null;
+                        for (PartialAttribute partialAttribute: entry.attributes()) {
+                            if ("ref".equals(partialAttribute.type())) {
+                                refAttribute=partialAttribute;
+                                break;
+                            }
+                        }
+                        assertNotNull(refAttribute);
+                        assertEquals(2, refAttribute.values().size());
                         assertTrue(
-                                entry.attributes()
-                                        .get("ref")
-                                        .values()
+                                refAttribute.values()
                                         .contains("ldap://test.example.org:10389/dc=test,dc=example,dc=org"));
                         assertTrue(
-                                entry.attributes()
-                                        .get("ref")
-                                        .values()
+                                refAttribute.values()
                                         .contains("ldap:///dc=foobar"));
                     }
 

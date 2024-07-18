@@ -6,6 +6,8 @@ import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.ldap.BindResponse;
 import hu.gds.ldap4j.ldap.LdapConnection;
+import hu.gds.ldap4j.ldap.ModifyRequest;
+import hu.gds.ldap4j.ldap.ModifyResponse;
 import hu.gds.ldap4j.ldap.SearchRequest;
 import hu.gds.ldap4j.ldap.SearchResult;
 import hu.gds.ldap4j.net.TlsSettings;
@@ -49,6 +51,10 @@ public class ReactorLdapConnection {
 
     private <T> @NotNull Mono<T> lavaToMono(@NotNull Lava<T> lava) {
         return LavaMono.create(ReactorContext.createTimeoutNanos(timeoutNanos), lava);
+    }
+
+    public @NotNull Mono<@NotNull ModifyResponse> modify(boolean manageDsaIt, @NotNull ModifyRequest modifyRequest) {
+        return lavaToMono(connection.modify(manageDsaIt, modifyRequest));
     }
 
     public @NotNull Mono<@NotNull List<@NotNull SearchResult>> search(

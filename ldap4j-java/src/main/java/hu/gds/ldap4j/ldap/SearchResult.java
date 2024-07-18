@@ -42,10 +42,10 @@ public sealed interface SearchResult {
     }
 
     record Entry(
-            @NotNull Map<@NotNull String, @NotNull PartialAttribute> attributes,
+            @NotNull List<@NotNull PartialAttribute> attributes,
             @NotNull String objectName)
             implements SearchResult {
-        public Entry(@NotNull Map<@NotNull String, @NotNull PartialAttribute> attributes, @NotNull String objectName) {
+        public Entry(@NotNull List<@NotNull PartialAttribute> attributes, @NotNull String objectName) {
             this.attributes=Objects.requireNonNull(attributes, "attributes");
             this.objectName=Objects.requireNonNull(objectName, "objectName");
         }
@@ -66,7 +66,7 @@ public sealed interface SearchResult {
 
         public static @NotNull SearchResult.Entry read(@NotNull ByteBuffer.Reader reader) throws Throwable {
             String objectName=DER.readUtf8Tag(reader);
-            Map<@NotNull String, @NotNull PartialAttribute> attributes=PartialAttribute.readAttributes(reader);
+            @NotNull List<@NotNull PartialAttribute> attributes=PartialAttribute.readAttributes(reader);
             return new SearchResult.Entry(attributes, objectName);
         }
 

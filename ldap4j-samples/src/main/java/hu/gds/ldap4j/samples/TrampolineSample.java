@@ -40,11 +40,12 @@ public class TrampolineSample {
                             10, // time limit
                             false)); // types only
             System.out.println("mathematicians:");
-            searchResults.get(0)
-                    .asEntry()
-                    .attributes()
-                    .get("uniqueMember")
-                    .values()
+            searchResults.stream()
+                    .filter(SearchResult::isEntry)
+                    .map(SearchResult::asEntry)
+                    .flatMap((entry)->entry.attributes().stream())
+                    .filter((attribute)->"uniqueMember".equals(attribute.type()))
+                    .flatMap((attribute)->attribute.values().stream())
                     .forEach(System.out::println);
         }
         finally {

@@ -8,6 +8,8 @@ import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.lava.ScheduledExecutorContext;
 import hu.gds.ldap4j.ldap.BindResponse;
 import hu.gds.ldap4j.ldap.LdapConnection;
+import hu.gds.ldap4j.ldap.ModifyRequest;
+import hu.gds.ldap4j.ldap.ModifyResponse;
 import hu.gds.ldap4j.ldap.SearchRequest;
 import hu.gds.ldap4j.ldap.SearchResult;
 import hu.gds.ldap4j.net.DuplexConnection;
@@ -91,6 +93,11 @@ public class FutureLdapConnection {
 
     public @NotNull CompletableFuture<Void> fastBind() {
         return startLava(connection.fastBind());
+    }
+
+    public @NotNull CompletableFuture<@NotNull ModifyResponse> modify(
+            boolean manageDsaIt, @NotNull ModifyRequest modifyRequest) {
+        return startLava(connection.modify(manageDsaIt, modifyRequest));
     }
 
     public @NotNull CompletableFuture<@NotNull List<@NotNull SearchResult>> search(

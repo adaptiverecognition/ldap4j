@@ -173,11 +173,12 @@ This requires a thread pool.
                         })
                         .thenCompose((searchResults)->{
                             System.out.println("mathematicians:");
-                            searchResults.get(0)
-                                    .asEntry()
-                                    .attributes()
-                                    .get("uniqueMember")
-                                    .values()
+                            searchResults.stream()
+                                    .filter(SearchResult::isEntry)
+                                    .map(SearchResult::asEntry)
+                                    .flatMap((entry)->entry.attributes().stream())
+                                    .filter((attribute)->"uniqueMember".equals(attribute.type()))
+                                    .flatMap((attribute)->attribute.values().stream())
                                     .forEach(System.out::println);
                             return CompletableFuture.completedFuture(null);
                         });
@@ -234,11 +235,12 @@ Lava can be used reactive-style.
                                 })
                                 .compose((searchResults)->{
                                     System.out.println("mathematicians:");
-                                    searchResults.get(0)
-                                            .asEntry()
-                                            .attributes()
-                                            .get("uniqueMember")
-                                            .values()
+                                    searchResults.stream()
+                                            .filter(SearchResult::isEntry)
+                                            .map(SearchResult::asEntry)
+                                            .flatMap((entry)->entry.attributes().stream())
+                                            .filter((attribute)->"uniqueMember".equals(attribute.type()))
+                                            .flatMap((attribute)->attribute.values().stream())
                                             .forEach(System.out::println);
                                     return Lava.VOID;
                                 });
@@ -349,15 +351,16 @@ After starting the sample, the application can be reached [here](http://127.0.0.
                 })
                 .flatMap((searchResults)->{
                     output.append("mathematicians:<br>");
-                    searchResults.get(0)
-                            .asEntry()
-                            .attributes()
-                            .get("uniqueMember")
-                            .values()
-                            .forEach((value)->{
-                                output.append(value);
-                                output.append("<br>");
-                            });
+                    searchResults.stream()
+                              .filter(SearchResult::isEntry)
+                              .map(SearchResult::asEntry)
+                              .flatMap((entry)->entry.attributes().stream())
+                              .filter((attribute)->"uniqueMember".equals(attribute.type()))
+                              .flatMap((attribute)->attribute.values().stream())
+                              .forEach((value)->{
+                                  output.append(value);
+                                  output.append("<br>");
+                              });
                     return Mono.just(new Object());
                 });
     }
@@ -414,11 +417,12 @@ The transport is hardcoded to Java NIO polling.
                     10, // time limit
                     false)); // types only
     System.out.println("mathematicians:");
-    searchResults.get(0)
-            .asEntry()
-            .attributes()
-            .get("uniqueMember")
-            .values()
+    searchResults.stream()
+            .filter(SearchResult::isEntry)
+            .map(SearchResult::asEntry)
+            .flatMap((entry)->entry.attributes().stream())
+            .filter((attribute)->"uniqueMember".equals(attribute.type()))
+            .flatMap((attribute)->attribute.values().stream())
             .forEach(System.out::println);
 
     // release resources, timeout only affects the LDAP and TLS shutdown sequences

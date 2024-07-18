@@ -12,7 +12,7 @@ public record SimpleBindRequest(String bindDn, char[] password, int version) {
         this.version=version;
     }
 
-    public ByteBuffer write() throws Throwable {
+    public @NotNull ByteBuffer write() throws Throwable {
         return DER.writeTag(
                 Ldap.PROTOCOL_OP_BIND_REQUEST,
                 DER.writeIntegerTag(false, version)
