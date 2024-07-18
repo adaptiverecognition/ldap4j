@@ -38,6 +38,16 @@ public class LdapConnection implements Connection {
         usingTls=ldaps;
     }
 
+    public @NotNull Lava<Void> abandon(@NotNull AbandonRequest abandonRequest) {
+        Objects.requireNonNull(abandonRequest, "abandonRequest");
+        return Lava.supplier(()->writeMessage(
+                connection(),
+                List.of(),
+                AbandonRequest::write,
+                abandonRequest)
+                .composeIgnoreResult(()->Lava.VOID));
+    }
+
     public @NotNull Lava<@NotNull AddResponse> add(@NotNull AddRequest addRequest, boolean manageDsaIt) {
         Objects.requireNonNull(addRequest, "addRequest");
         return Lava.supplier(()->writeMessage(

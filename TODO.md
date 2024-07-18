@@ -1,13 +1,14 @@
 # nice to have
 
 - all operations
-  - Abandon
   - sasl bind
+  - cancel, rfc 3909
 - java docs / manual / guides
 - netty kqueue
 - parallel operations
 - speed
 - unit tests
+  - abandon (both apache ds and unboundid ldap sdk send a notice of disconnect)
   - extensible match
   - fast bind
   - ms domain controller
