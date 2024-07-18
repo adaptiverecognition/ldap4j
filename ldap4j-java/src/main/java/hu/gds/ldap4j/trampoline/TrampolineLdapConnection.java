@@ -4,7 +4,11 @@ import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
+import hu.gds.ldap4j.ldap.AddRequest;
+import hu.gds.ldap4j.ldap.AddResponse;
 import hu.gds.ldap4j.ldap.BindResponse;
+import hu.gds.ldap4j.ldap.DeleteRequest;
+import hu.gds.ldap4j.ldap.DeleteResponse;
 import hu.gds.ldap4j.ldap.LdapConnection;
 import hu.gds.ldap4j.ldap.ModifyRequest;
 import hu.gds.ldap4j.ldap.ModifyResponse;
@@ -31,13 +35,17 @@ public record TrampolineLdapConnection(
         this.trampoline=Objects.requireNonNull(trampoline, "trampoline");
     }
 
-    @NotNull
-    public BindResponse bindSimple(@NotNull String bindDn, long endNanos, char[] password) throws Throwable {
+    public @NotNull AddResponse delete(
+            @NotNull AddRequest addRequest, long endNanos, boolean manageDsaIt) throws Throwable {
+        return trampoline.contextEndNanos(endNanos)
+                .get(true, true, connection.add(addRequest, manageDsaIt));
+    }
+
+    public @NotNull BindResponse bindSimple(@NotNull String bindDn, long endNanos, char[] password) throws Throwable {
         return trampoline.contextEndNanos(endNanos)
                 .get(true, true, connection.bindSimple(bindDn, password));
     }
 
-    @NotNull
     public void close(long endNanos) throws Throwable {
         trampoline.contextEndNanos(endNanos)
                 .get(false, true, connection.close());
@@ -95,6 +103,12 @@ public record TrampolineLdapConnection(
                 log,
                 remoteAddress,
                 tlsSettings);
+    }
+
+    public @NotNull DeleteResponse delete(
+            @NotNull DeleteRequest deleteRequest, long endNanos, boolean manageDsaIt) throws Throwable {
+        return trampoline.contextEndNanos(endNanos)
+                .get(true, true, connection.delete(deleteRequest, manageDsaIt));
     }
 
     public void fastBind(long endNanos) throws Throwable {

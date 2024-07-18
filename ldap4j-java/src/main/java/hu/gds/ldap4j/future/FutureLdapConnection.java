@@ -6,7 +6,11 @@ import hu.gds.ldap4j.Supplier;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.lava.ScheduledExecutorContext;
+import hu.gds.ldap4j.ldap.AddRequest;
+import hu.gds.ldap4j.ldap.AddResponse;
 import hu.gds.ldap4j.ldap.BindResponse;
+import hu.gds.ldap4j.ldap.DeleteRequest;
+import hu.gds.ldap4j.ldap.DeleteResponse;
 import hu.gds.ldap4j.ldap.LdapConnection;
 import hu.gds.ldap4j.ldap.ModifyRequest;
 import hu.gds.ldap4j.ldap.ModifyResponse;
@@ -42,6 +46,10 @@ public class FutureLdapConnection {
         this.timeoutNanos=timeoutNanos;
     }
 
+    public @NotNull CompletableFuture<@NotNull AddResponse> add(@NotNull AddRequest addRequest, boolean manageDsaIt) {
+        return startLava(connection.add(addRequest, manageDsaIt));
+    }
+
     public @NotNull CompletableFuture<BindResponse> bindSimple(@NotNull String bindDn, char[] password) {
         return startLava(connection.bindSimple(bindDn, password));
     }
@@ -52,6 +60,11 @@ public class FutureLdapConnection {
 
     public @NotNull LdapConnection connection() {
         return connection;
+    }
+
+    public @NotNull CompletableFuture<@NotNull DeleteResponse> delete(
+            @NotNull DeleteRequest deleteRequest, boolean manageDsaIt) {
+        return startLava(connection.delete(deleteRequest, manageDsaIt));
     }
 
     public static @NotNull Supplier<@NotNull CompletableFuture<@NotNull FutureLdapConnection>> factory(

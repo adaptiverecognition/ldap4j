@@ -1,7 +1,7 @@
 # nice to have
 
 - all operations
-  - Add, Delete, Modify DN, Compare
+  - Modify DN, Compare
     - managedsait 
   - Abandon
   - sasl bind

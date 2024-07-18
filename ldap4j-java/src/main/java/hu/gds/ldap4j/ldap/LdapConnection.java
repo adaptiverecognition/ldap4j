@@ -38,6 +38,22 @@ public class LdapConnection implements Connection {
         usingTls=ldaps;
     }
 
+    public @NotNull Lava<@NotNull AddResponse> add(@NotNull AddRequest addRequest, boolean manageDsaIt) {
+        Objects.requireNonNull(addRequest, "addRequest");
+        return Lava.supplier(()->writeMessage(
+                connection(),
+                manageDsaIt
+                        ?List.of(Control.nonCritical(Ldap.MANAGE_DSA_IT_OID))
+                        :List.of(),
+                AddRequest::write,
+                addRequest)
+                .compose((messageId)->readLdapMessage(AddResponse::read, messageId))
+                .compose((addResponse)->{
+                    addResponse.message().ldapResult().check();
+                    return Lava.complete(addResponse.message());
+                }));
+    }
+
     /**
      * @return a bind response with success result code
      */
@@ -110,6 +126,22 @@ public class LdapConnection implements Connection {
             }
         }
         return connection2;
+    }
+
+    public @NotNull Lava<@NotNull DeleteResponse> delete(@NotNull DeleteRequest deleteRequest, boolean manageDsaIt) {
+        Objects.requireNonNull(deleteRequest, "deleteRequest");
+        return Lava.supplier(()->writeMessage(
+                connection(),
+                manageDsaIt
+                        ?List.of(Control.nonCritical(Ldap.MANAGE_DSA_IT_OID))
+                        :List.of(),
+                DeleteRequest::write,
+                deleteRequest)
+                .compose((messageId)->readLdapMessage(DeleteResponse::read, messageId))
+                .compose((deleteResponse)->{
+                    deleteResponse.message().ldapResult().check();
+                    return Lava.complete(deleteResponse.message());
+                }));
     }
 
     public static @NotNull Lava<@NotNull LdapConnection> factory(
