@@ -246,6 +246,23 @@ public class LdapConnection implements Connection {
                 }));
     }
 
+    public @NotNull Lava<@NotNull ModifyDNResponse> modifyDN(
+            boolean manageDsaIt, @NotNull ModifyDNRequest modifyDNRequest) {
+        Objects.requireNonNull(modifyDNRequest, "modifyDNRequest");
+        return Lava.supplier(()->writeMessage(
+                connection(),
+                manageDsaIt
+                        ?List.of(Control.nonCritical(Ldap.MANAGE_DSA_IT_OID))
+                        :List.of(),
+                ModifyDNRequest::write,
+                modifyDNRequest)
+                .compose((messageId)->readLdapMessage(ModifyDNResponse::read, messageId))
+                .compose((modifyDNResponse)->{
+                    modifyDNResponse.message().ldapResult().check();
+                    return Lava.complete(modifyDNResponse.message());
+                }));
+    }
+
     private <T> @NotNull Lava<@NotNull LdapMessage<T>> readLdapMessage(
             @NotNull Function<ByteBuffer.Reader, T> function, int messageId) {
         return Lava.catchErrors(

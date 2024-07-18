@@ -478,6 +478,130 @@ public class LdapConnectionTest {
 
     @ParameterizedTest
     @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
+    public void testModifyDN(LdapTestParameters testParameters) throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
+             LdapServer ldapServer=new LdapServer(
+                     false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
+            ldapServer.start();
+            String attribute="member";
+            String newName="group8";
+            String oldName="group0";
+            String newParent="ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu";
+            String oldParent="ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu";
+            String newRDN="cn=%s".formatted(newName);
+            String oldRDN="cn=%s".formatted(oldName);
+            String user0="uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu";
+            String user1="uid=user1,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu";
+            context.get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
+                            new Function<LdapConnection, Lava<Void>>() {
+                                private @NotNull Lava<Void> assertMembers(
+                                        @NotNull LdapConnection connection, @NotNull String object, String... members)
+                                        throws Throwable {
+                                    return members(connection, object)
+                                            .compose((members2)->{
+                                                assertEquals(List.of(members), members2);
+                                                return Lava.VOID;
+                                            });
+                                }
+
+                                private @NotNull Lava<Void> assertNoSuchObject(
+                                        @NotNull LdapConnection connection, @NotNull String object) {
+                                    return Lava.catchErrors(
+                                            (exception)->{
+                                                assertEquals(LdapResultCode.NO_SUCH_OBJECT, exception.resultCode2);
+                                                return Lava.VOID;
+                                            },
+                                            ()->members(connection, object)
+                                                    .composeIgnoreResult(()->{
+                                                        fail("should have failed");
+                                                        return Lava.VOID;
+                                                    }),
+                                            LdapException.class);
+                                }
+
+                                @Override
+                                public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) {
+                                    return assertNoSuchObject(connection, "%s,%s".formatted(newRDN, newParent))
+                                            .composeIgnoreResult(()->assertNoSuchObject(
+                                                    connection, "%s,%s".formatted(newRDN, oldParent)))
+                                            .composeIgnoreResult(()->assertMembers(
+                                                    connection, "%s,%s".formatted(oldRDN, oldParent), user0, user1))
+                                            .composeIgnoreResult(()->connection.modifyDN(
+                                                    false,
+                                                    new ModifyDNRequest(
+                                                            false,
+                                                            "%s,%s".formatted(oldRDN, oldParent),
+                                                            newRDN,
+                                                            null)))
+                                            .composeIgnoreResult(()->assertNoSuchObject(
+                                                    connection, "%s,%s".formatted(newRDN, newParent)))
+                                            .composeIgnoreResult(()->assertMembers(
+                                                    connection, "%s,%s".formatted(newRDN, oldParent), user0, user1))
+                                            .composeIgnoreResult(()->assertNoSuchObject(
+                                                    connection, "%s,%s".formatted(oldRDN, oldParent)))
+                                            .composeIgnoreResult(()->connection.modifyDN(
+                                                    false,
+                                                    new ModifyDNRequest(
+                                                            false,
+                                                            "%s,%s".formatted(newRDN, oldParent),
+                                                            newRDN,
+                                                            newParent)))
+                                            .composeIgnoreResult(()->assertMembers(
+                                                    connection, "%s,%s".formatted(newRDN, newParent), user0, user1))
+                                            .composeIgnoreResult(()->assertNoSuchObject(
+                                                    connection, "%s,%s".formatted(newRDN, oldParent)))
+                                            .composeIgnoreResult(()->assertNoSuchObject(
+                                                    connection, "%s,%s".formatted(oldRDN, oldParent)))
+                                            .composeIgnoreResult(()->connection.modifyDN(
+                                                    false,
+                                                    new ModifyDNRequest(
+                                                            true,
+                                                            "%s,%s".formatted(newRDN, newParent),
+                                                            oldRDN,
+                                                            oldParent)))
+                                            .composeIgnoreResult(()->assertNoSuchObject(
+                                                    connection, "%s,%s".formatted(newRDN, newParent)))
+                                            .composeIgnoreResult(()->assertNoSuchObject(
+                                                    connection, "%s,%s".formatted(newRDN, oldParent)))
+                                            .composeIgnoreResult(()->assertMembers(
+                                                    connection, "%s,%s".formatted(oldRDN, oldParent), user0, user1));
+                                }
+
+                                private @NotNull Lava<@NotNull List<@NotNull String>> members(
+                                        @NotNull LdapConnection connection, @NotNull String object) throws Throwable {
+                                    return connection.search(
+                                                    false,
+                                                    new SearchRequest(
+                                                            List.of(attribute),
+                                                            object,
+                                                            DerefAliases.NEVER_DEREF_ALIASES,
+                                                            Filter.parse("(objectClass=*)"),
+                                                            Scope.BASE_OBJECT,
+                                                            10,
+                                                            10,
+                                                            false))
+                                            .compose((searchResults)->{
+                                                List<String> members=new ArrayList<>(
+                                                        searchResults.stream()
+                                                                .filter(SearchResult::isEntry)
+                                                                .map(SearchResult::asEntry)
+                                                                .flatMap((entry)->entry.attributes().stream())
+                                                                .filter((attribute2)->attribute.equals(attribute2.type()))
+                                                                .flatMap((attribute2)->attribute2.values().stream())
+                                                                .toList());
+                                                members.sort(null);
+                                                return Lava.complete(members);
+                                            });
+                                }
+                            }));
+
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
     public void testSearchAttributes(LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
              LdapServer ldapServer=new LdapServer(

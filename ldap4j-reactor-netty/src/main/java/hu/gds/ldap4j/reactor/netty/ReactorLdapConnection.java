@@ -10,6 +10,8 @@ import hu.gds.ldap4j.ldap.BindResponse;
 import hu.gds.ldap4j.ldap.DeleteRequest;
 import hu.gds.ldap4j.ldap.DeleteResponse;
 import hu.gds.ldap4j.ldap.LdapConnection;
+import hu.gds.ldap4j.ldap.ModifyDNRequest;
+import hu.gds.ldap4j.ldap.ModifyDNResponse;
 import hu.gds.ldap4j.ldap.ModifyRequest;
 import hu.gds.ldap4j.ldap.ModifyResponse;
 import hu.gds.ldap4j.ldap.SearchRequest;
@@ -67,6 +69,11 @@ public class ReactorLdapConnection {
 
     public @NotNull Mono<@NotNull ModifyResponse> modify(boolean manageDsaIt, @NotNull ModifyRequest modifyRequest) {
         return lavaToMono(connection.modify(manageDsaIt, modifyRequest));
+    }
+
+    public @NotNull Mono<@NotNull ModifyDNResponse> modifyDN(
+            boolean manageDsaIt, @NotNull ModifyDNRequest modifyDNRequest) {
+        return lavaToMono(connection.modifyDN(manageDsaIt, modifyDNRequest));
     }
 
     public @NotNull Mono<@NotNull List<@NotNull SearchResult>> search(

@@ -10,6 +10,8 @@ import hu.gds.ldap4j.ldap.BindResponse;
 import hu.gds.ldap4j.ldap.DeleteRequest;
 import hu.gds.ldap4j.ldap.DeleteResponse;
 import hu.gds.ldap4j.ldap.LdapConnection;
+import hu.gds.ldap4j.ldap.ModifyDNRequest;
+import hu.gds.ldap4j.ldap.ModifyDNResponse;
 import hu.gds.ldap4j.ldap.ModifyRequest;
 import hu.gds.ldap4j.ldap.ModifyResponse;
 import hu.gds.ldap4j.ldap.SearchRequest;
@@ -120,6 +122,12 @@ public record TrampolineLdapConnection(
             long endNanos, boolean manageDsaIt, @NotNull ModifyRequest modifyRequest) throws Throwable {
         return trampoline.contextEndNanos(endNanos)
                 .get(true, true, connection.modify(manageDsaIt, modifyRequest));
+    }
+
+    public @NotNull ModifyDNResponse modifyDN(
+            long endNanos, boolean manageDsaIt, @NotNull ModifyDNRequest modifyDNRequest) throws Throwable {
+        return trampoline.contextEndNanos(endNanos)
+                .get(true, true, connection.modifyDN(manageDsaIt, modifyDNRequest));
     }
 
     public @NotNull List<@NotNull SearchResult> search(

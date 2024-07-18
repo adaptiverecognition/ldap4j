@@ -12,6 +12,8 @@ import hu.gds.ldap4j.ldap.BindResponse;
 import hu.gds.ldap4j.ldap.DeleteRequest;
 import hu.gds.ldap4j.ldap.DeleteResponse;
 import hu.gds.ldap4j.ldap.LdapConnection;
+import hu.gds.ldap4j.ldap.ModifyDNRequest;
+import hu.gds.ldap4j.ldap.ModifyDNResponse;
 import hu.gds.ldap4j.ldap.ModifyRequest;
 import hu.gds.ldap4j.ldap.ModifyResponse;
 import hu.gds.ldap4j.ldap.SearchRequest;
@@ -111,6 +113,11 @@ public class FutureLdapConnection {
     public @NotNull CompletableFuture<@NotNull ModifyResponse> modify(
             boolean manageDsaIt, @NotNull ModifyRequest modifyRequest) {
         return startLava(connection.modify(manageDsaIt, modifyRequest));
+    }
+
+    public @NotNull CompletableFuture<@NotNull ModifyDNResponse> modifyDN(
+            boolean manageDsaIt, @NotNull ModifyDNRequest modifyDNRequest) {
+        return startLava(connection.modifyDN(manageDsaIt, modifyDNRequest));
     }
 
     public @NotNull CompletableFuture<@NotNull List<@NotNull SearchResult>> search(
