@@ -6,11 +6,14 @@ import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.ldap.AddRequest;
 import hu.gds.ldap4j.ldap.AddResponse;
+import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.BindResponse;
 import hu.gds.ldap4j.ldap.CompareRequest;
 import hu.gds.ldap4j.ldap.CompareResponse;
 import hu.gds.ldap4j.ldap.DeleteRequest;
 import hu.gds.ldap4j.ldap.DeleteResponse;
+import hu.gds.ldap4j.ldap.ExtendedRequest;
+import hu.gds.ldap4j.ldap.ExtendedResponse;
 import hu.gds.ldap4j.ldap.LdapConnection;
 import hu.gds.ldap4j.ldap.ModifyDNRequest;
 import hu.gds.ldap4j.ldap.ModifyDNResponse;
@@ -45,8 +48,12 @@ public class ReactorLdapConnection {
         return lavaToMono(connection.add(addRequest, manageDsaIt));
     }
 
-    public @NotNull Mono<BindResponse> bindSimple(@NotNull String bindDn, char[] password) {
-        return lavaToMono(connection.bindSimple(bindDn, password));
+    public @NotNull Mono<@NotNull BindResponse> bind(@NotNull BindRequest bindRequest) {
+        return lavaToMono(connection.bind(bindRequest));
+    }
+
+    public @NotNull Mono<Void> bindSimple(@NotNull String name, char[] password) {
+        return lavaToMono(connection.bindSimple(name, password));
     }
 
     public @NotNull Mono<Void> close() {
@@ -64,6 +71,10 @@ public class ReactorLdapConnection {
 
     public @NotNull Mono<@NotNull DeleteResponse> delete(@NotNull DeleteRequest deleteRequest, boolean manageDsaIt) {
         return lavaToMono(connection.delete(deleteRequest, manageDsaIt));
+    }
+
+    public @NotNull Mono<@NotNull ExtendedResponse> extended(@NotNull ExtendedRequest extendedRequest) {
+        return lavaToMono(connection.extended(extendedRequest));
     }
 
     public @NotNull Mono<Void> fastBind() {

@@ -1,7 +1,7 @@
 # nice to have
 
+- all controls
 - all operations
-  - sasl bind
   - cancel, rfc 3909
 - java docs / manual / guides
 - netty kqueue
@@ -18,7 +18,5 @@
 # maybe
 
 - high level authentication/authorization logic
-- kerberos
-- single sign-on
 - tls closure, rfc4511 4.14.3, allow, disallow, initiate
 - tls renegotiation

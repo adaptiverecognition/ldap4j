@@ -26,7 +26,10 @@ public record ModifyDNRequest(
                 .append(DER.writeUtf8Tag(newRDN))
                 .append(DER.writeBooleanTag(deleteOldRDN));
         if (null!=newSuperior) {
-            requestBuffer=requestBuffer.append(DER.writeUtf8Tag(newSuperior));
+            requestBuffer=requestBuffer.append(
+                    DER.writeTag(
+                            Ldap.MODIFY_DN_REQUEST_NEW_SUPERIOR,
+                            DER.writeUtf8NoTag(newSuperior)));
         }
         return DER.writeTag(
                 Ldap.PROTOCOL_OP_MODIFY_DN_REQUEST,

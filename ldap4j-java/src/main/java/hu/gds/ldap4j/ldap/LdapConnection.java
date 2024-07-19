@@ -64,22 +64,23 @@ public class LdapConnection implements Connection {
                 }));
     }
 
-    /**
-     * @return a bind response with success result code
-     */
-    public @NotNull Lava<@NotNull BindResponse> bindSimple(@NotNull String bindDn, char[] password) {
-        Objects.requireNonNull(bindDn, "bindDn");
-        Objects.requireNonNull(password, "password");
+    public @NotNull Lava<@NotNull BindResponse> bind(@NotNull BindRequest bindRequest) {
+        Objects.requireNonNull(bindRequest, "bindRequest");
         return Lava.supplier(()->writeMessage(
                 connection(),
                 List.of(),
-                SimpleBindRequest::write,
-                new SimpleBindRequest(bindDn, password, Ldap.VERSION))
+                BindRequest::write,
+                bindRequest)
                 .compose((messageId)->readLdapMessage(BindResponse::read, messageId))
                 .compose((bindResponse)->{
-                    bindResponse.message().ldapResult().check();
+                    bindRequest.authentication().check(bindResponse.message().ldapResult());
                     return Lava.complete(bindResponse.message());
                 }));
+    }
+
+    public @NotNull Lava<Void> bindSimple(@NotNull String name, char[] password) {
+        return bind(BindRequest.simple(name, password))
+                .composeIgnoreResult(()->Lava.VOID);
     }
 
     @Override
@@ -135,9 +136,9 @@ public class LdapConnection implements Connection {
                 CompareRequest::write,
                 compareRequest)
                 .compose((messageId)->readLdapMessage(CompareResponse::read, messageId))
-                .compose((CompareResponse)->{
-                    CompareResponse.message().ldapResult().checkCompare();
-                    return Lava.complete(CompareResponse.message());
+                .compose((compareResponse)->{
+                    compareResponse.message().ldapResult().checkCompare();
+                    return Lava.complete(compareResponse.message());
                 }));
     }
 
@@ -168,6 +169,21 @@ public class LdapConnection implements Connection {
                 .compose((deleteResponse)->{
                     deleteResponse.message().ldapResult().check();
                     return Lava.complete(deleteResponse.message());
+                }));
+    }
+
+    public @NotNull Lava<@NotNull ExtendedResponse> extended(
+            @NotNull ExtendedRequest extendedRequest) {
+        Objects.requireNonNull(extendedRequest, "extendedRequest");
+        return Lava.supplier(()->writeMessage(
+                connection(),
+                List.of(),
+                ExtendedRequest::write,
+                extendedRequest)
+                .compose((messageId)->readLdapMessage(ExtendedResponse::read, messageId))
+                .compose((extendedResponse)->{
+                    extendedResponse.message().ldapResult().check();
+                    return Lava.complete(extendedResponse.message());
                 }));
     }
 
@@ -421,14 +437,9 @@ public class LdapConnection implements Connection {
                 throw new RuntimeException("already using tls");
             }
             usingTls=true;
-            return writeMessage(
-                    connection(),
-                    List.of(),
-                    ExtendedRequest::write,
-                    new ExtendedRequest(Ldap.START_TLS_OID, null))
-                    .compose((messageId)->readLdapMessage(ExtendedResponse::read, messageId))
+            return extended(new ExtendedRequest(Ldap.START_TLS_OID, null))
                     .compose((response)->{
-                        response.message().ldapResult().check();
+                        response.ldapResult().check();
                         return connection().startTls(tls);
                     });
         });

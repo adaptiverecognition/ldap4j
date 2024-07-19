@@ -36,6 +36,13 @@ public record LdapResult(
         }
     }
 
+    public void checkSASL() throws LdapException {
+        if ((!LdapResultCode.SASL_BIND_IN_PROGRESS.equals(resultCode2))
+                && (!LdapResultCode.SUCCESS.equals(resultCode2))) {
+            throw new LdapException(diagnosticMessages, referrals, resultCode, resultCode2);
+        }
+    }
+
     public static @NotNull LdapResult read(@NotNull ByteBuffer.Reader reader) throws Throwable {
         int resultCode=DER.readEnumeratedTag(reader);
         String matchedDn=DER.readUtf8Tag(reader);

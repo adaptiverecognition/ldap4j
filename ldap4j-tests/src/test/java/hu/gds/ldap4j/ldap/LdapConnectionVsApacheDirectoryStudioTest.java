@@ -13,6 +13,7 @@ import hu.gds.ldap4j.lava.ScheduledExecutorContext;
 import hu.gds.ldap4j.net.JavaAsyncChannelConnection;
 import hu.gds.ldap4j.net.TlsSettings;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -23,18 +24,22 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.stream.Streams;
+import org.apache.directory.api.ldap.model.constants.SupportedSaslMechanisms;
 import org.apache.directory.server.core.annotations.ApplyLdifFiles;
 import org.apache.directory.server.core.annotations.CreateDS;
 import org.apache.directory.server.core.annotations.CreatePartition;
 import org.apache.directory.server.core.factory.DSAnnotationProcessor;
 import org.apache.directory.server.ldap.LdapServer;
+import org.apache.directory.server.ldap.handlers.sasl.cramMD5.CramMd5MechanismHandler;
 import org.apache.directory.server.protocol.shared.transport.TcpTransport;
+import org.apache.geronimo.javamail.authentication.CramMD5Authenticator;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @CreateDS(
         allowAnonAccess = true,
@@ -61,8 +66,13 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                     getClass(),
                     "ldap server display name",
                     ldapServer.getDirectoryService());
+            ldapServer.addSaslMechanismHandler(
+                    SupportedSaslMechanisms.CRAM_MD5,
+                    new CramMd5MechanismHandler());
+            ldapServer.setSearchBaseDn("ou=system");
             ldapServer.addTransports(new TcpTransport("localhost", PORT));
             ldapServer.start();
+            System.out.println(ldapServer.getSaslMechanismHandlers());
             InetSocketAddress serverAddress
                     =(InetSocketAddress)ldapServer.getTransports()[0].getAcceptor().getLocalAddress();
             assertNotNull(serverAddress);
@@ -77,6 +87,7 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                 context.get(
                         join,
                         testApproxMatch(serverAddress)
+                                .composeIgnoreResult(()->testBindSASL(serverAddress))
                                 .composeIgnoreResult(()->testDERLength(serverAddress))
                                 .composeIgnoreResult(()->testMessageId(serverAddress))
                                 .composeIgnoreResult(()->testReferrals(serverAddress))
@@ -111,6 +122,56 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                     results.get(0).asEntry().objectName());
                             return Lava.VOID;
                         }),
+                serverAddress);
+    }
+
+    private @NotNull Lava<Void> testBindSASL(InetSocketAddress serverAddress) {
+        return withConnection(
+                new Function<>() {
+                    private @NotNull Lava<Void> bind(@NotNull LdapConnection connection, @NotNull String password) {
+                        return connection.bind(BindRequest.sasl(
+                                        null,
+                                        SupportedSaslMechanisms.CRAM_MD5,
+                                        ""))
+                                .compose((bindResponse)->{
+                                    assertEquals(
+                                            LdapResultCode.SASL_BIND_IN_PROGRESS,
+                                            bindResponse.ldapResult().resultCode2());
+                                    assertNotNull(bindResponse.serverSaslCredentials());
+                                    return connection.bind(BindRequest.sasl(
+                                            new String(
+                                                    new CramMD5Authenticator(
+                                                            "admin",
+                                                            password)
+                                                            .evaluateChallenge(
+                                                                    bindResponse.serverSaslCredentials()
+                                                                            .getBytes(StandardCharsets.UTF_8)),
+                                                    StandardCharsets.UTF_8),
+                                            SupportedSaslMechanisms.CRAM_MD5,
+                                            ""));
+                                })
+                                .compose((bindResponse)->{
+                                    assertEquals(LdapResultCode.SUCCESS, bindResponse.ldapResult().resultCode2());
+                                    return Lava.VOID;
+                                });
+                    }
+
+                    @Override
+                    public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) {
+                        return bind(connection, "secret")
+                                .composeIgnoreResult(()->Lava.catchErrors(
+                                        (exception)->{
+                                            assertEquals(LdapResultCode.INVALID_CREDENTIALS, exception.resultCode2);
+                                            return Lava.VOID;
+                                        },
+                                        ()->bind(connection, "secretx")
+                                                .composeIgnoreResult(()->{
+                                                    fail("should have failed");
+                                                    return Lava.VOID;
+                                                }),
+                                        LdapException.class));
+                    }
+                },
                 serverAddress);
     }
 

@@ -8,11 +8,14 @@ import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.lava.ScheduledExecutorContext;
 import hu.gds.ldap4j.ldap.AddRequest;
 import hu.gds.ldap4j.ldap.AddResponse;
+import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.BindResponse;
 import hu.gds.ldap4j.ldap.CompareRequest;
 import hu.gds.ldap4j.ldap.CompareResponse;
 import hu.gds.ldap4j.ldap.DeleteRequest;
 import hu.gds.ldap4j.ldap.DeleteResponse;
+import hu.gds.ldap4j.ldap.ExtendedRequest;
+import hu.gds.ldap4j.ldap.ExtendedResponse;
 import hu.gds.ldap4j.ldap.LdapConnection;
 import hu.gds.ldap4j.ldap.ModifyDNRequest;
 import hu.gds.ldap4j.ldap.ModifyDNResponse;
@@ -54,8 +57,12 @@ public class FutureLdapConnection {
         return startLava(connection.add(addRequest, manageDsaIt));
     }
 
-    public @NotNull CompletableFuture<BindResponse> bindSimple(@NotNull String bindDn, char[] password) {
-        return startLava(connection.bindSimple(bindDn, password));
+    public @NotNull CompletableFuture<@NotNull BindResponse> bind(@NotNull BindRequest bindRequest) {
+        return startLava(connection.bind(bindRequest));
+    }
+
+    public @NotNull CompletableFuture<Void> bindSimple(@NotNull String name, char[] password) {
+        return startLava(connection.bindSimple(name, password));
     }
 
     public @NotNull CompletableFuture<Void> close() {
@@ -74,6 +81,11 @@ public class FutureLdapConnection {
     public @NotNull CompletableFuture<@NotNull DeleteResponse> delete(
             @NotNull DeleteRequest deleteRequest, boolean manageDsaIt) {
         return startLava(connection.delete(deleteRequest, manageDsaIt));
+    }
+
+
+    public @NotNull CompletableFuture<@NotNull ExtendedResponse> extended(@NotNull ExtendedRequest extendedRequest) {
+        return startLava(connection.extended(extendedRequest));
     }
 
     public static @NotNull Supplier<@NotNull CompletableFuture<@NotNull FutureLdapConnection>> factory(

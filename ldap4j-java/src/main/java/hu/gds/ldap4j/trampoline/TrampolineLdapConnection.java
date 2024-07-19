@@ -6,11 +6,14 @@ import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.ldap.AddRequest;
 import hu.gds.ldap4j.ldap.AddResponse;
+import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.BindResponse;
 import hu.gds.ldap4j.ldap.CompareRequest;
 import hu.gds.ldap4j.ldap.CompareResponse;
 import hu.gds.ldap4j.ldap.DeleteRequest;
 import hu.gds.ldap4j.ldap.DeleteResponse;
+import hu.gds.ldap4j.ldap.ExtendedRequest;
+import hu.gds.ldap4j.ldap.ExtendedResponse;
 import hu.gds.ldap4j.ldap.LdapConnection;
 import hu.gds.ldap4j.ldap.ModifyDNRequest;
 import hu.gds.ldap4j.ldap.ModifyDNResponse;
@@ -45,9 +48,14 @@ public record TrampolineLdapConnection(
                 .get(true, true, connection.add(addRequest, manageDsaIt));
     }
 
-    public @NotNull BindResponse bindSimple(@NotNull String bindDn, long endNanos, char[] password) throws Throwable {
+    public @NotNull BindResponse bind(@NotNull BindRequest bindRequest, long endNanos) throws Throwable {
         return trampoline.contextEndNanos(endNanos)
-                .get(true, true, connection.bindSimple(bindDn, password));
+                .get(true, true, connection.bind(bindRequest));
+    }
+
+    public void bindSimple(long endNanos, String name, char[] password) throws Throwable {
+        trampoline.contextEndNanos(endNanos)
+                .get(true, true, connection.bindSimple(name, password));
     }
 
     public void close(long endNanos) throws Throwable {
@@ -119,6 +127,12 @@ public record TrampolineLdapConnection(
             @NotNull DeleteRequest deleteRequest, long endNanos, boolean manageDsaIt) throws Throwable {
         return trampoline.contextEndNanos(endNanos)
                 .get(true, true, connection.delete(deleteRequest, manageDsaIt));
+    }
+
+    public @NotNull ExtendedResponse extended(
+            long endNanos, @NotNull ExtendedRequest extendedRequest) throws Throwable {
+        return trampoline.contextEndNanos(endNanos)
+                .get(true, true, connection.extended(extendedRequest));
     }
 
     public void fastBind(long endNanos) throws Throwable {

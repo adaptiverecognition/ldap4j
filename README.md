@@ -6,7 +6,8 @@ and host environment and transport agnostic.
 
 Currently, the client only supports query operations.
 
-Also check the external issues file to help you choose an LDAP client implementation.
+Also check the [external issues file](https://github.com/adaptiverecognition/ldap4j/blob/master/EXTERNAL-ISSUES.md)
+to help you choose an LDAP client implementation.
 
 ## Table of contents
  
@@ -401,7 +402,7 @@ The transport is hardcoded to Java NIO polling.
             TlsSettings.noTls()); // plain-text connection
 
     // authenticate
-    connection.bindSimple("cn=read-only-admin,dc=example,dc=com", endNanos, "password".toCharArray());
+    connection.bindSimple(endNanos, "cn=read-only-admin,dc=example,dc=com", "password".toCharArray());
 
     // look up mathematicians
     List<SearchResult> searchResults=connection.search(

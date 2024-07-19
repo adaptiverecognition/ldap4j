@@ -3,10 +3,8 @@ package hu.gds.ldap4j.trampoline;
 import hu.gds.ldap4j.AbstractTest;
 import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.TestLog;
-import hu.gds.ldap4j.ldap.BindResponse;
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.Filter;
-import hu.gds.ldap4j.ldap.LdapResultCode;
 import hu.gds.ldap4j.ldap.LdapServer;
 import hu.gds.ldap4j.ldap.PartialAttribute;
 import hu.gds.ldap4j.ldap.Scope;
@@ -38,9 +36,7 @@ public class TrampolineLdapTest {
     private void testConnection(
             @NotNull TrampolineLdapConnection connection, long endNanos) throws Throwable {
         Map.Entry<String, String> user=LdapServer.USERS.entrySet().iterator().next();
-        @NotNull BindResponse bindResponse
-                =connection.bindSimple(user.getKey(), endNanos, user.getValue().toCharArray());
-        assertEquals(LdapResultCode.SUCCESS, bindResponse.ldapResult().resultCode2());
+        connection.bindSimple(endNanos, user.getKey(), user.getValue().toCharArray());
         int index=user.getKey().indexOf(',');
         assertTrue(0<index);
         String first=user.getKey().substring(0, index);

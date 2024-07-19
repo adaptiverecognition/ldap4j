@@ -3,7 +3,9 @@ package hu.gds.ldap4j.ldap;
 
 public abstract class Ldap {
     public static final String ALL_ATTRIBUTES="*";
+    public static final byte AUTHENTICATION_CHOICE_SASL=(byte)0xa3;
     public static final byte AUTHENTICATION_CHOICE_SIMPLE=(byte)0x80;
+    public static final byte BIND_RESPONSE_CREDENTIALS=(byte)0x87;
     public static final String FAST_BIND_OID="1.2.840.113556.1.4.1781";
     public static final byte FILTER_AND=(byte)0xa0;
     public static final byte FILTER_APPROX_MATCH=(byte)0xa8;
@@ -25,6 +27,7 @@ public abstract class Ldap {
     public static final byte LDAP_RESULT_REFERRALS=(byte)0xa3;
     public static final String MANAGE_DSA_IT_OID="2.16.840.1.113730.3.4.2";
     public static final byte MESSAGE_CONTROLS=(byte)0xa0;
+    public static final byte MODIFY_DN_REQUEST_NEW_SUPERIOR=(byte)0x80;
     public static final String NO_ATTRIBUTES="1.1";
     public static final String NOTICE_OF_DISCONNECTION_OID="1.3.6.1.4.1.1466.20036";
     public static final byte PROTOCOL_OP_ABANDON_REQUEST=0x70;

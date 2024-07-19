@@ -8,7 +8,6 @@ import hu.gds.ldap4j.lava.JoinCallback;
 import hu.gds.ldap4j.lava.ScheduledExecutorContext;
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.Filter;
-import hu.gds.ldap4j.ldap.LdapResultCode;
 import hu.gds.ldap4j.ldap.LdapServer;
 import hu.gds.ldap4j.ldap.PartialAttribute;
 import hu.gds.ldap4j.ldap.Scope;
@@ -50,7 +49,6 @@ public class FutureLdapTest {
         Map.Entry<String, String> user=LdapServer.USERS.entrySet().iterator().next();
         return Futures.compose(
                 (bindResponse)->{
-                    assertEquals(LdapResultCode.SUCCESS, bindResponse.ldapResult().resultCode2());
                     int index=user.getKey().indexOf(',');
                     assertTrue(0<index);
                     String first=user.getKey().substring(0, index);

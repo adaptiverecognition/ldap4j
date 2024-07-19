@@ -2,7 +2,6 @@ package hu.gds.ldap4j.reactor.netty;
 
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.Filter;
-import hu.gds.ldap4j.ldap.LdapResultCode;
 import hu.gds.ldap4j.ldap.LdapServer;
 import hu.gds.ldap4j.ldap.PartialAttribute;
 import hu.gds.ldap4j.ldap.Scope;
@@ -101,7 +100,6 @@ public class ReactorLdapTest {
         return Monos.compose(
                 connection.bindSimple(user.getKey(), user.getValue().toCharArray()),
                 (bindResponse)->{
-                    assertEquals(LdapResultCode.SUCCESS, bindResponse.ldapResult().resultCode2());
                     int index=user.getKey().indexOf(',');
                     assertTrue(0<index);
                     String first=user.getKey().substring(0, index);

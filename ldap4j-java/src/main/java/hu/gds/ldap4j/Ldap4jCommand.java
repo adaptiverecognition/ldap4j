@@ -155,7 +155,7 @@ public class Ldap4jCommand {
             default -> throw new SyntaxException("unknown password source %s".formatted(passwordSource));
         };
         System.out.printf("bind simple, %s%n", name);
-        connection.bindSimple(name, endNanos, password.toCharArray());
+        connection.bindSimple(endNanos, name, password.toCharArray());
         System.out.printf("bind successful%n");
     }
 

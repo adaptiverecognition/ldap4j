@@ -193,6 +193,50 @@ public class LdapConnectionTest {
 
     @ParameterizedTest
     @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
+    public void testBindSASL(LdapTestParameters testParameters) throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
+             LdapServer ldapServer=new LdapServer(
+                     false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
+            ldapServer.start();
+            var bind=LdapServer.allBinds().iterator().next();
+            context.get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
+                            (connection)->connection.bind(
+                                            BindRequest.sasl(
+                                                    "dn: %s\0dn: %s\0%s".formatted(
+                                                            bind.first(), bind.first(), bind.second()),
+                                                    "PLAIN",
+                                                    ""))
+                                    .compose((bindResponse)->{
+                                        assertEquals(LdapResultCode.SUCCESS, bindResponse.ldapResult().resultCode2());
+                                        return Lava.catchErrors(
+                                                (exception)->{
+                                                    assertEquals(
+                                                            LdapResultCode.INVALID_CREDENTIALS,
+                                                            exception.resultCode2);
+                                                    return Lava.VOID;
+                                                },
+                                                ()->connection.bind(
+                                                        BindRequest.sasl(
+                                                                "dn: %s\0dn: %s\0%s".formatted(
+                                                                        bind.first(),
+                                                                        bind.first(),
+                                                                        bind.second()+"x"),
+                                                                "PLAIN",
+                                                                ""))
+                                                        .composeIgnoreResult(()->{
+                                                            fail("should have failed");
+                                                            return Lava.VOID;
+                                                        }),
+                                                LdapException.class);
+                                    })));
+
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
     public void testBindSuccess(LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
              LdapServer ldapServer=new LdapServer(
@@ -240,10 +284,10 @@ public class LdapConnectionTest {
                                 private @NotNull Lava<@NotNull Boolean> compare(
                                         @NotNull LdapConnection connection, String value) {
                                     return connection.compare(
-                                            new CompareRequest(
-                                                    new Filter.EqualityMatch(value, attribute),
-                                                    object),
-                                            false)
+                                                    new CompareRequest(
+                                                            new Filter.EqualityMatch(value, attribute),
+                                                            object),
+                                                    false)
                                             .compose((response)->Lava.complete(
                                                     LdapResultCode.COMPARE_TRUE
                                                             .equals(response.ldapResult().resultCode2())));

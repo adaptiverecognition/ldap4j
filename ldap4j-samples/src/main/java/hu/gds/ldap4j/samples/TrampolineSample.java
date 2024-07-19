@@ -24,7 +24,7 @@ public class TrampolineSample {
         try {
             System.out.println("connected");
             // authenticate
-            connection.bindSimple("cn=read-only-admin,dc=example,dc=com", endNanos, "password".toCharArray());
+            connection.bindSimple(endNanos, "cn=read-only-admin,dc=example,dc=com", "password".toCharArray());
             System.out.println("bound");
             // look up mathematicians
             List<SearchResult> searchResults=connection.search(
