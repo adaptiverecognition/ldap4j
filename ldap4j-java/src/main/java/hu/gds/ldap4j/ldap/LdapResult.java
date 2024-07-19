@@ -29,6 +29,15 @@ public record LdapResult(
         }
     }
 
+    public void checkCancel() throws LdapException {
+        if ((!LdapResultCode.CANCELED.equals(resultCode2))
+                && (!LdapResultCode.CANNOT_CANCEL.equals(resultCode2))
+                && (!LdapResultCode.NO_SUCH_OPERATION.equals(resultCode2))
+                && (!LdapResultCode.TOO_LATE.equals(resultCode2))) {
+            throw new LdapException(diagnosticMessages, referrals, resultCode, resultCode2);
+        }
+    }
+
     public void checkCompare() throws LdapException {
         if ((!LdapResultCode.COMPARE_FALSE.equals(resultCode2))
                 && (!LdapResultCode.COMPARE_TRUE.equals(resultCode2))) {

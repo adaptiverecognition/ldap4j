@@ -3,7 +3,6 @@ package hu.gds.ldap4j.ldap;
 import hu.gds.ldap4j.net.ByteBuffer;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public record BindRequest(
         @NotNull AuthenticationChoice authentication,
@@ -11,10 +10,10 @@ public record BindRequest(
         int version) {
     public sealed interface AuthenticationChoice {
         record SASL(
-                @Nullable String credentials,
+                byte[] credentials,
                 @NotNull String mechanism)
                 implements AuthenticationChoice {
-            public SASL(@Nullable String credentials, @NotNull String mechanism) {
+            public SASL(byte[] credentials, @NotNull String mechanism) {
                 this.credentials=credentials;
                 this.mechanism=Objects.requireNonNull(mechanism, "mechanism");
             }
@@ -28,7 +27,10 @@ public record BindRequest(
             public @NotNull ByteBuffer write() throws Throwable {
                 ByteBuffer saslBuffer=DER.writeUtf8Tag(mechanism);
                 if (null!=credentials) {
-                    saslBuffer=saslBuffer.append(DER.writeUtf8Tag(credentials));
+                    saslBuffer=saslBuffer.append(
+                            DER.writeTag(
+                                    DER.OCTET_STRING,
+                                    ByteBuffer.create(credentials)));
                 }
                 return DER.writeTag(
                         Ldap.AUTHENTICATION_CHOICE_SASL,
@@ -64,7 +66,7 @@ public record BindRequest(
     }
 
     public static @NotNull BindRequest sasl(
-            @Nullable String credentials, @NotNull String mechanism, @NotNull String name) {
+            byte[] credentials, @NotNull String mechanism, @NotNull String name) {
         return new BindRequest(new AuthenticationChoice.SASL(credentials, mechanism), name, Ldap.VERSION);
     }
 

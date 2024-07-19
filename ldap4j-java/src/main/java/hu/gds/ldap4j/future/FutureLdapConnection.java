@@ -65,6 +65,10 @@ public class FutureLdapConnection {
         return startLava(connection.bindSimple(name, password));
     }
 
+    public @NotNull CompletableFuture<@NotNull ExtendedResponse> cancel(int messageId, boolean signKludge) {
+        return startLava(connection.cancel(messageId, signKludge));
+    }
+
     public @NotNull CompletableFuture<Void> close() {
         return startLava(connection.close());
     }

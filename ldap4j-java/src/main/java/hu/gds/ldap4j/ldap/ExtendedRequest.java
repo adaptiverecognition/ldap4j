@@ -3,12 +3,11 @@ package hu.gds.ldap4j.ldap;
 import hu.gds.ldap4j.net.ByteBuffer;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public record ExtendedRequest(
         @NotNull String requestName,
-        @Nullable String requestValue) {
-    public ExtendedRequest(@NotNull String requestName, @Nullable String requestValue) {
+        byte[] requestValue) {
+    public ExtendedRequest(@NotNull String requestName, byte[] requestValue) {
         this.requestName=Objects.requireNonNull(requestName, "requestName");
         this.requestValue=requestValue;
     }
@@ -21,7 +20,7 @@ public record ExtendedRequest(
             byteBuffer=byteBuffer.append(
                     DER.writeTag(
                             Ldap.PROTOCOL_OP_EXTENDED_REQUEST_VALUE,
-                            DER.writeUtf8NoTag(requestValue)));
+                            ByteBuffer.create(requestValue)));
         }
         return DER.writeTag(Ldap.PROTOCOL_OP_EXTENDED_REQUEST, byteBuffer);
     }

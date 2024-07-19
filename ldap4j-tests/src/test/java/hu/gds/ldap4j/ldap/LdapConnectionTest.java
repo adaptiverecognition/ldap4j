@@ -7,6 +7,7 @@ import hu.gds.ldap4j.Supplier;
 import hu.gds.ldap4j.TestContext;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -205,7 +206,10 @@ public class LdapConnectionTest {
                             (connection)->connection.bind(
                                             BindRequest.sasl(
                                                     "dn: %s\0dn: %s\0%s".formatted(
-                                                            bind.first(), bind.first(), bind.second()),
+                                                                    bind.first(),
+                                                                    bind.first(),
+                                                                    bind.second())
+                                                            .getBytes(StandardCharsets.UTF_8),
                                                     "PLAIN",
                                                     ""))
                                     .compose((bindResponse)->{
@@ -218,13 +222,14 @@ public class LdapConnectionTest {
                                                     return Lava.VOID;
                                                 },
                                                 ()->connection.bind(
-                                                        BindRequest.sasl(
-                                                                "dn: %s\0dn: %s\0%s".formatted(
-                                                                        bind.first(),
-                                                                        bind.first(),
-                                                                        bind.second()+"x"),
-                                                                "PLAIN",
-                                                                ""))
+                                                                BindRequest.sasl(
+                                                                        "dn: %s\0dn: %s\0%s".formatted(
+                                                                                        bind.first(),
+                                                                                        bind.first(),
+                                                                                        bind.second()+"x")
+                                                                                .getBytes(StandardCharsets.UTF_8),
+                                                                        "PLAIN",
+                                                                        ""))
                                                         .composeIgnoreResult(()->{
                                                             fail("should have failed");
                                                             return Lava.VOID;

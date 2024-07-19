@@ -50,7 +50,11 @@ public enum LdapResultCode {
     OBJECT_CLASS_MODS_PROHIBITED(69, "objectClassModsProhibited"),
     RESERVED_FOR_CLDAP(70, "reserved for CLDAP"),
     AFFECTS_MULTIPLE_DSAS(71, "affectsMultipleDSAs"),
-    OTHER(80, "other");
+    OTHER(80, "other"),
+    CANCELED(118, "canceled"),
+    NO_SUCH_OPERATION(119, "noSuchOperation"),
+    TOO_LATE(120, "tooLate"),
+    CANNOT_CANCEL(121, "cannotCancel");
 
     public static final Map<@NotNull Integer, @NotNull LdapResultCode> VALUES;
 

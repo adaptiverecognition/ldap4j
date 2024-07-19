@@ -58,6 +58,11 @@ public record TrampolineLdapConnection(
                 .get(true, true, connection.bindSimple(name, password));
     }
 
+    public @NotNull ExtendedResponse cancel(long endNanos, int messageId, boolean signKludge) throws Throwable {
+        return trampoline.contextEndNanos(endNanos)
+                .get(false, true, connection.cancel(messageId, signKludge));
+    }
+
     public void close(long endNanos) throws Throwable {
         trampoline.contextEndNanos(endNanos)
                 .get(false, true, connection.close());

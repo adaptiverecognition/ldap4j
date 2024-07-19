@@ -2,6 +2,7 @@ Snapshot:
 - add LDAP operations
   - abandon
   - add
+  - cancel
   - compare
   - delete
   - modify

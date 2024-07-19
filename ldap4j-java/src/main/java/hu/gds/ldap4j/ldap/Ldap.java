@@ -6,6 +6,9 @@ public abstract class Ldap {
     public static final byte AUTHENTICATION_CHOICE_SASL=(byte)0xa3;
     public static final byte AUTHENTICATION_CHOICE_SIMPLE=(byte)0x80;
     public static final byte BIND_RESPONSE_CREDENTIALS=(byte)0x87;
+    public static final String CONTROL_MANAGE_DSA_IT_OID="2.16.840.1.113730.3.4.2";
+    public static final String EXTENDED_REQUEST_CANCEL_OP_OID="1.3.6.1.1.8";
+    public static final String EXTENDED_REQUEST_START_TLS_OID="1.3.6.1.4.1.1466.20037";
     public static final String FAST_BIND_OID="1.2.840.113556.1.4.1781";
     public static final byte FILTER_AND=(byte)0xa0;
     public static final byte FILTER_APPROX_MATCH=(byte)0xa8;
@@ -25,7 +28,6 @@ public abstract class Ldap {
     public static final byte FILTER_SUBSTRINGS_FINAL=(byte)0x82;
     public static final byte FILTER_SUBSTRINGS_INITIAL=(byte)0x80;
     public static final byte LDAP_RESULT_REFERRALS=(byte)0xa3;
-    public static final String MANAGE_DSA_IT_OID="2.16.840.1.113730.3.4.2";
     public static final byte MESSAGE_CONTROLS=(byte)0xa0;
     public static final byte MODIFY_DN_REQUEST_NEW_SUPERIOR=(byte)0x80;
     public static final String NO_ATTRIBUTES="1.1";
@@ -54,7 +56,6 @@ public abstract class Ldap {
     public static final byte PROTOCOL_OP_SEARCH_RESULT_ENTRY=0x64;
     public static final byte PROTOCOL_OP_SEARCH_RESULT_REFERRAL=0x73;
     public static final byte PROTOCOL_OP_UNBIND_REQUEST=0x42;
-    public static final String START_TLS_OID="1.3.6.1.4.1.1466.20037";
     public static final int VERSION=3;
 
     private Ldap() {

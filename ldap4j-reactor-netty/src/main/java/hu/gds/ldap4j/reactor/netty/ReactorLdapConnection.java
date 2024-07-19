@@ -56,6 +56,10 @@ public class ReactorLdapConnection {
         return lavaToMono(connection.bindSimple(name, password));
     }
 
+    public @NotNull Mono<@NotNull ExtendedResponse> cancel(int messageId, boolean signKludge) {
+        return lavaToMono(connection.cancel(messageId, signKludge));
+    }
+
     public @NotNull Mono<Void> close() {
         return lavaToMono(connection.close());
     }

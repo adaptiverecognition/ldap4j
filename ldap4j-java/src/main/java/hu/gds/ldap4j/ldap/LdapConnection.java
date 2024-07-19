@@ -53,7 +53,7 @@ public class LdapConnection implements Connection {
         return Lava.supplier(()->writeMessage(
                 connection(),
                 manageDsaIt
-                        ?List.of(Control.nonCritical(Ldap.MANAGE_DSA_IT_OID))
+                        ?List.of(Control.nonCritical(Ldap.CONTROL_MANAGE_DSA_IT_OID))
                         :List.of(),
                 AddRequest::write,
                 addRequest)
@@ -81,6 +81,18 @@ public class LdapConnection implements Connection {
     public @NotNull Lava<Void> bindSimple(@NotNull String name, char[] password) {
         return bind(BindRequest.simple(name, password))
                 .composeIgnoreResult(()->Lava.VOID);
+    }
+
+    public @NotNull Lava<@NotNull ExtendedResponse> cancel(int messageId, boolean signKludge) {
+        return Lava.supplier(()->extended(new ExtendedRequest(
+                Ldap.EXTENDED_REQUEST_CANCEL_OP_OID,
+                DER.writeSequence(
+                                DER.writeIntegerTag(signKludge, messageId))
+                        .arrayCopy()))
+                .compose((response)->{
+                    response.ldapResult().checkCancel();
+                    return Lava.complete(response);
+                }));
     }
 
     @Override
@@ -131,7 +143,7 @@ public class LdapConnection implements Connection {
         return Lava.supplier(()->writeMessage(
                 connection(),
                 manageDsaIt
-                        ?List.of(Control.nonCritical(Ldap.MANAGE_DSA_IT_OID))
+                        ?List.of(Control.nonCritical(Ldap.CONTROL_MANAGE_DSA_IT_OID))
                         :List.of(),
                 CompareRequest::write,
                 compareRequest)
@@ -161,7 +173,7 @@ public class LdapConnection implements Connection {
         return Lava.supplier(()->writeMessage(
                 connection(),
                 manageDsaIt
-                        ?List.of(Control.nonCritical(Ldap.MANAGE_DSA_IT_OID))
+                        ?List.of(Control.nonCritical(Ldap.CONTROL_MANAGE_DSA_IT_OID))
                         :List.of(),
                 DeleteRequest::write,
                 deleteRequest)
@@ -278,7 +290,7 @@ public class LdapConnection implements Connection {
         return Lava.supplier(()->writeMessage(
                 connection(),
                 manageDsaIt
-                        ?List.of(Control.nonCritical(Ldap.MANAGE_DSA_IT_OID))
+                        ?List.of(Control.nonCritical(Ldap.CONTROL_MANAGE_DSA_IT_OID))
                         :List.of(),
                 ModifyRequest::write,
                 modifyRequest)
@@ -295,7 +307,7 @@ public class LdapConnection implements Connection {
         return Lava.supplier(()->writeMessage(
                 connection(),
                 manageDsaIt
-                        ?List.of(Control.nonCritical(Ldap.MANAGE_DSA_IT_OID))
+                        ?List.of(Control.nonCritical(Ldap.CONTROL_MANAGE_DSA_IT_OID))
                         :List.of(),
                 ModifyDNRequest::write,
                 modifyDNRequest)
@@ -412,7 +424,7 @@ public class LdapConnection implements Connection {
         return Lava.supplier(()->writeMessage(
                 connection(),
                 manageDsaIt
-                        ?List.of(Control.nonCritical(Ldap.MANAGE_DSA_IT_OID))
+                        ?List.of(Control.nonCritical(Ldap.CONTROL_MANAGE_DSA_IT_OID))
                         :List.of(),
                 SearchRequest::write,
                 searchRequest,
@@ -428,8 +440,8 @@ public class LdapConnection implements Connection {
     }
 
     public @NotNull Lava<Void> startTls(@NotNull TlsSettings.Tls tls) {
+        Objects.requireNonNull(tls, "tls");
         return Lava.supplier(()->{
-            Objects.requireNonNull(tls, "tls");
             if (ldaps) {
                 throw new RuntimeException("cannot start tls on ldaps");
             }
@@ -437,7 +449,7 @@ public class LdapConnection implements Connection {
                 throw new RuntimeException("already using tls");
             }
             usingTls=true;
-            return extended(new ExtendedRequest(Ldap.START_TLS_OID, null))
+            return extended(new ExtendedRequest(Ldap.EXTENDED_REQUEST_START_TLS_OID, null))
                     .compose((response)->{
                         response.ldapResult().check();
                         return connection().startTls(tls);

@@ -13,7 +13,6 @@ import hu.gds.ldap4j.lava.ScheduledExecutorContext;
 import hu.gds.ldap4j.net.JavaAsyncChannelConnection;
 import hu.gds.ldap4j.net.TlsSettings;
 import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -139,14 +138,11 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                             bindResponse.ldapResult().resultCode2());
                                     assertNotNull(bindResponse.serverSaslCredentials());
                                     return connection.bind(BindRequest.sasl(
-                                            new String(
-                                                    new CramMD5Authenticator(
-                                                            "admin",
-                                                            password)
-                                                            .evaluateChallenge(
-                                                                    bindResponse.serverSaslCredentials()
-                                                                            .getBytes(StandardCharsets.UTF_8)),
-                                                    StandardCharsets.UTF_8),
+                                            new CramMD5Authenticator(
+                                                    "admin",
+                                                    password)
+                                                    .evaluateChallenge(
+                                                            bindResponse.serverSaslCredentials()),
                                             SupportedSaslMechanisms.CRAM_MD5,
                                             ""));
                                 })
