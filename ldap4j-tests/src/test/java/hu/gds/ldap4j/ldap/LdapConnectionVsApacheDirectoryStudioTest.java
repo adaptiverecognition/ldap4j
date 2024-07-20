@@ -4,7 +4,6 @@ import hu.gds.ldap4j.AbstractTest;
 import hu.gds.ldap4j.Exceptions;
 import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.Log;
-import hu.gds.ldap4j.Supplier;
 import hu.gds.ldap4j.lava.Callback;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.JoinCallback;
@@ -21,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.stream.Streams;
 import org.apache.directory.api.ldap.model.constants.SupportedSaslMechanisms;
 import org.apache.directory.server.core.annotations.ApplyLdifFiles;
@@ -51,10 +49,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 @ApplyLdifFiles("hu/gds/ldap4j/ldap/apache-directory-studio-test.ldif")
 public class LdapConnectionVsApacheDirectoryStudioTest {
     private static final int PORT=0;
-
-    private static @NotNull Stream<@NotNull Integer> badIntegers() {
-        return Streams.of(128, 255, 32768, 65535, 1<<23, (1<<24)-1);
-    }
 
     @Test
     public void test() throws Throwable {
@@ -111,9 +105,7 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                         false,
                         connection.messageIdGenerator(),
                         10,
-                        true,
-                        1,
-                        true)
+                        1)
                         .compose((results)->{
                             assertEquals(1, results.size());
                             assertTrue(results.get(0).isEntry());
@@ -208,9 +200,7 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                 false,
                                 connection.messageIdGenerator(),
                                 10,
-                                true,
-                                1,
-                                true)
+                                1)
                                 .compose((results)->{
                                     assertEquals(1, results.size());
                                     assertTrue(results.get(0).isEntry());
@@ -229,7 +219,11 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                 new Function<@NotNull LdapConnection, @NotNull Lava<Void>>() {
                     @Override
                     public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) throws Throwable {
-                        return loop(connection, badIntegers().iterator());
+                        return loop(
+                                connection,
+                                LdapConnectionTest.interestingIntegers()
+                                        .filter((value)->0<value)
+                                        .iterator());
                     }
 
                     private @NotNull Lava<Void> loop(
@@ -244,11 +238,9 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                 connection,
                                 "(objectClass=*)",
                                 false,
-                                MessageIdGenerator.constant(true, messageId),
+                                MessageIdGenerator.constant(messageId),
                                 10,
-                                true,
-                                1,
-                                true)
+                                1)
                                 .compose((results)->{
                                     assertEquals(1, results.size());
                                     assertTrue(results.get(0).isEntry());
@@ -259,42 +251,7 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                 });
                     }
                 },
-                serverAddress)
-                .composeIgnoreResult(new Supplier<@NotNull Lava<Void>>() {
-                    @Override
-                    public @NotNull Lava<Void> get() {
-                        return loop(badIntegers().iterator());
-                    }
-
-                    private @NotNull Lava<Void> loop(@NotNull Iterator<@NotNull Integer> iterator) {
-                        if (!iterator.hasNext()) {
-                            return Lava.VOID;
-                        }
-                        int messageId=iterator.next();
-                        return Lava.catchErrors(
-                                (throwable)->{
-                                    LdapException ldapException=Exceptions.findCauseOrThrow(
-                                            LdapException.class, throwable);
-                                    assertEquals(LdapResultCode.PROTOCOL_ERROR, ldapException.resultCode2);
-                                    return loop(iterator);
-                                },
-                                ()->withConnection(
-                                        (connection)->testSearch(
-                                                "cn=User 0,ou=Users,dc=test,dc=ldap4j,dc=gds,dc=hu",
-                                                connection,
-                                                "(objectClass=*)",
-                                                false,
-                                                MessageIdGenerator.constant(false, messageId),
-                                                10,
-                                                true,
-                                                1,
-                                                true)
-                                                .composeIgnoreResult(()->Lava.fail(
-                                                        new RuntimeException("should have failed"))),
-                                        serverAddress),
-                                Throwable.class);
-                    }
-                });
+                serverAddress);
     }
 
     private @NotNull Lava<Void> testReferrals(InetSocketAddress serverAddress) {
@@ -356,9 +313,7 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                         false,
                                         connection.messageIdGenerator(),
                                         10,
-                                        true,
-                                        1,
-                                        true)
+                                        1)
                                         .composeIgnoreResult(()->Lava.fail(
                                                 new RuntimeException("should have failed"))),
                                 Throwable.class);
@@ -373,9 +328,7 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                 true,
                                 connection.messageIdGenerator(),
                                 10,
-                                true,
-                                1,
-                                true)
+                                1)
                                 .compose((results)->{
                                     assertEquals(1, results.size());
                                     assertReferral0Entry(results.get(0));
@@ -392,9 +345,7 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                 false,
                                 connection.messageIdGenerator(),
                                 10,
-                                true,
-                                1,
-                                true)
+                                1)
                                 .compose((results)->{
                                     assertEquals(2, results.size());
                                     assertTrue(results.get(0).isReferral());
@@ -416,9 +367,7 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                 true,
                                 connection.messageIdGenerator(),
                                 10,
-                                true,
-                                1,
-                                true)
+                                1)
                                 .compose((results)->{
                                     assertEquals(2, results.size());
                                     assertReferral0Entry(results.get(0));
@@ -433,7 +382,7 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
     private @NotNull Lava<@NotNull List<@NotNull SearchResult>> testSearch(
             @NotNull String baseObject, @NotNull LdapConnection connection, @NotNull String filter,
             boolean manageDsaIt, @NotNull MessageIdGenerator messageIdGenerator, int sizeLimitEntries,
-            boolean sizeLimitSignKludge, int timeLimitSeconds, boolean timeLimitSignKludge) throws Throwable {
+            int timeLimitSeconds) throws Throwable {
         return connection.search(
                         messageIdGenerator,
                         new SearchRequest(
@@ -443,9 +392,7 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                 Filter.parse(filter),
                                 Scope.WHOLE_SUBTREE,
                                 sizeLimitEntries,
-                                sizeLimitSignKludge,
                                 timeLimitSeconds,
-                                timeLimitSignKludge,
                                 false)
                                 .controlsManageDsaIt(manageDsaIt))
                 .compose((results)->{
@@ -464,11 +411,7 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
     private @NotNull Lava<Void> testSearchSizeTimeLimit(InetSocketAddress serverAddress) {
         record Params(int limit, boolean sizeTime) {
         }
-        List<@NotNull Params> paramsKludge=LdapConnectionTest.interestingIntegers()
-                .flatMap((limit)->Streams.of(false, true)
-                        .map((sizeTime)->new Params(limit, sizeTime)))
-                .toList();
-        List<@NotNull Params> paramsNoKludge=badIntegers()
+        List<@NotNull Params> params=LdapConnectionTest.interestingIntegers()
                 .flatMap((limit)->Streams.of(false, true)
                         .map((sizeTime)->new Params(limit, sizeTime)))
                 .toList();
@@ -476,10 +419,10 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                 new Function<@NotNull LdapConnection, @NotNull Lava<Void>>() {
                     @Override
                     public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) throws Throwable {
-                        return loopKludge(connection, paramsKludge.iterator());
+                        return loop(connection, params.iterator());
                     }
 
-                    public @NotNull Lava<Void> loopKludge(
+                    public @NotNull Lava<Void> loop(
                             @NotNull LdapConnection connection, @NotNull Iterator<@NotNull Params> iterator)
                             throws Throwable {
                         if (!iterator.hasNext()) {
@@ -493,55 +436,18 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                 false,
                                 connection.messageIdGenerator(),
                                 params.sizeTime?params.limit:0,
-                                true,
-                                params.sizeTime?0:params.limit,
-                                true)
+                                params.sizeTime?0:params.limit)
                                 .compose((results)->{
                                     assertEquals(1, results.size());
                                     assertTrue(results.get(0).isEntry());
                                     assertEquals(
                                             "cn=User 0,ou=Users,dc=test,dc=ldap4j,dc=gds,dc=hu",
                                             results.get(0).asEntry().objectName());
-                                    return loopKludge(connection, iterator);
+                                    return loop(connection, iterator);
                                 });
                     }
                 },
-                serverAddress)
-                .composeIgnoreResult(new Supplier<@NotNull Lava<Void>>() {
-                    @Override
-                    public @NotNull Lava<Void> get() {
-                        return loopNoKludge(paramsNoKludge.iterator());
-                    }
-
-                    private @NotNull Lava<Void> loopNoKludge(@NotNull Iterator<@NotNull Params> iterator) {
-                        if (!iterator.hasNext()) {
-                            return Lava.VOID;
-                        }
-                        Params params=iterator.next();
-                        return Lava.catchErrors(
-                                (throwable)->{
-                                    LdapException ldapException=Exceptions.findCauseOrThrow(
-                                            LdapException.class, throwable);
-                                    assertEquals(LdapResultCode.PROTOCOL_ERROR, ldapException.resultCode2);
-                                    return loopNoKludge(iterator);
-                                },
-                                ()->withConnection(
-                                        (connection)->testSearch(
-                                                "cn=User 0,ou=Users,dc=test,dc=ldap4j,dc=gds,dc=hu",
-                                                connection,
-                                                "(objectClass=*)",
-                                                false,
-                                                connection.messageIdGenerator(),
-                                                params.sizeTime?params.limit:0,
-                                                false,
-                                                params.sizeTime?0:params.limit,
-                                                false)
-                                                .composeIgnoreResult(()->Lava.fail(
-                                                        new RuntimeException("should have failed"))),
-                                        serverAddress),
-                                Throwable.class);
-                    }
-                });
+                serverAddress);
     }
 
     private static <T> @NotNull Lava<T> withConnection(

@@ -50,42 +50,29 @@ Unboundid LDAP SDK is blocking.
 ## Servers
 
 There seems to be some misunderstanding how integers are represented.
-Servers are prone to interpret the highest bit as a sign bit,
+Servers sometime fail to interpret the highest bit as a sign bit,
 but it's not even consistent within a single implementation.
 While there's only a handful of integers used directly in LDAP messages, integer-like values are ubiquitous.
-
-Clients defensively pad some integer values:
-- Apache Directory Studio,
-- ldapsearch.
-
-Ldap4j can do this padding optionally on message ids and search limits, and it's default on.
-This seems to work with Apache Directory Server, MS domain controllers , and Unboundid LDAP SDK.
-
-New server tests should copy the length, message id, and search limit tests to map out the behaviour of the server,
-and provide some minimal coverage.
 
 ### Apache Directory Server
 
 Approx match works like an equality match, while officially it's not even supported.
-
-There's some integer parsing woes:
-- message id,
-- search size limit,
-- search time limit.
 
 There's no fast bind.
 
 ### MS Windows domain controller
 
 There's some integer parsing woes:
-- message id.
+- search size limit,
+- search time limit.
 
 Closes socket on unbind without a TLS shutdown.
 
 ### Unboundid LDAP SDK
 
 There's some integer parsing woes:
-- message id.
+- search size limit,
+- search time limit.
 
 There's no approx match.
 

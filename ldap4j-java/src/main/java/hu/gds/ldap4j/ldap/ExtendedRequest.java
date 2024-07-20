@@ -22,16 +22,12 @@ public record ExtendedRequest(
         this.requestValue=requestValue;
         this.responseReader=Objects.requireNonNull(responseReader, "responseReader");
     }
-
+    
     public static @NotNull ExtendedRequest cancel(int messageId) throws Throwable {
-        return cancel(messageId, true);
-    }
-
-    public static @NotNull ExtendedRequest cancel(int messageId, boolean signKludge) throws Throwable {
         return new ExtendedRequest(
                 Ldap.EXTENDED_REQUEST_CANCEL_OP_OID,
                 DER.writeSequence(
-                                DER.writeIntegerTag(signKludge, messageId))
+                                DER.writeIntegerTag(messageId))
                         .arrayCopy(),
                 ExtendedResponse.READER_CANCEL);
     }

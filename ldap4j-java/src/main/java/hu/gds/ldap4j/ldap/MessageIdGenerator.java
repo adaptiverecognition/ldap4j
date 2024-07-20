@@ -1,26 +1,12 @@
 package hu.gds.ldap4j.ldap;
 
 public interface MessageIdGenerator {
-    abstract class Abstract implements MessageIdGenerator {
-        private final boolean signKludge;
-
-        public Abstract(boolean signKludge) {
-            this.signKludge=signKludge;
-        }
-
-        @Override
-        public boolean signKludge() {
-            return signKludge;
-        }
-    }
-
-    class Interval extends Abstract {
+    class Interval implements MessageIdGenerator {
         private final int max;
         private final int min;
         private int next;
 
-        public Interval(int max, int min, boolean signKludge) {
-            super(signKludge);
+        public Interval(int max, int min) {
             this.max=max;
             this.min=min;
             if (0>=min) {
@@ -45,19 +31,17 @@ public interface MessageIdGenerator {
         }
     }
 
-    static MessageIdGenerator constant(boolean signKludge, int value) {
-        return new Interval(value, value, signKludge);
+    static MessageIdGenerator constant(int value) {
+        return new Interval(value, value);
     }
 
-    static MessageIdGenerator interval(int max, int min, boolean signKludge) {
-        return new Interval(max, min, signKludge);
+    static MessageIdGenerator interval(int max, int min) {
+        return new Interval(max, min);
     }
 
     int next();
 
-    boolean signKludge();
-
-    static MessageIdGenerator smallValues(boolean signKludge) {
-        return interval(127, 1, signKludge);
+    static MessageIdGenerator smallValues() {
+        return interval(127, 1);
     }
 }

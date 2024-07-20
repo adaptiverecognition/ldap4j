@@ -101,7 +101,7 @@ public class LdapConnection implements Connection {
             @NotNull TlsSettings tlsSettings) {
         return factory(
                 factory,
-                MessageIdGenerator.smallValues(true),
+                MessageIdGenerator.smallValues(),
                 remoteAddress,
                 tlsSettings);
     }
@@ -292,8 +292,7 @@ public class LdapConnection implements Connection {
             ByteBuffer byteBuffer=new LdapMessage<>(
                     message.controls(),
                     message.message(),
-                    messageId,
-                    messageIdGenerator.signKludge())
+                    messageId)
                     .write(Message::write);
             return Lava.catchErrors(
                             (throwable)->{

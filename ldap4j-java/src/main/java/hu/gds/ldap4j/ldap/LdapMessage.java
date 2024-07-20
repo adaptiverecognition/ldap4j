@@ -12,14 +12,12 @@ import org.jetbrains.annotations.NotNull;
 public record LdapMessage<T>(
         @NotNull List<@NotNull Control> controls,
         @NotNull T message,
-        int messageId,
-        boolean messageIdSignKludge) {
+        int messageId) {
     public LdapMessage(
-            @NotNull List<@NotNull Control> controls, @NotNull T message, int messageId, boolean messageIdSignKludge) {
+            @NotNull List<@NotNull Control> controls, @NotNull T message, int messageId) {
         this.controls=Objects.requireNonNull(controls, "controls");
         this.message=Objects.requireNonNull(message, "message");
         this.messageId=messageId;
-        this.messageIdSignKludge=messageIdSignKludge;
     }
 
     public static @NotNull List<@NotNull Control> controls(@NotNull ByteBuffer.Reader reader) throws Throwable {
@@ -51,8 +49,7 @@ public record LdapMessage<T>(
                     else if (0==messageId) {
                         ExtendedResponse response=ExtendedResponse.READER_SUCCESS.read(reader2);
                         @NotNull List<@NotNull Control> controls=controls(reader2);
-                        throw new ExtendedLdapException(
-                                new LdapMessage<>(controls, response, messageId, false));
+                        throw new ExtendedLdapException(new LdapMessage<>(controls, response, messageId));
                     }
                     else {
                         throw new UnexpectedMessageIdException(
@@ -77,7 +74,7 @@ public record LdapMessage<T>(
             controls2=DER.writeTag(Ldap.MESSAGE_CONTROLS, controls3);
         }
         return DER.writeSequence(
-                DER.writeIntegerTag(messageIdSignKludge, messageId)
+                DER.writeIntegerTag(messageId)
                         .append(function.apply(message))
                         .append(controls2));
     }

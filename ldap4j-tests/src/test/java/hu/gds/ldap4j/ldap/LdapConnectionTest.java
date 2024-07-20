@@ -3,7 +3,6 @@ package hu.gds.ldap4j.ldap;
 import hu.gds.ldap4j.Exceptions;
 import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.Pair;
-import hu.gds.ldap4j.Supplier;
 import hu.gds.ldap4j.TestContext;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
@@ -41,10 +40,6 @@ public class LdapConnectionTest {
         public @NotNull ByteBuffer write() {
             return ByteBuffer.create((byte)0, (byte)1, (byte)0);
         }
-    }
-
-    private static @NotNull Stream<@NotNull Integer> badMessageIds() {
-        return Streams.of(65535, (1<<24)-1);
     }
 
     public static @NotNull Stream<@NotNull Integer> interestingIntegers() {
@@ -365,9 +360,7 @@ public class LdapConnectionTest {
                                                                             string)),
                                                             Scope.BASE_OBJECT,
                                                             10,
-                                                            true,
                                                             1,
-                                                            true,
                                                             true)
                                                             .controlsEmpty())
                                             .compose((results)->{
@@ -426,85 +419,47 @@ public class LdapConnectionTest {
             ldapServer.start();
             context.get(
                     Closeable.withCloseable(
-                                    ()->context.parameters().connectionFactory(
-                                            context, ldapServer, LdapServer.adminBind()),
-                                    new Function<LdapConnection, Lava<Void>>() {
-                                        @Override
-                                        public @NotNull Lava<Void> apply(
-                                                @NotNull LdapConnection connection) throws Throwable {
-                                            return loop(connection, badMessageIds().iterator());
-                                        }
-
-                                        private @NotNull Lava<Void> loop(
-                                                @NotNull LdapConnection connection,
-                                                @NotNull Iterator<@NotNull Integer> iterator) throws Throwable {
-                                            if (!iterator.hasNext()) {
-                                                return Lava.VOID;
-                                            }
-                                            int messageId=iterator.next();
-                                            return connection.search(
-                                                            MessageIdGenerator.constant(true, messageId),
-                                                            new SearchRequest(
-                                                                    List.of(),
-                                                                    "cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
-                                                                    DerefAliases.NEVER_DEREF_ALIASES,
-                                                                    Filter.parse("(objectClass=*)"),
-                                                                    Scope.BASE_OBJECT,
-                                                                    10,
-                                                                    true,
-                                                                    1,
-                                                                    true,
-                                                                    true)
-                                                                    .controlsEmpty())
-                                                    .compose((results)->{
-                                                        assertEquals(2, results.size());
-                                                        assertTrue(results.get(0).isEntry());
-                                                        assertEquals(
-                                                                "cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
-                                                                results.get(0).asEntry().objectName());
-                                                        assertTrue(results.get(1).isDone());
-                                                        return loop(connection, iterator);
-                                                    });
-                                        }
-                                    })
-                            .composeIgnoreResult(new Supplier<@NotNull Lava<Void>>() {
+                            ()->context.parameters().connectionFactory(
+                                    context, ldapServer, LdapServer.adminBind()),
+                            new Function<LdapConnection, Lava<Void>>() {
                                 @Override
-                                public @NotNull Lava<Void> get() {
-                                    return loop(badMessageIds().iterator());
+                                public @NotNull Lava<Void> apply(
+                                        @NotNull LdapConnection connection) throws Throwable {
+                                    return loop(
+                                            connection,
+                                            interestingIntegers()
+                                                    .filter((value)->0<value)
+                                                    .iterator());
                                 }
 
-                                private @NotNull Lava<Void> loop(@NotNull Iterator<@NotNull Integer> iterator) {
+                                private @NotNull Lava<Void> loop(
+                                        @NotNull LdapConnection connection,
+                                        @NotNull Iterator<@NotNull Integer> iterator) throws Throwable {
                                     if (!iterator.hasNext()) {
                                         return Lava.VOID;
                                     }
                                     int messageId=iterator.next();
-                                    return Lava.catchErrors(
-                                            (throwable)->{
-                                                Exceptions.findCauseOrThrow(
-                                                        UnexpectedMessageIdException.class, throwable);
-                                                return loop(iterator);
-                                            },
-                                            ()->Closeable.withCloseable(
-                                                    ()->context.parameters().connectionFactory(
-                                                            context, ldapServer, LdapServer.adminBind()),
-                                                    (connection)->connection.search(
-                                                                    MessageIdGenerator.constant(
-                                                                            false, messageId),
-                                                                    new SearchRequest(
-                                                                            List.of(),
-                                                                            "cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
-                                                                            DerefAliases.NEVER_DEREF_ALIASES,
-                                                                            Filter.parse("(objectClass=*)"),
-                                                                            Scope.BASE_OBJECT,
-                                                                            10,
-                                                                            true,
-                                                                            1,
-                                                                            true,
-                                                                            true)
-                                                                            .controlsEmpty())
-                                                            .composeIgnoreResult(()->Lava.fail(
-                                                                    new RuntimeException("should have failed")))),
-                                            Throwable.class);
+                                    return connection.search(
+                                                    MessageIdGenerator.constant(messageId),
+                                                    new SearchRequest(
+                                                            List.of(),
+                                                            "cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                            DerefAliases.NEVER_DEREF_ALIASES,
+                                                            Filter.parse("(objectClass=*)"),
+                                                            Scope.BASE_OBJECT,
+                                                            10,
+                                                            1,
+                                                            true)
+                                                            .controlsEmpty())
+                                            .compose((results)->{
+                                                assertEquals(2, results.size());
+                                                assertTrue(results.get(0).isEntry());
+                                                assertEquals(
+                                                        "cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                        results.get(0).asEntry().objectName());
+                                                assertTrue(results.get(1).isDone());
+                                                return loop(connection, iterator);
+                                            });
                                 }
                             }));
         }
@@ -804,8 +759,7 @@ public class LdapConnectionTest {
                                                                         10,
                                                                         true)
                                                                         .controlsEmpty(),
-                                                                MessageIdGenerator.constant(
-                                                                        true, index+1))
+                                                                MessageIdGenerator.constant(index+1))
                                                         .composeIgnoreResult(
                                                                 ()->startSearches(connection, index+1));
                                             });
@@ -1099,12 +1053,11 @@ public class LdapConnectionTest {
              LdapServer ldapServer=new LdapServer(
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
-            record Params(boolean kludge, int limit, boolean sizeTime) {
+            record Params(int limit, boolean sizeTime) {
             }
-            List<@NotNull Params> params=Streams.of(false, true)
-                    .<Params>flatMap((kludge)->interestingIntegers()
-                            .flatMap((limit)->Streams.of(false, true)
-                                    .map((sizeTime)->new Params(kludge, limit, sizeTime))))
+            List<@NotNull Params> params=interestingIntegers()
+                    .flatMap((limit)->Streams.of(false, true)
+                            .map((sizeTime)->new Params(limit, sizeTime)))
                     .toList();
             context.get(
                     Closeable.withCloseable(
@@ -1130,9 +1083,7 @@ public class LdapConnectionTest {
                                                             Filter.parse("(objectClass=*)"),
                                                             Scope.BASE_OBJECT,
                                                             params.sizeTime?params.limit:0,
-                                                            params.kludge,
                                                             params.sizeTime?0:params.limit,
-                                                            params.kludge,
                                                             true)
                                                             .controlsEmpty())
                                             .compose((results)->{

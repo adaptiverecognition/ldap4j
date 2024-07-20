@@ -98,7 +98,7 @@ public record BindRequest(
     public @NotNull ByteBuffer write() throws Throwable {
         return DER.writeTag(
                 Ldap.PROTOCOL_OP_BIND_REQUEST,
-                DER.writeIntegerTag(false, version)
+                DER.writeIntegerTag(version)
                         .append(DER.writeUtf8Tag(name))
                         .append(authentication.write()));
     }

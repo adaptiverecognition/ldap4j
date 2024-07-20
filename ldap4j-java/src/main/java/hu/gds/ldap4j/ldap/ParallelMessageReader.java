@@ -25,8 +25,7 @@ public record ParallelMessageReader<T, U>(
         @NotNull List<@NotNull Control> controls=LdapMessage.controls(reader);
         return Lava.supplier(()->{
             messageReader.check(controls, message, messageId);
-            @NotNull LdapMessage<T> ldapMessage=new LdapMessage<>(
-                    controls, message, messageId, false);
+            @NotNull LdapMessage<T> ldapMessage=new LdapMessage<>(controls, message, messageId);
             U result=function.apply(ldapMessage);
             return Lava.complete(result);
         });

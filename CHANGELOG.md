@@ -8,6 +8,7 @@ Snapshot:
   - modify
   - modify dn
   - SASL bind
+- fix integer encoding
 - support parallel operations
 
 Version 1.0.0:

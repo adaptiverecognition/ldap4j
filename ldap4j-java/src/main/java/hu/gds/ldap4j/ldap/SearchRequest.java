@@ -12,9 +12,7 @@ public record SearchRequest(
         @NotNull Filter filter,
         @NotNull Scope scope,
         int sizeLimitEntries,
-        boolean sizeLimitSignKludge,
         int timeLimitSeconds,
-        boolean timeLimitSignKludge,
         boolean typesOnly)
         implements Message<SearchRequest> {
     public SearchRequest(
@@ -24,9 +22,7 @@ public record SearchRequest(
             @NotNull Filter filter,
             @NotNull Scope scope,
             int sizeLimitEntries,
-            boolean sizeLimitSignKludge,
             int timeLimitSeconds,
-            boolean timeLimitSignKludge,
             boolean typesOnly) {
         if (0>sizeLimitEntries) {
             throw new IllegalArgumentException("negative sizeLimitEntries %d".formatted(sizeLimitEntries));
@@ -40,19 +36,8 @@ public record SearchRequest(
         this.filter=Objects.requireNonNull(filter, "filter");
         this.scope=Objects.requireNonNull(scope, "scope");
         this.sizeLimitEntries=sizeLimitEntries;
-        this.sizeLimitSignKludge=sizeLimitSignKludge;
         this.timeLimitSeconds=timeLimitSeconds;
-        this.timeLimitSignKludge=timeLimitSignKludge;
         this.typesOnly=typesOnly;
-    }
-
-    public SearchRequest(
-            @NotNull List<@NotNull String> attributes, @NotNull String baseObject,
-            @NotNull DerefAliases derefAliases, @NotNull Filter filter, @NotNull Scope scope,
-            int sizeLimitEntries, int timeLimitSeconds, boolean typesOnly) {
-        this(
-                attributes, baseObject, derefAliases, filter, scope, sizeLimitEntries,
-                true, timeLimitSeconds, true, typesOnly);
     }
 
     @Override
@@ -67,8 +52,8 @@ public record SearchRequest(
                 DER.writeUtf8Tag(baseObject)
                         .append(scope.write())
                         .append(derefAliases.write())
-                        .append(DER.writeIntegerTag(sizeLimitSignKludge, sizeLimitEntries))
-                        .append(DER.writeIntegerTag(timeLimitSignKludge, timeLimitSeconds))
+                        .append(DER.writeIntegerTag(sizeLimitEntries))
+                        .append(DER.writeIntegerTag(timeLimitSeconds))
                         .append(DER.writeBooleanTag(typesOnly))
                         .append(filter.write())
                         .append(DER.writeSequence(DER.writeIterable(DER::writeUtf8Tag, attributes))));

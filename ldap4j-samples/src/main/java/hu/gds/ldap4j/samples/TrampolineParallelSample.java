@@ -66,7 +66,7 @@ public class TrampolineParallelSample {
                 connection.writeMessage(
                         endNanos,
                         searchRequest,
-                        MessageIdGenerator.constant(true, ii+1));
+                        MessageIdGenerator.constant(ii+1));
             }
 
             // read all result

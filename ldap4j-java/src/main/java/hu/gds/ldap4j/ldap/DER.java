@@ -53,29 +53,37 @@ public abstract class DER {
     }
 
     public static int readEnumeratedNoTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
-        return readIntegerNoTag(reader);
+        return readIntegerNoTag(false, reader);
     }
 
     public static int readEnumeratedTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
         return readTag(DER::readEnumeratedNoTag, reader, ENUMERATED);
     }
 
-    public static int readIntegerNoTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
+    public static int readIntegerNoTag(boolean integer, @NotNull ByteBuffer.Reader reader) throws Throwable {
         if (4<reader.remainingBytes()) {
             throw new RuntimeException("integer too large, size: %d".formatted(reader.remainingBytes()));
         }
+        boolean negative=false;
         int result=0;
-        while (reader.hasRemainingBytes()) {
-            result=(result<<8)|(reader.readByte()&255);
+        if (reader.hasRemainingBytes()) {
+            result=reader.readByte()&255;
+            if (integer && (0!=(result&0x80))) {
+                negative=true;
+                result^=0xffffff00;
+            }
+            while (reader.hasRemainingBytes()) {
+                result=(result<<8)|(reader.readByte()&255);
+            }
         }
-        if (0>result) {
-            throw new RuntimeException("negative integer %d".formatted(result));
+        if (negative) {
+            throw new RuntimeException("negative integer %,d".formatted(result));
         }
         return result;
     }
 
     public static int readIntegerTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
-        return readTag(DER::readIntegerNoTag, reader, INTEGER);
+        return readTag((reader2)->DER.readIntegerNoTag(true, reader2), reader, INTEGER);
     }
 
     public static int readLength(ByteBuffer.Reader reader) throws Throwable {
@@ -87,7 +95,7 @@ public abstract class DER {
         if (0==bb) {
             throw new RuntimeException("indefinite length is not supported yet");
         }
-        return reader.readBytes(bb, DER::readIntegerNoTag);
+        return reader.readBytes(bb, (reader2)->DER.readIntegerNoTag(false, reader2));
     }
 
     public static <T> T readSequence(
@@ -142,15 +150,15 @@ public abstract class DER {
     }
 
     public static @NotNull ByteBuffer writeEnumeratedNoTag(int value) throws Throwable {
-        return writeIntegerNoTag(false, value);
+        return writeIntegerNoTag(false, null, value);
     }
 
     public static @NotNull ByteBuffer writeEnumeratedTag(int value) throws Throwable {
-        return writeTag(ENUMERATED, writeIntegerNoTag(false, value));
+        return writeTag(ENUMERATED, writeIntegerNoTag(false, null, value));
     }
 
     public static @NotNull ByteBuffer writeIntegerNoTag(
-            boolean signKludge, @Nullable Function<@NotNull Integer, @NotNull ByteBuffer> size, int value)
+            boolean integer, @Nullable Function<@NotNull Integer, @NotNull ByteBuffer> size, int value)
             throws Throwable {
         if ((0>value)) {
             throw new IllegalArgumentException("invalid integer value %d".formatted(value));
@@ -159,36 +167,31 @@ public abstract class DER {
         byte b1=(byte)((value>>8)&255);
         byte b2=(byte)((value>>16)&255);
         byte b3=(byte)((value>>24)&255);
-        int size2;
         ByteBuffer value2;
-        if (0!=b3 || (signKludge && (0!=(b2&0x80)))) {
-            size2=4;
+        if (0!=b3 || (integer && (0!=(b2&0x80)))) {
             value2=ByteBuffer.create(b3, b2, b1, b0);
         }
-        else if ((0!=b2) || (signKludge && (0!=(b1&0x80)))) {
-            size2=3;
+        else if ((0!=b2) || (integer && (0!=(b1&0x80)))) {
             value2=ByteBuffer.create(b2, b1, b0);
         }
-        else if ((0!=b1) || (signKludge && (0!=(b0&0x80)))) {
-            size2=2;
+        else if ((0!=b1) || (integer && (0!=(b0&0x80)))) {
             value2=ByteBuffer.create(b1, b0);
         }
         else {
-            size2=1;
             value2=ByteBuffer.create(b0);
         }
         if (null==size) {
             return value2;
         }
-        return size.apply(size2).append(value2);
+        return size.apply(value2.size()).append(value2);
     }
 
-    public static @NotNull ByteBuffer writeIntegerNoTag(boolean signKludge, int value) throws Throwable {
-        return writeIntegerNoTag(signKludge, null, value);
+    public static @NotNull ByteBuffer writeIntegerNoTag(int value) throws Throwable {
+        return writeIntegerNoTag(true, null, value);
     }
 
-    public static @NotNull ByteBuffer writeIntegerTag(boolean signKludge, int value) throws Throwable {
-        return writeTag(INTEGER, writeIntegerNoTag(signKludge, value));
+    public static @NotNull ByteBuffer writeIntegerTag(int value) throws Throwable {
+        return writeTag(INTEGER, writeIntegerNoTag(true, null, value));
     }
 
     public static <T> @NotNull ByteBuffer writeIterable(

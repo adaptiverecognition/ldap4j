@@ -500,7 +500,7 @@ So we failed to detect any parallel execution of the parallel requests.
         connection.writeMessage(
                 endNanos,
                 searchRequest,
-                MessageIdGenerator.constant(true, ii+1));
+                MessageIdGenerator.constant(ii+1));
     }
 
     // read all result
