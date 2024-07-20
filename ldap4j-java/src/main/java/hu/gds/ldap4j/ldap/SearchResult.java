@@ -21,11 +21,6 @@ public sealed interface SearchResult {
         }
 
         @Override
-        public void check() throws LdapException {
-            ldapResult.check();
-        }
-
-        @Override
         public boolean isDone() {
             return true;
         }
@@ -56,10 +51,6 @@ public sealed interface SearchResult {
         }
 
         @Override
-        public void check() {
-        }
-
-        @Override
         public boolean isEntry() {
             return true;
         }
@@ -76,6 +67,39 @@ public sealed interface SearchResult {
         }
     }
 
+    class Reader implements MessageReader<SearchResult> {
+        @Override
+        public void check(@NotNull SearchResult message) throws Throwable {
+            message.visit(new Visitor<Void>() {
+                @Override
+                public Void done(@NotNull Done done) throws Throwable {
+                    done.ldapResult.checkSuccess();
+                    return null;
+                }
+
+                @Override
+                public Void entry(@NotNull Entry entry) {
+                    return null;
+                }
+
+                @Override
+                public Void referral(@NotNull Referral referral) {
+                    return null;
+                }
+            });
+        }
+
+        @Override
+        public @NotNull SearchResult read(@NotNull ByteBuffer.Reader reader) throws Throwable {
+            return DER.readTags(
+                    Map.of(
+                            Ldap.PROTOCOL_OP_SEARCH_RESULT_DONE, Done::read,
+                            Ldap.PROTOCOL_OP_SEARCH_RESULT_ENTRY, Entry::read,
+                            Ldap.PROTOCOL_OP_SEARCH_RESULT_REFERRAL, Referral::read),
+                    reader);
+        }
+    }
+
     record Referral(
             @NotNull List<@NotNull String> uris)
             implements SearchResult {
@@ -86,10 +110,6 @@ public sealed interface SearchResult {
         @Override
         public @NotNull Referral asReferral() {
             return this;
-        }
-
-        @Override
-        public void check() {
         }
 
         @Override
@@ -111,6 +131,8 @@ public sealed interface SearchResult {
         }
     }
 
+    @NotNull MessageReader<SearchResult> READER=new Reader();
+
     interface Visitor<T> {
         T done(@NotNull Done done) throws Throwable;
 
@@ -131,8 +153,6 @@ public sealed interface SearchResult {
         throw new ClassCastException("cannot cast %s to %s".formatted(this, Referral.class));
     }
 
-    void check() throws LdapException;
-
     default boolean isDone() {
         return false;
     }
@@ -143,15 +163,6 @@ public sealed interface SearchResult {
 
     default boolean isReferral() {
         return false;
-    }
-
-    static @NotNull SearchResult read(@NotNull ByteBuffer.Reader reader) throws Throwable {
-        return DER.readTags(
-                Map.of(
-                        Ldap.PROTOCOL_OP_SEARCH_RESULT_DONE, Done::read,
-                        Ldap.PROTOCOL_OP_SEARCH_RESULT_ENTRY, Entry::read,
-                        Ldap.PROTOCOL_OP_SEARCH_RESULT_REFERRAL, Referral::read),
-                reader);
     }
 
     <T> T visit(Visitor<T> visitor) throws Throwable;

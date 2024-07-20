@@ -4,21 +4,12 @@ import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
-import hu.gds.ldap4j.ldap.AddRequest;
-import hu.gds.ldap4j.ldap.AddResponse;
-import hu.gds.ldap4j.ldap.BindRequest;
-import hu.gds.ldap4j.ldap.BindResponse;
-import hu.gds.ldap4j.ldap.CompareRequest;
-import hu.gds.ldap4j.ldap.CompareResponse;
-import hu.gds.ldap4j.ldap.DeleteRequest;
-import hu.gds.ldap4j.ldap.DeleteResponse;
-import hu.gds.ldap4j.ldap.ExtendedRequest;
-import hu.gds.ldap4j.ldap.ExtendedResponse;
+import hu.gds.ldap4j.ldap.ControlsMessage;
 import hu.gds.ldap4j.ldap.LdapConnection;
-import hu.gds.ldap4j.ldap.ModifyDNRequest;
-import hu.gds.ldap4j.ldap.ModifyDNResponse;
-import hu.gds.ldap4j.ldap.ModifyRequest;
-import hu.gds.ldap4j.ldap.ModifyResponse;
+import hu.gds.ldap4j.ldap.LdapMessage;
+import hu.gds.ldap4j.ldap.Message;
+import hu.gds.ldap4j.ldap.MessageReader;
+import hu.gds.ldap4j.ldap.Request;
 import hu.gds.ldap4j.ldap.SearchRequest;
 import hu.gds.ldap4j.ldap.SearchResult;
 import hu.gds.ldap4j.net.DuplexConnection;
@@ -42,36 +33,9 @@ public record TrampolineLdapConnection(
         this.trampoline=Objects.requireNonNull(trampoline, "trampoline");
     }
 
-    public @NotNull AddResponse delete(
-            @NotNull AddRequest addRequest, long endNanos, boolean manageDsaIt) throws Throwable {
-        return trampoline.contextEndNanos(endNanos)
-                .get(true, true, connection.add(addRequest, manageDsaIt));
-    }
-
-    public @NotNull BindResponse bind(@NotNull BindRequest bindRequest, long endNanos) throws Throwable {
-        return trampoline.contextEndNanos(endNanos)
-                .get(true, true, connection.bind(bindRequest));
-    }
-
-    public void bindSimple(long endNanos, String name, char[] password) throws Throwable {
-        trampoline.contextEndNanos(endNanos)
-                .get(true, true, connection.bindSimple(name, password));
-    }
-
-    public @NotNull ExtendedResponse cancel(long endNanos, int messageId, boolean signKludge) throws Throwable {
-        return trampoline.contextEndNanos(endNanos)
-                .get(false, true, connection.cancel(messageId, signKludge));
-    }
-
     public void close(long endNanos) throws Throwable {
         trampoline.contextEndNanos(endNanos)
                 .get(false, true, connection.close());
-    }
-
-    public @NotNull CompareResponse compare(
-            @NotNull CompareRequest compareRequest, long endNanos, boolean manageDsaIt) throws Throwable {
-        return trampoline.contextEndNanos(endNanos)
-                .get(true, true, connection.compare(compareRequest, manageDsaIt));
     }
 
     public static @NotNull TrampolineLdapConnection create(
@@ -128,38 +92,40 @@ public record TrampolineLdapConnection(
                 tlsSettings);
     }
 
-    public @NotNull DeleteResponse delete(
-            @NotNull DeleteRequest deleteRequest, long endNanos, boolean manageDsaIt) throws Throwable {
+    public boolean isOpenAndNotFailed(long endNanos) throws Throwable {
         return trampoline.contextEndNanos(endNanos)
-                .get(true, true, connection.delete(deleteRequest, manageDsaIt));
+                .get(true, true, connection.isOpenAndNotFailed());
     }
 
-    public @NotNull ExtendedResponse extended(
-            long endNanos, @NotNull ExtendedRequest extendedRequest) throws Throwable {
+    public <T> @NotNull LdapMessage<T> readMessageChecked(
+            long endNanos, int messageId, @NotNull MessageReader<T> messageReader) throws Throwable {
         return trampoline.contextEndNanos(endNanos)
-                .get(true, true, connection.extended(extendedRequest));
-    }
-
-    public void fastBind(long endNanos) throws Throwable {
-        trampoline.contextEndNanos(endNanos)
-                .get(true, true, connection.fastBind());
-    }
-
-    public @NotNull ModifyResponse modify(
-            long endNanos, boolean manageDsaIt, @NotNull ModifyRequest modifyRequest) throws Throwable {
-        return trampoline.contextEndNanos(endNanos)
-                .get(true, true, connection.modify(manageDsaIt, modifyRequest));
-    }
-
-    public @NotNull ModifyDNResponse modifyDN(
-            long endNanos, boolean manageDsaIt, @NotNull ModifyDNRequest modifyDNRequest) throws Throwable {
-        return trampoline.contextEndNanos(endNanos)
-                .get(true, true, connection.modifyDN(manageDsaIt, modifyDNRequest));
+                .get(
+                        true,
+                        true,
+                        connection.readMessageChecked(messageId, messageReader));
     }
 
     public @NotNull List<@NotNull SearchResult> search(
-            long endNanos, boolean manageDsaIt, @NotNull SearchRequest searchRequest) throws Throwable {
+            long endNanos, @NotNull ControlsMessage<SearchRequest> request) throws Throwable {
         return trampoline.contextEndNanos(endNanos)
-                .get(true, true, connection.search(manageDsaIt, searchRequest));
+                .get(true, true, connection.search(request));
+    }
+
+    public void startTls(long endNanos, @NotNull TlsSettings.Tls tls) throws Throwable {
+        trampoline.contextEndNanos(endNanos)
+                .get(true, true, connection.startTls(tls));
+    }
+
+    public <M extends Message<M>> int writeMessage(
+            long endNanos, @NotNull ControlsMessage<M> message) throws Throwable {
+        return trampoline.contextEndNanos(endNanos)
+                .get(true, true, connection.writeMessage(message));
+    }
+
+    public <M extends Request<M, R>, R> @NotNull ControlsMessage<R> writeRequestReadResponseChecked(
+            long endNanos, @NotNull ControlsMessage<M> request) throws Throwable {
+        return trampoline.contextEndNanos(endNanos)
+                .get(true, true, connection.writeRequestReadResponseChecked(request));
     }
 }

@@ -4,21 +4,12 @@ import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.Supplier;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
-import hu.gds.ldap4j.ldap.AddRequest;
-import hu.gds.ldap4j.ldap.AddResponse;
-import hu.gds.ldap4j.ldap.BindRequest;
-import hu.gds.ldap4j.ldap.BindResponse;
-import hu.gds.ldap4j.ldap.CompareRequest;
-import hu.gds.ldap4j.ldap.CompareResponse;
-import hu.gds.ldap4j.ldap.DeleteRequest;
-import hu.gds.ldap4j.ldap.DeleteResponse;
-import hu.gds.ldap4j.ldap.ExtendedRequest;
-import hu.gds.ldap4j.ldap.ExtendedResponse;
+import hu.gds.ldap4j.ldap.ControlsMessage;
 import hu.gds.ldap4j.ldap.LdapConnection;
-import hu.gds.ldap4j.ldap.ModifyDNRequest;
-import hu.gds.ldap4j.ldap.ModifyDNResponse;
-import hu.gds.ldap4j.ldap.ModifyRequest;
-import hu.gds.ldap4j.ldap.ModifyResponse;
+import hu.gds.ldap4j.ldap.LdapMessage;
+import hu.gds.ldap4j.ldap.Message;
+import hu.gds.ldap4j.ldap.MessageReader;
+import hu.gds.ldap4j.ldap.Request;
 import hu.gds.ldap4j.ldap.SearchRequest;
 import hu.gds.ldap4j.ldap.SearchResult;
 import hu.gds.ldap4j.net.TlsSettings;
@@ -44,63 +35,34 @@ public class ReactorLdapConnection {
         this.timeoutNanos=timeoutNanos;
     }
 
-    public @NotNull Mono<@NotNull AddResponse> add(@NotNull AddRequest addRequest, boolean manageDsaIt) {
-        return lavaToMono(connection.add(addRequest, manageDsaIt));
-    }
-
-    public @NotNull Mono<@NotNull BindResponse> bind(@NotNull BindRequest bindRequest) {
-        return lavaToMono(connection.bind(bindRequest));
-    }
-
-    public @NotNull Mono<Void> bindSimple(@NotNull String name, char[] password) {
-        return lavaToMono(connection.bindSimple(name, password));
-    }
-
-    public @NotNull Mono<@NotNull ExtendedResponse> cancel(int messageId, boolean signKludge) {
-        return lavaToMono(connection.cancel(messageId, signKludge));
-    }
-
     public @NotNull Mono<Void> close() {
         return lavaToMono(connection.close());
-    }
-
-    public @NotNull Mono<@NotNull CompareResponse> compare(
-            @NotNull CompareRequest compareRequest, boolean manageDsaIt) {
-        return lavaToMono(connection.compare(compareRequest, manageDsaIt));
     }
 
     public LdapConnection connection() {
         return connection;
     }
 
-    public @NotNull Mono<@NotNull DeleteResponse> delete(@NotNull DeleteRequest deleteRequest, boolean manageDsaIt) {
-        return lavaToMono(connection.delete(deleteRequest, manageDsaIt));
-    }
-
-    public @NotNull Mono<@NotNull ExtendedResponse> extended(@NotNull ExtendedRequest extendedRequest) {
-        return lavaToMono(connection.extended(extendedRequest));
-    }
-
-    public @NotNull Mono<Void> fastBind() {
-        return lavaToMono(connection.fastBind());
+    public @NotNull Mono<@NotNull Boolean> isOpenAndNotFailed() {
+        return lavaToMono(connection.isOpenAndNotFailed());
     }
 
     private <T> @NotNull Mono<T> lavaToMono(@NotNull Lava<T> lava) {
         return LavaMono.create(ReactorContext.createTimeoutNanos(timeoutNanos), lava);
     }
 
-    public @NotNull Mono<@NotNull ModifyResponse> modify(boolean manageDsaIt, @NotNull ModifyRequest modifyRequest) {
-        return lavaToMono(connection.modify(manageDsaIt, modifyRequest));
-    }
-
-    public @NotNull Mono<@NotNull ModifyDNResponse> modifyDN(
-            boolean manageDsaIt, @NotNull ModifyDNRequest modifyDNRequest) {
-        return lavaToMono(connection.modifyDN(manageDsaIt, modifyDNRequest));
+    public <T> @NotNull Mono<@NotNull LdapMessage<T>> readMessageChecked(
+            int messageId, @NotNull MessageReader<T> messageReader) {
+        return lavaToMono(connection.readMessageChecked(messageId, messageReader));
     }
 
     public @NotNull Mono<@NotNull List<@NotNull SearchResult>> search(
-            boolean manageDsaIt, @NotNull SearchRequest searchRequest) {
-        return lavaToMono(connection.search(manageDsaIt, searchRequest));
+            @NotNull ControlsMessage<SearchRequest> request) {
+        return lavaToMono(connection.search(request));
+    }
+
+    public @NotNull Mono<Void> startTls(@NotNull TlsSettings.Tls tls) {
+        return lavaToMono(connection.startTls(tls));
     }
 
     public static <T> @NotNull Mono<T> withConnection(
@@ -133,5 +95,14 @@ public class ReactorLdapConnection {
                                         (connection)->Lava.complete(
                                                 new ReactorLdapConnection(connection, timeoutNanos))),
                                 (connection)->MonoLava.create(function.apply(connection)))));
+    }
+
+    public <M extends Message<M>> @NotNull Mono<@NotNull Integer> writeMessage(@NotNull ControlsMessage<M> message) {
+        return lavaToMono(connection.writeMessage(message));
+    }
+
+    public <M extends Request<M, R>, R> @NotNull Mono<@NotNull ControlsMessage<R>> writeRequestReadResponseChecked(
+            @NotNull ControlsMessage<M> request) {
+        return lavaToMono(connection.writeRequestReadResponseChecked(request));
     }
 }

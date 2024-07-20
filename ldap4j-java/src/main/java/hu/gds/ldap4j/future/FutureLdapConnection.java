@@ -6,21 +6,12 @@ import hu.gds.ldap4j.Supplier;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.lava.ScheduledExecutorContext;
-import hu.gds.ldap4j.ldap.AddRequest;
-import hu.gds.ldap4j.ldap.AddResponse;
-import hu.gds.ldap4j.ldap.BindRequest;
-import hu.gds.ldap4j.ldap.BindResponse;
-import hu.gds.ldap4j.ldap.CompareRequest;
-import hu.gds.ldap4j.ldap.CompareResponse;
-import hu.gds.ldap4j.ldap.DeleteRequest;
-import hu.gds.ldap4j.ldap.DeleteResponse;
-import hu.gds.ldap4j.ldap.ExtendedRequest;
-import hu.gds.ldap4j.ldap.ExtendedResponse;
+import hu.gds.ldap4j.ldap.ControlsMessage;
 import hu.gds.ldap4j.ldap.LdapConnection;
-import hu.gds.ldap4j.ldap.ModifyDNRequest;
-import hu.gds.ldap4j.ldap.ModifyDNResponse;
-import hu.gds.ldap4j.ldap.ModifyRequest;
-import hu.gds.ldap4j.ldap.ModifyResponse;
+import hu.gds.ldap4j.ldap.LdapMessage;
+import hu.gds.ldap4j.ldap.Message;
+import hu.gds.ldap4j.ldap.MessageReader;
+import hu.gds.ldap4j.ldap.Request;
 import hu.gds.ldap4j.ldap.SearchRequest;
 import hu.gds.ldap4j.ldap.SearchResult;
 import hu.gds.ldap4j.net.DuplexConnection;
@@ -53,43 +44,12 @@ public class FutureLdapConnection {
         this.timeoutNanos=timeoutNanos;
     }
 
-    public @NotNull CompletableFuture<@NotNull AddResponse> add(@NotNull AddRequest addRequest, boolean manageDsaIt) {
-        return startLava(connection.add(addRequest, manageDsaIt));
-    }
-
-    public @NotNull CompletableFuture<@NotNull BindResponse> bind(@NotNull BindRequest bindRequest) {
-        return startLava(connection.bind(bindRequest));
-    }
-
-    public @NotNull CompletableFuture<Void> bindSimple(@NotNull String name, char[] password) {
-        return startLava(connection.bindSimple(name, password));
-    }
-
-    public @NotNull CompletableFuture<@NotNull ExtendedResponse> cancel(int messageId, boolean signKludge) {
-        return startLava(connection.cancel(messageId, signKludge));
-    }
-
     public @NotNull CompletableFuture<Void> close() {
         return startLava(connection.close());
     }
 
-    public @NotNull CompletableFuture<@NotNull CompareResponse> compare(
-            @NotNull CompareRequest compareRequest, boolean manageDsaIt) {
-        return startLava(connection.compare(compareRequest, manageDsaIt));
-    }
-
     public @NotNull LdapConnection connection() {
         return connection;
-    }
-
-    public @NotNull CompletableFuture<@NotNull DeleteResponse> delete(
-            @NotNull DeleteRequest deleteRequest, boolean manageDsaIt) {
-        return startLava(connection.delete(deleteRequest, manageDsaIt));
-    }
-
-
-    public @NotNull CompletableFuture<@NotNull ExtendedResponse> extended(@NotNull ExtendedRequest extendedRequest) {
-        return startLava(connection.extended(extendedRequest));
     }
 
     public static @NotNull Supplier<@NotNull CompletableFuture<@NotNull FutureLdapConnection>> factory(
@@ -129,28 +89,38 @@ public class FutureLdapConnection {
                 tlsSettings);
     }
 
-    public @NotNull CompletableFuture<Void> fastBind() {
-        return startLava(connection.fastBind());
+    public @NotNull CompletableFuture<@NotNull Boolean> isOpenAndNotFailed() {
+        return startLava(connection.isOpenAndNotFailed());
     }
 
-    public @NotNull CompletableFuture<@NotNull ModifyResponse> modify(
-            boolean manageDsaIt, @NotNull ModifyRequest modifyRequest) {
-        return startLava(connection.modify(manageDsaIt, modifyRequest));
-    }
-
-    public @NotNull CompletableFuture<@NotNull ModifyDNResponse> modifyDN(
-            boolean manageDsaIt, @NotNull ModifyDNRequest modifyDNRequest) {
-        return startLava(connection.modifyDN(manageDsaIt, modifyDNRequest));
+    public <T> @NotNull CompletableFuture<@NotNull LdapMessage<T>> readMessageChecked(
+            int messageId, @NotNull MessageReader<T> messageReader) {
+        return startLava(connection.readMessageChecked(messageId, messageReader));
     }
 
     public @NotNull CompletableFuture<@NotNull List<@NotNull SearchResult>> search(
-            boolean manageDsaIt, @NotNull SearchRequest searchRequest) {
-        return startLava(connection.search(manageDsaIt, searchRequest));
+            @NotNull ControlsMessage<SearchRequest> request) {
+        return startLava(connection.search(request));
     }
 
     private <T> @NotNull CompletableFuture<T> startLava(@NotNull Lava<T> lava) {
         return Futures.start(
                 ScheduledExecutorContext.createDelayNanos(timeoutNanos, executor, log),
                 lava);
+    }
+
+    public @NotNull CompletableFuture<Void> startTls(TlsSettings.@NotNull Tls tls) {
+        return startLava(connection.startTls(tls));
+    }
+
+    public <M extends Message<M>> @NotNull CompletableFuture<@NotNull Integer> writeMessage(
+            @NotNull ControlsMessage<M> message) {
+        return startLava(connection.writeMessage(message));
+    }
+
+    public <M extends Request<M, R>, R>
+    @NotNull CompletableFuture<@NotNull ControlsMessage<R>> writeRequestReadResponseChecked(
+            @NotNull ControlsMessage<M> request) {
+        return startLava(connection.writeRequestReadResponseChecked(request));
     }
 }

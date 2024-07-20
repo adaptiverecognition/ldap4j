@@ -29,6 +29,8 @@ public sealed abstract class Filter {
     }
 
     public static final class ApproxMatch extends AttributeValueAssertion {
+        public static final String RELATION_STRING="~";
+
         public ApproxMatch(@NotNull String assertionValue, @NotNull String attributeDescription) {
             super(assertionValue, attributeDescription);
         }
@@ -40,7 +42,7 @@ public sealed abstract class Filter {
 
         @Override
         protected String toStringRelation() {
-            return "~";
+            return RELATION_STRING;
         }
     }
 
@@ -85,6 +87,8 @@ public sealed abstract class Filter {
     }
 
     public static final class EqualityMatch extends AttributeValueAssertion {
+        public static final String RELATION_STRING="=";
+
         public EqualityMatch(@NotNull String assertionValue, @NotNull String attributeDescription) {
             super(assertionValue, attributeDescription);
         }
@@ -96,7 +100,7 @@ public sealed abstract class Filter {
 
         @Override
         protected String toStringRelation() {
-            return "=";
+            return RELATION_STRING;
         }
     }
 
@@ -166,6 +170,8 @@ public sealed abstract class Filter {
     }
 
     public static final class GreaterOrEqual extends AttributeValueAssertion {
+        public static final String RELATION_STRING=">=";
+
         public GreaterOrEqual(@NotNull String assertionValue, @NotNull String attributeDescription) {
             super(assertionValue, attributeDescription);
         }
@@ -177,11 +183,13 @@ public sealed abstract class Filter {
 
         @Override
         protected String toStringRelation() {
-            return ">=";
+            return RELATION_STRING;
         }
     }
 
     public static final class LessOrEqual extends AttributeValueAssertion {
+        public static final String RELATION_STRING="<=";
+
         public LessOrEqual(@NotNull String assertionValue, @NotNull String attributeDescription) {
             super(assertionValue, attributeDescription);
         }
@@ -193,7 +201,7 @@ public sealed abstract class Filter {
 
         @Override
         protected String toStringRelation() {
-            return "<=";
+            return RELATION_STRING;
         }
     }
 

@@ -7,6 +7,7 @@ import hu.gds.ldap4j.Supplier;
 import hu.gds.ldap4j.TestContext;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
+import hu.gds.ldap4j.net.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -86,7 +87,7 @@ public class LdapConnectionTest {
                                 @Override
                                 public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) {
                                     return assertNoSuchObject(connection)
-                                            .composeIgnoreResult(()->connection.add(
+                                            .composeIgnoreResult(()->connection.writeRequestReadResponseChecked(
                                                     new AddRequest(
                                                             List.of(
                                                                     new PartialAttribute(
@@ -98,19 +99,18 @@ public class LdapConnectionTest {
                                                                     new PartialAttribute(
                                                                             attribute,
                                                                             List.of(user0, user1))),
-                                                            object),
-                                                    false))
+                                                            object)
+                                                            .controlsEmpty()))
                                             .composeIgnoreResult(()->assertMembers(connection, user0, user1))
-                                            .composeIgnoreResult(()->connection.delete(
-                                                    new DeleteRequest(object),
-                                                    false))
+                                            .composeIgnoreResult(()->connection.writeRequestReadResponseChecked(
+                                                    new DeleteRequest(object)
+                                                            .controlsEmpty()))
                                             .composeIgnoreResult(()->assertNoSuchObject(connection));
                                 }
 
                                 private @NotNull Lava<@NotNull List<@NotNull String>> members(
                                         @NotNull LdapConnection connection) throws Throwable {
                                     return connection.search(
-                                                    false,
                                                     new SearchRequest(
                                                             List.of(attribute),
                                                             object,
@@ -119,7 +119,8 @@ public class LdapConnectionTest {
                                                             Scope.BASE_OBJECT,
                                                             10,
                                                             10,
-                                                            false))
+                                                            false)
+                                                            .controlsEmpty())
                                             .compose((searchResults)->{
                                                 List<String> members=new ArrayList<>(
                                                         searchResults.stream()
@@ -203,17 +204,25 @@ public class LdapConnectionTest {
             context.get(
                     Closeable.withCloseable(
                             ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
-                            (connection)->connection.bind(
+                            (connection)->connection.writeRequestReadResponseChecked(
                                             BindRequest.sasl(
-                                                    "dn: %s\0dn: %s\0%s".formatted(
-                                                                    bind.first(),
-                                                                    bind.first(),
-                                                                    bind.second())
-                                                            .getBytes(StandardCharsets.UTF_8),
-                                                    "PLAIN",
-                                                    ""))
+                                                            "dn: %s\0dn: %s\0%s".formatted(
+                                                                            bind.first(),
+                                                                            bind.first(),
+                                                                            bind.second())
+                                                                    .getBytes(StandardCharsets.UTF_8),
+                                                            "PLAIN",
+                                                            "")
+                                                    .controlsEmpty())
                                     .compose((bindResponse)->{
-                                        assertEquals(LdapResultCode.SUCCESS, bindResponse.ldapResult().resultCode2());
+                                        assertEquals(
+                                                LdapResultCode.SUCCESS,
+                                                bindResponse.message().ldapResult().resultCode2());
+                                        byte[] challengeResponse="dn: %s\0dn: %s\0%s".formatted(
+                                                        bind.first(),
+                                                        bind.first(),
+                                                        bind.second()+"x")
+                                                .getBytes(StandardCharsets.UTF_8);
                                         return Lava.catchErrors(
                                                 (exception)->{
                                                     assertEquals(
@@ -221,15 +230,12 @@ public class LdapConnectionTest {
                                                             exception.resultCode2);
                                                     return Lava.VOID;
                                                 },
-                                                ()->connection.bind(
+                                                ()->connection.writeRequestReadResponseChecked(
                                                                 BindRequest.sasl(
-                                                                        "dn: %s\0dn: %s\0%s".formatted(
-                                                                                        bind.first(),
-                                                                                        bind.first(),
-                                                                                        bind.second()+"x")
-                                                                                .getBytes(StandardCharsets.UTF_8),
-                                                                        "PLAIN",
-                                                                        ""))
+                                                                                challengeResponse,
+                                                                                "PLAIN",
+                                                                                "")
+                                                                        .controlsEmpty())
                                                         .composeIgnoreResult(()->{
                                                             fail("should have failed");
                                                             return Lava.VOID;
@@ -288,14 +294,14 @@ public class LdapConnectionTest {
 
                                 private @NotNull Lava<@NotNull Boolean> compare(
                                         @NotNull LdapConnection connection, String value) {
-                                    return connection.compare(
+                                    return connection.writeRequestReadResponseChecked(
                                                     new CompareRequest(
                                                             new Filter.EqualityMatch(value, attribute),
-                                                            object),
-                                                    false)
+                                                            object)
+                                                            .controlsEmpty())
                                             .compose((response)->Lava.complete(
-                                                    LdapResultCode.COMPARE_TRUE
-                                                            .equals(response.ldapResult().resultCode2())));
+                                                    LdapResultCode.COMPARE_TRUE.equals(
+                                                            response.message().ldapResult().resultCode2())));
                                 }
                             }));
         }
@@ -334,7 +340,6 @@ public class LdapConnectionTest {
                                     Arrays.fill(chars, 'a');
                                     String string=new String(chars);
                                     return connection.search(
-                                                    false,
                                                     connection.messageIdGenerator(),
                                                     new SearchRequest(
                                                             List.of(),
@@ -347,7 +352,9 @@ public class LdapConnectionTest {
                                                             10,
                                                             true,
                                                             1,
-                                                            true))
+                                                            true,
+                                                            true)
+                                                            .controlsEmpty())
                                             .compose((results)->{
                                                 assertEquals(2, results.size());
                                                 assertTrue(results.get(0).isEntry());
@@ -369,6 +376,17 @@ public class LdapConnectionTest {
              LdapServer ldapServer=new LdapServer(
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
+            class InvalidMessage implements Message<InvalidMessage> {
+                @Override
+                public @NotNull InvalidMessage self() {
+                    return this;
+                }
+
+                @Override
+                public @NotNull ByteBuffer write() throws Throwable {
+                    return ByteBuffer.create((byte)0, (byte)1, (byte)0);
+                }
+            }
             context.get(
                     Lava.catchErrors(
                             (extendedLdapException)->{
@@ -383,8 +401,14 @@ public class LdapConnectionTest {
                             ()->Closeable.withCloseable(
                                     ()->context.parameters().connectionFactory(
                                             context, ldapServer, LdapServer.adminBind()),
-                                    (connection)->connection.invalidRequestResponse()
-                                            .composeIgnoreResult(()->Lava.fail(new IllegalStateException()))),
+                                    (connection)->connection.writeMessage(
+                                                    new InvalidMessage()
+                                                            .controlsEmpty())
+                                            .compose((messageId)->connection.readMessageChecked(
+                                                    messageId, ExtendedResponse.READER_SUCCESS))
+                                            .compose((response)->Lava.fail(
+                                                    new IllegalStateException("should have failed, response: %s"
+                                                            .formatted(response))))),
                             ExtendedLdapException.class));
         }
     }
@@ -415,7 +439,6 @@ public class LdapConnectionTest {
                                             }
                                             int messageId=iterator.next();
                                             return connection.search(
-                                                            false,
                                                             MessageIdGenerator.constant(true, messageId),
                                                             new SearchRequest(
                                                                     List.of(),
@@ -426,7 +449,9 @@ public class LdapConnectionTest {
                                                                     10,
                                                                     true,
                                                                     1,
-                                                                    true))
+                                                                    true,
+                                                                    true)
+                                                                    .controlsEmpty())
                                                     .compose((results)->{
                                                         assertEquals(2, results.size());
                                                         assertTrue(results.get(0).isEntry());
@@ -459,7 +484,6 @@ public class LdapConnectionTest {
                                                     ()->context.parameters().connectionFactory(
                                                             context, ldapServer, LdapServer.adminBind()),
                                                     (connection)->connection.search(
-                                                                    false,
                                                                     MessageIdGenerator.constant(
                                                                             false, messageId),
                                                                     new SearchRequest(
@@ -471,7 +495,9 @@ public class LdapConnectionTest {
                                                                             10,
                                                                             true,
                                                                             1,
-                                                                            true))
+                                                                            true,
+                                                                            true)
+                                                                            .controlsEmpty())
                                                             .composeIgnoreResult(()->Lava.fail(
                                                                     new RuntimeException("should have failed")))),
                                             Throwable.class);
@@ -535,7 +561,6 @@ public class LdapConnectionTest {
                                 private @NotNull Lava<@NotNull List<@NotNull String>> members(
                                         @NotNull LdapConnection connection) throws Throwable {
                                     return connection.search(
-                                                    false,
                                                     new SearchRequest(
                                                             List.of(attribute),
                                                             object,
@@ -544,7 +569,8 @@ public class LdapConnectionTest {
                                                             Scope.BASE_OBJECT,
                                                             10,
                                                             10,
-                                                            false))
+                                                            false)
+                                                            .controlsEmpty())
                                             .compose((searchResults)->{
                                                 List<String> members=new ArrayList<>(
                                                         searchResults.stream()
@@ -561,9 +587,9 @@ public class LdapConnectionTest {
 
                                 private @NotNull Lava<Void> modify(
                                         @NotNull LdapConnection connection, ModifyRequest.Change... changes) {
-                                    return connection.modify(
-                                                    false,
-                                                    new ModifyRequest(List.of(changes), object))
+                                    return connection.writeRequestReadResponseChecked(
+                                                    new ModifyRequest(List.of(changes), object)
+                                                            .controlsEmpty())
                                             .composeIgnoreResult(()->Lava.VOID);
                                 }
                             }));
@@ -622,39 +648,39 @@ public class LdapConnectionTest {
                                                     connection, "%s,%s".formatted(newRDN, oldParent)))
                                             .composeIgnoreResult(()->assertMembers(
                                                     connection, "%s,%s".formatted(oldRDN, oldParent), user0, user1))
-                                            .composeIgnoreResult(()->connection.modifyDN(
-                                                    false,
+                                            .composeIgnoreResult(()->connection.writeRequestReadResponseChecked(
                                                     new ModifyDNRequest(
                                                             false,
                                                             "%s,%s".formatted(oldRDN, oldParent),
                                                             newRDN,
-                                                            null)))
+                                                            null)
+                                                            .controlsEmpty()))
                                             .composeIgnoreResult(()->assertNoSuchObject(
                                                     connection, "%s,%s".formatted(newRDN, newParent)))
                                             .composeIgnoreResult(()->assertMembers(
                                                     connection, "%s,%s".formatted(newRDN, oldParent), user0, user1))
                                             .composeIgnoreResult(()->assertNoSuchObject(
                                                     connection, "%s,%s".formatted(oldRDN, oldParent)))
-                                            .composeIgnoreResult(()->connection.modifyDN(
-                                                    false,
+                                            .composeIgnoreResult(()->connection.writeRequestReadResponseChecked(
                                                     new ModifyDNRequest(
                                                             false,
                                                             "%s,%s".formatted(newRDN, oldParent),
                                                             newRDN,
-                                                            newParent)))
+                                                            newParent)
+                                                            .controlsEmpty()))
                                             .composeIgnoreResult(()->assertMembers(
                                                     connection, "%s,%s".formatted(newRDN, newParent), user0, user1))
                                             .composeIgnoreResult(()->assertNoSuchObject(
                                                     connection, "%s,%s".formatted(newRDN, oldParent)))
                                             .composeIgnoreResult(()->assertNoSuchObject(
                                                     connection, "%s,%s".formatted(oldRDN, oldParent)))
-                                            .composeIgnoreResult(()->connection.modifyDN(
-                                                    false,
+                                            .composeIgnoreResult(()->connection.writeRequestReadResponseChecked(
                                                     new ModifyDNRequest(
                                                             true,
                                                             "%s,%s".formatted(newRDN, newParent),
                                                             oldRDN,
-                                                            oldParent)))
+                                                            oldParent)
+                                                            .controlsEmpty()))
                                             .composeIgnoreResult(()->assertNoSuchObject(
                                                     connection, "%s,%s".formatted(newRDN, newParent)))
                                             .composeIgnoreResult(()->assertNoSuchObject(
@@ -666,7 +692,6 @@ public class LdapConnectionTest {
                                 private @NotNull Lava<@NotNull List<@NotNull String>> members(
                                         @NotNull LdapConnection connection, @NotNull String object) throws Throwable {
                                     return connection.search(
-                                                    false,
                                                     new SearchRequest(
                                                             List.of(attribute),
                                                             object,
@@ -675,7 +700,8 @@ public class LdapConnectionTest {
                                                             Scope.BASE_OBJECT,
                                                             10,
                                                             10,
-                                                            false))
+                                                            false)
+                                                            .controlsEmpty())
                                             .compose((searchResults)->{
                                                 List<String> members=new ArrayList<>(
                                                         searchResults.stream()
@@ -739,7 +765,6 @@ public class LdapConnectionTest {
             @NotNull LdapConnection connection, @NotNull List<@NotNull String> requestAttributes,
             @NotNull List<@NotNull String> responseAttributes) throws Throwable {
         return connection.search(
-                        false,
                         new SearchRequest(
                                 requestAttributes,
                                 "uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
@@ -748,7 +773,8 @@ public class LdapConnectionTest {
                                 Scope.WHOLE_SUBTREE,
                                 100,
                                 10,
-                                false))
+                                false)
+                                .controlsEmpty())
                 .compose((searchResult)->{
                     assertEquals(2, searchResult.size());
                     assertTrue(searchResult.get(0).isEntry());
@@ -783,7 +809,6 @@ public class LdapConnectionTest {
                                     ()->context.parameters().connectionFactory(
                                             context, ldapServer, LdapServer.adminBind()),
                                     (connection)->connection.search(
-                                                    false,
                                                     new SearchRequest(
                                                             List.of("cn", "objectClass"),
                                                             "ou=invalid,ou=test,dc=ldap4j,dc=gds,dc=hu",
@@ -792,7 +817,8 @@ public class LdapConnectionTest {
                                                             Scope.WHOLE_SUBTREE,
                                                             100,
                                                             10,
-                                                            false))
+                                                            false)
+                                                            .controlsEmpty())
                                             .composeIgnoreResult(()->Lava.fail(new IllegalStateException()))),
                             LdapException.class));
         }
@@ -848,7 +874,6 @@ public class LdapConnectionTest {
             @NotNull LdapConnection connection, @NotNull String filter, boolean base, boolean user0, boolean user1)
             throws Throwable {
         return connection.search(
-                        false,
                         new SearchRequest(
                                 List.of(Ldap.NO_ATTRIBUTES),
                                 "ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
@@ -857,7 +882,8 @@ public class LdapConnectionTest {
                                 Scope.WHOLE_SUBTREE,
                                 100,
                                 10,
-                                true))
+                                true)
+                                .controlsEmpty())
                 .compose((searchResult)->{
                     Set<String> expectedDns=new HashSet<>(3);
                     if (base) {
@@ -896,7 +922,6 @@ public class LdapConnectionTest {
                             Closeable.withCloseable(
                                     ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
                                     (connection)->connection.search(
-                                            manageDsaIt,
                                             new SearchRequest(
                                                     List.of("ref"),
                                                     "cn=referral0,ou=test,dc=ldap4j,dc=gds,dc=hu",
@@ -905,7 +930,8 @@ public class LdapConnectionTest {
                                                     Scope.WHOLE_SUBTREE,
                                                     100,
                                                     10,
-                                                    false))));
+                                                    false)
+                                                    .controlsManageDsaIt(manageDsaIt))));
                     if (!manageDsaIt) {
                         fail("should have failed");
                     }
@@ -967,7 +993,6 @@ public class LdapConnectionTest {
                                     }
                                     Params params=iterator.next();
                                     return connection.search(
-                                                    false,
                                                     new SearchRequest(
                                                             List.of(),
                                                             "cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
@@ -977,7 +1002,9 @@ public class LdapConnectionTest {
                                                             params.sizeTime?params.limit:0,
                                                             params.kludge,
                                                             params.sizeTime?0:params.limit,
-                                                            true))
+                                                            params.kludge,
+                                                            true)
+                                                            .controlsEmpty())
                                             .compose((results)->{
                                                 assertEquals(2, results.size());
                                                 assertTrue(results.get(0).isEntry());
@@ -1004,7 +1031,6 @@ public class LdapConnectionTest {
                         Closeable.withCloseable(
                                 ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
                                 (connection)->connection.search(
-                                        false,
                                         new SearchRequest(
                                                 List.of("cn", "objectClass"),
                                                 "ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
@@ -1013,7 +1039,8 @@ public class LdapConnectionTest {
                                                 Scope.WHOLE_SUBTREE,
                                                 100,
                                                 10,
-                                                false))));
+                                                false)
+                                                .controlsEmpty())));
                 assertTrue(results.get(results.size()-1).isDone());
                 results=new ArrayList<>(results);
                 results.remove(results.size()-1);

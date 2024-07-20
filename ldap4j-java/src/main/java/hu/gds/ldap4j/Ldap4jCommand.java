@@ -1,6 +1,10 @@
 package hu.gds.ldap4j;
 
+import hu.gds.ldap4j.ldap.BindRequest;
+import hu.gds.ldap4j.ldap.CompareRequest;
+import hu.gds.ldap4j.ldap.CompareResponse;
 import hu.gds.ldap4j.ldap.DerefAliases;
+import hu.gds.ldap4j.ldap.ExtendedRequest;
 import hu.gds.ldap4j.ldap.Filter;
 import hu.gds.ldap4j.ldap.PartialAttribute;
 import hu.gds.ldap4j.ldap.Scope;
@@ -29,6 +33,7 @@ public class Ldap4jCommand {
     private static final String BIND_SIMPLE_CONSOLE="console";
     private static final String BIND_SIMPLE_FILE="file";
     private static final String COMMAND_BIND_SIMPLE="bind-simple";
+    private static final String COMMAND_COMPARE="compare";
     private static final String COMMAND_FAST_BIND="fast-bind";
     private static final String COMMAND_SEARCH="search";
     private static final String CONNECTION_OPTION_DON_T_VERIFY_HOSTNAME="-don-t-verify-hostname";
@@ -136,6 +141,7 @@ public class Ldap4jCommand {
         String command=arguments.removeFirst("should have a command");
         switch (command) {
             case COMMAND_BIND_SIMPLE -> commandBindSimple(arguments, connection, endNanos);
+            case COMMAND_COMPARE -> commandCompare(arguments, connection, endNanos);
             case COMMAND_FAST_BIND -> commandFastBind(connection, endNanos);
             case COMMAND_SEARCH -> commandSearch(arguments, connection, endNanos);
             default -> throw new SyntaxException("unknown command %s".formatted(command));
@@ -155,13 +161,53 @@ public class Ldap4jCommand {
             default -> throw new SyntaxException("unknown password source %s".formatted(passwordSource));
         };
         System.out.printf("bind simple, %s%n", name);
-        connection.bindSimple(endNanos, name, password.toCharArray());
+        connection.writeRequestReadResponseChecked(
+                endNanos,
+                BindRequest.simple(name, password.toCharArray())
+                        .controlsEmpty());
         System.out.printf("bind successful%n");
+    }
+
+    private static void commandCompare(
+            @NotNull Arguments arguments, @NotNull TrampolineLdapConnection connection,
+            long endNanos) throws Throwable {
+        boolean manageDsaIt=false;
+        while (!arguments.isEmpty()) {
+            if (arguments.removeOptional(SEARCH_OPTION_DON_T_MANAGE_DSA_IT)) {
+                manageDsaIt=false;
+            }
+            else if (arguments.removeOptional(SEARCH_OPTION_MANAGE_DSA_IT)) {
+                manageDsaIt=true;
+            }
+            else {
+                break;
+            }
+        }
+        @NotNull String entry=arguments.removeFirst("missing entry");
+        @NotNull String attribute=arguments.removeFirst("missing attribute");
+        @NotNull String assertion=arguments.removeFirst("missing assertion");
+        @NotNull String value=arguments.removeFirst("missing value");
+        @NotNull Filter.AttributeValueAssertion assertion2=switch (assertion) {
+            case Filter.ApproxMatch.RELATION_STRING -> new Filter.ApproxMatch(value, attribute);
+            case Filter.EqualityMatch.RELATION_STRING -> new Filter.EqualityMatch(value, attribute);
+            case Filter.GreaterOrEqual.RELATION_STRING -> new Filter.GreaterOrEqual(value, attribute);
+            case Filter.LessOrEqual.RELATION_STRING -> new Filter.LessOrEqual(value, attribute);
+            default -> throw new IllegalArgumentException("unknown assertion %s".formatted(assertion));
+        };
+        CompareRequest compareRequest=new CompareRequest(assertion2, entry);
+        System.out.printf("compare%n");
+        System.out.printf("\tentry: %s%n", compareRequest.entry());
+        System.out.printf("\tassertion: %s%n", compareRequest.attributeValueAssertion());
+        System.out.printf("\tmanage dsa it: %s%n", manageDsaIt);
+        @NotNull CompareResponse compareResponse=connection.writeRequestReadResponseChecked(
+                        endNanos, compareRequest.controlsManageDsaIt(manageDsaIt))
+                .message();
+        System.out.printf("\tresult: %s%n", compareResponse.ldapResult().resultCode2());
     }
 
     private static void commandFastBind(@NotNull TrampolineLdapConnection connection, long endNanos) throws Throwable {
         System.out.printf("fast bind%n");
-        connection.fastBind(endNanos);
+        connection.writeRequestReadResponseChecked(endNanos, ExtendedRequest.FAST_BIND.controlsEmpty());
         System.out.printf("fast bind successful%n");
     }
 
@@ -224,7 +270,6 @@ public class Ldap4jCommand {
         }
         @NotNull String baseObject=arguments.removeFirst("missing base object");
         @NotNull Filter filter=Filter.parse(arguments.removeFirst("missing filter"));
-        boolean manageDsaIt2=manageDsaIt;
         SearchRequest searchRequest=new SearchRequest(
                 attributes, baseObject, derefAliases, filter, scope, sizeLimitEntries, timeLimitSeconds, typesOnly);
         System.out.printf("search%n");
@@ -232,12 +277,13 @@ public class Ldap4jCommand {
         System.out.printf("\tbase object: %s%n", searchRequest.baseObject());
         System.out.printf("\tderef. aliases: %s%n", searchRequest.derefAliases());
         System.out.printf("\tfilter: %s%n", searchRequest.filter());
-        System.out.printf("\tmanage dsa it: %s%n", manageDsaIt2);
+        System.out.printf("\tmanage dsa it: %s%n", manageDsaIt);
         System.out.printf("\tscope: %s%n", searchRequest.scope());
         System.out.printf("\tsize limit: %,d entries%n", searchRequest.sizeLimitEntries());
         System.out.printf("\ttime limit: %,d sec%n", searchRequest.timeLimitSeconds());
         System.out.printf("\ttypes only: %s%n", searchRequest.typesOnly());
-        List<SearchResult> searchResults=connection.search(endNanos, manageDsaIt2, searchRequest);
+        @NotNull List<@NotNull SearchResult> searchResults
+                =connection.search(endNanos, searchRequest.controlsManageDsaIt(manageDsaIt));
         for (SearchResult searchResult: searchResults) {
             searchResult.visit(new SearchResult.Visitor<>() {
                 @Override
@@ -388,6 +434,15 @@ public class Ldap4jCommand {
         System.out.printf("\t\t%s name %s password%n", COMMAND_BIND_SIMPLE, BIND_SIMPLE_ARGUMENT);
         System.out.printf("\t\t%s name %s%n", COMMAND_BIND_SIMPLE, BIND_SIMPLE_CONSOLE);
         System.out.printf("\t\t%s name %s password-file%n", COMMAND_BIND_SIMPLE, BIND_SIMPLE_FILE);
+        System.out.printf(
+                "\t\t%s entry attribute [%s|%s|%s|%s] value%n",
+                COMMAND_COMPARE,
+                Filter.ApproxMatch.RELATION_STRING,
+                Filter.EqualityMatch.RELATION_STRING,
+                Filter.GreaterOrEqual.RELATION_STRING,
+                Filter.LessOrEqual.RELATION_STRING);
+        System.out.printf("\t\t\t%s%n", SEARCH_OPTION_DON_T_MANAGE_DSA_IT);
+        System.out.printf("\t\t\t%s%n", SEARCH_OPTION_MANAGE_DSA_IT);
         System.out.printf("\t\t%s%n", COMMAND_FAST_BIND);
         System.out.printf("\t\t%s [parameter ...] base-object filter%n", COMMAND_SEARCH);
         System.out.printf("\t\t\t%s attribute-name%n", SEARCH_OPTION_ATTRIBUTE);

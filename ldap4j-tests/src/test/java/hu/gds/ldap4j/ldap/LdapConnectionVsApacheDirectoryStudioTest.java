@@ -112,7 +112,8 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                         connection.messageIdGenerator(),
                         10,
                         true,
-                        1)
+                        1,
+                        true)
                         .compose((results)->{
                             assertEquals(1, results.size());
                             assertTrue(results.get(0).isEntry());
@@ -128,26 +129,33 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
         return withConnection(
                 new Function<>() {
                     private @NotNull Lava<Void> bind(@NotNull LdapConnection connection, @NotNull String password) {
-                        return connection.bind(BindRequest.sasl(
-                                        null,
-                                        SupportedSaslMechanisms.CRAM_MD5,
-                                        ""))
+                        return connection.writeRequestReadResponseChecked(
+                                        BindRequest.sasl(
+                                                        null,
+                                                        SupportedSaslMechanisms.CRAM_MD5,
+                                                        "")
+                                                .controlsEmpty())
                                 .compose((bindResponse)->{
                                     assertEquals(
                                             LdapResultCode.SASL_BIND_IN_PROGRESS,
-                                            bindResponse.ldapResult().resultCode2());
-                                    assertNotNull(bindResponse.serverSaslCredentials());
-                                    return connection.bind(BindRequest.sasl(
-                                            new CramMD5Authenticator(
-                                                    "admin",
-                                                    password)
-                                                    .evaluateChallenge(
-                                                            bindResponse.serverSaslCredentials()),
-                                            SupportedSaslMechanisms.CRAM_MD5,
-                                            ""));
+                                            bindResponse.message().ldapResult().resultCode2());
+                                    assertNotNull(bindResponse.message().serverSaslCredentials());
+                                    return connection.writeRequestReadResponseChecked(
+                                            BindRequest.sasl(
+                                                            new CramMD5Authenticator(
+                                                                    "admin",
+                                                                    password)
+                                                                    .evaluateChallenge(
+                                                                            bindResponse.message()
+                                                                                    .serverSaslCredentials()),
+                                                            SupportedSaslMechanisms.CRAM_MD5,
+                                                            "")
+                                                    .controlsEmpty());
                                 })
                                 .compose((bindResponse)->{
-                                    assertEquals(LdapResultCode.SUCCESS, bindResponse.ldapResult().resultCode2());
+                                    assertEquals(
+                                            LdapResultCode.SUCCESS,
+                                            bindResponse.message().ldapResult().resultCode2());
                                     return Lava.VOID;
                                 });
                     }
@@ -201,7 +209,8 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                 connection.messageIdGenerator(),
                                 10,
                                 true,
-                                1)
+                                1,
+                                true)
                                 .compose((results)->{
                                     assertEquals(1, results.size());
                                     assertTrue(results.get(0).isEntry());
@@ -238,7 +247,8 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                 MessageIdGenerator.constant(true, messageId),
                                 10,
                                 true,
-                                1)
+                                1,
+                                true)
                                 .compose((results)->{
                                     assertEquals(1, results.size());
                                     assertTrue(results.get(0).isEntry());
@@ -277,7 +287,8 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                                 MessageIdGenerator.constant(false, messageId),
                                                 10,
                                                 true,
-                                                1)
+                                                1,
+                                                true)
                                                 .composeIgnoreResult(()->Lava.fail(
                                                         new RuntimeException("should have failed"))),
                                         serverAddress),
@@ -346,7 +357,8 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                         connection.messageIdGenerator(),
                                         10,
                                         true,
-                                        1)
+                                        1,
+                                        true)
                                         .composeIgnoreResult(()->Lava.fail(
                                                 new RuntimeException("should have failed"))),
                                 Throwable.class);
@@ -362,7 +374,8 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                 connection.messageIdGenerator(),
                                 10,
                                 true,
-                                1)
+                                1,
+                                true)
                                 .compose((results)->{
                                     assertEquals(1, results.size());
                                     assertReferral0Entry(results.get(0));
@@ -380,7 +393,8 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                 connection.messageIdGenerator(),
                                 10,
                                 true,
-                                1)
+                                1,
+                                true)
                                 .compose((results)->{
                                     assertEquals(2, results.size());
                                     assertTrue(results.get(0).isReferral());
@@ -403,7 +417,8 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                 connection.messageIdGenerator(),
                                 10,
                                 true,
-                                1)
+                                1,
+                                true)
                                 .compose((results)->{
                                     assertEquals(2, results.size());
                                     assertReferral0Entry(results.get(0));
@@ -418,9 +433,8 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
     private @NotNull Lava<@NotNull List<@NotNull SearchResult>> testSearch(
             @NotNull String baseObject, @NotNull LdapConnection connection, @NotNull String filter,
             boolean manageDsaIt, @NotNull MessageIdGenerator messageIdGenerator, int sizeLimitEntries,
-            boolean sizeTimeLimitSignKludge, int timeLimitSeconds) throws Throwable {
+            boolean sizeLimitSignKludge, int timeLimitSeconds, boolean timeLimitSignKludge) throws Throwable {
         return connection.search(
-                        manageDsaIt,
                         messageIdGenerator,
                         new SearchRequest(
                                 List.of("ref", Ldap.ALL_ATTRIBUTES),
@@ -429,9 +443,11 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                 Filter.parse(filter),
                                 Scope.WHOLE_SUBTREE,
                                 sizeLimitEntries,
-                                sizeTimeLimitSignKludge,
+                                sizeLimitSignKludge,
                                 timeLimitSeconds,
-                                false))
+                                timeLimitSignKludge,
+                                false)
+                                .controlsManageDsaIt(manageDsaIt))
                 .compose((results)->{
                     assertFalse(results.isEmpty());
                     results=new ArrayList<>(results);
@@ -478,7 +494,8 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                 connection.messageIdGenerator(),
                                 params.sizeTime?params.limit:0,
                                 true,
-                                params.sizeTime?0:params.limit)
+                                params.sizeTime?0:params.limit,
+                                true)
                                 .compose((results)->{
                                     assertEquals(1, results.size());
                                     assertTrue(results.get(0).isEntry());
@@ -517,7 +534,8 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                                 connection.messageIdGenerator(),
                                                 params.sizeTime?params.limit:0,
                                                 false,
-                                                params.sizeTime?0:params.limit)
+                                                params.sizeTime?0:params.limit,
+                                                false)
                                                 .composeIgnoreResult(()->Lava.fail(
                                                         new RuntimeException("should have failed"))),
                                         serverAddress),

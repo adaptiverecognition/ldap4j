@@ -2,6 +2,7 @@ package hu.gds.ldap4j.samples;
 
 import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.future.FutureLdapConnection;
+import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.Filter;
 import hu.gds.ldap4j.ldap.Scope;
@@ -33,14 +34,16 @@ public class FutureSample {
                     .thenCompose((connection)->{
                         System.out.println("connected");
                         // authenticate
-                        CompletableFuture<Void> rest=connection.bindSimple(
-                                        "cn=read-only-admin,dc=example,dc=com", "password".toCharArray())
+                        CompletableFuture<Void> rest=connection.writeRequestReadResponseChecked(
+                                        BindRequest.simple(
+                                                        "cn=read-only-admin,dc=example,dc=com",
+                                                        "password".toCharArray())
+                                                .controlsEmpty())
                                 .thenCompose((ignore)->{
                                     System.out.println("bound");
                                     try {
                                         // look up mathematicians
                                         return connection.search(
-                                                false,
                                                 new SearchRequest(
                                                         List.of("uniqueMember"), // attributes
                                                         "ou=mathematicians,dc=example,dc=com", // base object
@@ -49,7 +52,8 @@ public class FutureSample {
                                                         Scope.WHOLE_SUBTREE,
                                                         100, // size limit
                                                         10, // time limit
-                                                        false)); // types only
+                                                        false) // types only
+                                                        .controlsEmpty());
                                     }
                                     catch (Throwable throwable) {
                                         return CompletableFuture.failedFuture(throwable);

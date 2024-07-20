@@ -1,6 +1,7 @@
 package hu.gds.ldap4j.samples;
 
 import hu.gds.ldap4j.Log;
+import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.Filter;
 import hu.gds.ldap4j.ldap.Scope;
@@ -24,12 +25,16 @@ public class TrampolineSample {
         try {
             System.out.println("connected");
             // authenticate
-            connection.bindSimple(endNanos, "cn=read-only-admin,dc=example,dc=com", "password".toCharArray());
+            connection.writeRequestReadResponseChecked(
+                    endNanos,
+                    BindRequest.simple(
+                                    "cn=read-only-admin,dc=example,dc=com",
+                                    "password".toCharArray())
+                            .controlsEmpty());
             System.out.println("bound");
             // look up mathematicians
             List<SearchResult> searchResults=connection.search(
                     endNanos,
-                    false, // manage DSA IT
                     new SearchRequest(
                             List.of("uniqueMember"), // attributes
                             "ou=mathematicians,dc=example,dc=com", // base object
@@ -38,7 +43,8 @@ public class TrampolineSample {
                             Scope.WHOLE_SUBTREE,
                             100, // size limit
                             10, // time limit
-                            false)); // types only
+                            false) // types only
+                            .controlsEmpty());
             System.out.println("mathematicians:");
             searchResults.stream()
                     .filter(SearchResult::isEntry)

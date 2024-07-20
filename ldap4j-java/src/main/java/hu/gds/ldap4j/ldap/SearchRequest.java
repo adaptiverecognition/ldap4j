@@ -1,10 +1,9 @@
 package hu.gds.ldap4j.ldap;
 
 import hu.gds.ldap4j.net.ByteBuffer;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.List;
 import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 
 public record SearchRequest(
         @NotNull List<@NotNull String> attributes,
@@ -13,13 +12,22 @@ public record SearchRequest(
         @NotNull Filter filter,
         @NotNull Scope scope,
         int sizeLimitEntries,
-        boolean sizeTimeLimitSignKludge,
+        boolean sizeLimitSignKludge,
         int timeLimitSeconds,
-        boolean typesOnly) {
+        boolean timeLimitSignKludge,
+        boolean typesOnly)
+        implements Message<SearchRequest> {
     public SearchRequest(
-            @NotNull List<@NotNull String> attributes, @NotNull String baseObject,
-            @NotNull DerefAliases derefAliases, @NotNull Filter filter, @NotNull Scope scope,
-            int sizeLimitEntries, boolean sizeTimeLimitSignKludge, int timeLimitSeconds, boolean typesOnly) {
+            @NotNull List<@NotNull String> attributes,
+            @NotNull String baseObject,
+            @NotNull DerefAliases derefAliases,
+            @NotNull Filter filter,
+            @NotNull Scope scope,
+            int sizeLimitEntries,
+            boolean sizeLimitSignKludge,
+            int timeLimitSeconds,
+            boolean timeLimitSignKludge,
+            boolean typesOnly) {
         if (0>sizeLimitEntries) {
             throw new IllegalArgumentException("negative sizeLimitEntries %d".formatted(sizeLimitEntries));
         }
@@ -32,8 +40,9 @@ public record SearchRequest(
         this.filter=Objects.requireNonNull(filter, "filter");
         this.scope=Objects.requireNonNull(scope, "scope");
         this.sizeLimitEntries=sizeLimitEntries;
-        this.sizeTimeLimitSignKludge=sizeTimeLimitSignKludge;
+        this.sizeLimitSignKludge=sizeLimitSignKludge;
         this.timeLimitSeconds=timeLimitSeconds;
+        this.timeLimitSignKludge=timeLimitSignKludge;
         this.typesOnly=typesOnly;
     }
 
@@ -43,17 +52,23 @@ public record SearchRequest(
             int sizeLimitEntries, int timeLimitSeconds, boolean typesOnly) {
         this(
                 attributes, baseObject, derefAliases, filter, scope, sizeLimitEntries,
-                true, timeLimitSeconds, typesOnly);
+                true, timeLimitSeconds, true, typesOnly);
     }
 
-    public ByteBuffer write() throws Throwable {
+    @Override
+    public @NotNull SearchRequest self() {
+        return this;
+    }
+
+    @Override
+    public @NotNull ByteBuffer write() throws Throwable {
         return DER.writeTag(
                 Ldap.PROTOCOL_OP_SEARCH_REQUEST,
                 DER.writeUtf8Tag(baseObject)
                         .append(scope.write())
                         .append(derefAliases.write())
-                        .append(DER.writeIntegerTag(sizeTimeLimitSignKludge, sizeLimitEntries))
-                        .append(DER.writeIntegerTag(sizeTimeLimitSignKludge, timeLimitSeconds))
+                        .append(DER.writeIntegerTag(sizeLimitSignKludge, sizeLimitEntries))
+                        .append(DER.writeIntegerTag(timeLimitSignKludge, timeLimitSeconds))
                         .append(DER.writeBooleanTag(typesOnly))
                         .append(filter.write())
                         .append(DER.writeSequence(DER.writeIterable(DER::writeUtf8Tag, attributes))));

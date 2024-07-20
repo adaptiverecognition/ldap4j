@@ -4,6 +4,9 @@ import java.io.Serial;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Unsolicited messages are raised as error using this class.
+ */
 public class ExtendedLdapException extends LdapException {
     @Serial
     private static final long serialVersionUID=0L;

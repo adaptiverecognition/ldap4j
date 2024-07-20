@@ -88,7 +88,11 @@ public class LdapTestParameters extends TestParameters {
         else {
             connectionFactory1=Closeable.wrapOrClose(
                     ()->connectionFactory0,
-                    (connection)->connection.bindSimple(simpleBind.first(), simpleBind.second().toCharArray())
+                    (connection)->connection.writeRequestReadResponseChecked(
+                                    BindRequest.simple(
+                                                    simpleBind.first(),
+                                                    simpleBind.second().toCharArray())
+                                            .controlsEmpty())
                             .composeIgnoreResult(()->Lava.complete(connection)));
         }
         return connectionFactory1;

@@ -3,11 +3,20 @@ package hu.gds.ldap4j.ldap;
 import hu.gds.ldap4j.net.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 
-public record AbandonRequest(int messageId, boolean signKludge) {
+public record AbandonRequest(
+        int messageId,
+        boolean signKludge)
+        implements Message<AbandonRequest> {
     public AbandonRequest(int messageId) {
         this(messageId, true);
     }
 
+    @Override
+    public @NotNull AbandonRequest self() {
+        return this;
+    }
+
+    @Override
     public @NotNull ByteBuffer write() throws Throwable {
         return DER.writeTag(
                 Ldap.PROTOCOL_OP_ABANDON_REQUEST,

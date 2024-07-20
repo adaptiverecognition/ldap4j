@@ -7,7 +7,8 @@ import org.jetbrains.annotations.NotNull;
 public record BindRequest(
         @NotNull AuthenticationChoice authentication,
         @NotNull String name,
-        int version) {
+        int version)
+        implements Request<BindRequest, BindResponse> {
     public sealed interface AuthenticationChoice {
         record SASL(
                 byte[] credentials,
@@ -19,8 +20,8 @@ public record BindRequest(
             }
 
             @Override
-            public void check(@NotNull LdapResult ldapResult) throws Throwable {
-                ldapResult.checkSASL();
+            public @NotNull MessageReader<BindResponse> responseReader() {
+                return BindResponse.READER_SASL;
             }
 
             @Override
@@ -42,8 +43,8 @@ public record BindRequest(
                 char[] password)
                 implements AuthenticationChoice {
             @Override
-            public void check(@NotNull LdapResult ldapResult) throws Throwable {
-                ldapResult.check();
+            public @NotNull MessageReader<BindResponse> responseReader() {
+                return BindResponse.READER_SUCCESS;
             }
 
             @Override
@@ -54,26 +55,46 @@ public record BindRequest(
             }
         }
 
-        void check(@NotNull LdapResult ldapResult) throws Throwable;
+        @NotNull MessageReader<BindResponse> responseReader();
 
         @NotNull ByteBuffer write() throws Throwable;
     }
 
-    public BindRequest(@NotNull AuthenticationChoice authentication, @NotNull String name, int version) {
+    public BindRequest(
+            @NotNull AuthenticationChoice authentication,
+            @NotNull String name,
+            int version) {
         this.authentication=Objects.requireNonNull(authentication, "authentication");
         this.name=Objects.requireNonNull(name, "name");
         this.version=version;
     }
 
+    @Override
+    public @NotNull MessageReader<BindResponse> responseReader() {
+        return authentication().responseReader();
+    }
+
     public static @NotNull BindRequest sasl(
             byte[] credentials, @NotNull String mechanism, @NotNull String name) {
-        return new BindRequest(new AuthenticationChoice.SASL(credentials, mechanism), name, Ldap.VERSION);
+        return new BindRequest(
+                new AuthenticationChoice.SASL(credentials, mechanism),
+                name,
+                Ldap.VERSION);
+    }
+
+    @Override
+    public @NotNull BindRequest self() {
+        return this;
     }
 
     public static @NotNull BindRequest simple(@NotNull String name, char[] password) {
-        return new BindRequest(new AuthenticationChoice.Simple(password), name, Ldap.VERSION);
+        return new BindRequest(
+                new AuthenticationChoice.Simple(password),
+                name,
+                Ldap.VERSION);
     }
 
+    @Override
     public @NotNull ByteBuffer write() throws Throwable {
         return DER.writeTag(
                 Ldap.PROTOCOL_OP_BIND_REQUEST,

@@ -1,5 +1,6 @@
 package hu.gds.ldap4j.reactor.netty;
 
+import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.Filter;
 import hu.gds.ldap4j.ldap.LdapServer;
@@ -98,7 +99,11 @@ public class ReactorLdapTest {
     private static @NotNull Mono<Void> testConnection(ReactorLdapConnection connection) {
         Map.Entry<String, String> user=LdapServer.USERS.entrySet().iterator().next();
         return Monos.compose(
-                connection.bindSimple(user.getKey(), user.getValue().toCharArray()),
+                connection.writeRequestReadResponseChecked(
+                        BindRequest.simple(
+                                        user.getKey(),
+                                        user.getValue().toCharArray())
+                                .controlsEmpty()),
                 (bindResponse)->{
                     int index=user.getKey().indexOf(',');
                     assertTrue(0<index);
@@ -110,7 +115,6 @@ public class ReactorLdapTest {
                     String value=first.substring(index+1);
                     return Monos.compose(
                             connection.search(
-                                    false,
                                     new SearchRequest(
                                             List.of(attribute),
                                             base,
@@ -119,7 +123,8 @@ public class ReactorLdapTest {
                                             Scope.WHOLE_SUBTREE,
                                             128,
                                             10,
-                                            false)),
+                                            false)
+                                            .controlsEmpty()),
                             (searchResults)->{
                                 assertEquals(2, searchResults.size(), searchResults.toString());
                                 assertTrue(searchResults.get(0).isEntry());

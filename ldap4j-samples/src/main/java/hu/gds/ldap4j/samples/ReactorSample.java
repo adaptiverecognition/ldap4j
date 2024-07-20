@@ -1,6 +1,7 @@
 package hu.gds.ldap4j.samples;
 
 import hu.gds.ldap4j.Log;
+import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.Filter;
 import hu.gds.ldap4j.ldap.Scope;
@@ -73,15 +74,16 @@ public class ReactorSample {
         private Mono<Object> run(ReactorLdapConnection connection, StringBuilder output) {
             output.append("connected<br>");
             // authenticate
-            return connection.bindSimple(
-                            "cn=read-only-admin,dc=example,dc=com",
-                            "password".toCharArray())
+            return connection.writeRequestReadResponseChecked(
+                            BindRequest.simple(
+                                            "cn=read-only-admin,dc=example,dc=com",
+                                            "password".toCharArray())
+                                    .controlsEmpty())
                     .flatMap((ignore)->{
                         output.append("bound<br>");
                         try {
                             // look up mathematicians
                             return connection.search(
-                                    false, // manage DSA IT
                                     new SearchRequest(
                                             List.of("uniqueMember"), // attributes
                                             "ou=mathematicians,dc=example,dc=com", // base object
@@ -90,7 +92,8 @@ public class ReactorSample {
                                             Scope.WHOLE_SUBTREE,
                                             100, // size limit
                                             10, // time limit
-                                            false)); // types only
+                                            false) // types only
+                                            .controlsEmpty());
                         }
                         catch (Throwable throwable) {
                             return Mono.error(throwable);

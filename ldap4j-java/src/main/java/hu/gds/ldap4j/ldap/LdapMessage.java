@@ -35,9 +35,8 @@ public record LdapMessage<T>(
         }
         return controls;
     }
-
     public static <T> @NotNull Function<ByteBuffer.Reader, @NotNull LdapMessage<T>> read(
-            @NotNull Function<ByteBuffer.Reader, @NotNull T> messageFunction, int messageId) {
+            int messageId, @NotNull MessageReader<T> messageReader) {
         if (0>=messageId) {
             throw new IllegalArgumentException("invalid message id %,d".formatted(messageId));
         }
@@ -49,13 +48,13 @@ public record LdapMessage<T>(
                                 "expected message id %,d, got %d".formatted(messageId, messageId2));
                     }
                     if (0==messageId2) {
-                        ExtendedResponse response=ExtendedResponse.read(reader2);
+                        ExtendedResponse response=ExtendedResponse.READER_SUCCESS.read(reader2);
                         @NotNull List<@NotNull Control> controls=controls(reader2);
                         throw new ExtendedLdapException(
                                 new LdapMessage<>(controls, response, messageId2, false));
                     }
                     else {
-                        T message=messageFunction.apply(reader2);
+                        @NotNull T message=messageReader.read(reader2);
                         @NotNull List<@NotNull Control> controls=controls(reader2);
                         return new LdapMessage<>(
                                 controls, message, messageId2, false);

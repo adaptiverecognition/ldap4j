@@ -6,6 +6,7 @@ import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.JoinCallback;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.lava.ScheduledExecutorContext;
+import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.Filter;
 import hu.gds.ldap4j.ldap.LdapConnection;
@@ -35,13 +36,15 @@ public class LavaSample {
                     (connection)->{
                         System.out.println("connected");
                         // authenticate
-                        return connection.bindSimple(
-                                        "cn=read-only-admin,dc=example,dc=com", "password".toCharArray())
+                        return connection.writeRequestReadResponseChecked(
+                                        BindRequest.simple(
+                                                        "cn=read-only-admin,dc=example,dc=com",
+                                                        "password".toCharArray())
+                                                .controlsEmpty())
                                 .composeIgnoreResult(()->{
                                     System.out.println("bound");
                                     // look up mathematicians
                                     return connection.search(
-                                            false, // manage DSA IT
                                             new SearchRequest(
                                                     List.of("uniqueMember"), // attributes
                                                     "ou=mathematicians,dc=example,dc=com", // base object
@@ -50,7 +53,8 @@ public class LavaSample {
                                                     Scope.WHOLE_SUBTREE,
                                                     100, // size limit
                                                     10, // time limit
-                                                    false)); // types only
+                                                    false) // types only
+                                                    .controlsEmpty());
                                 })
                                 .compose((searchResults)->{
                                     System.out.println("mathematicians:");

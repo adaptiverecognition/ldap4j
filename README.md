@@ -4,8 +4,6 @@ Ldap4j is a java LDAP client, which can be used to query directory services.
 Its main goals are to be fully non-blocking, correct,
 and host environment and transport agnostic.
 
-Currently, the client only supports query operations.
-
 Also check the [external issues file](https://github.com/adaptiverecognition/ldap4j/blob/master/EXTERNAL-ISSUES.md)
 to help you choose an LDAP client implementation.
 
@@ -37,15 +35,14 @@ to help you choose an LDAP client implementation.
 Ldap4j is an [LDAP v3](https://www.ietf.org/rfc/rfc4511.txt) client.
 It's fully non-blocking, and supports timeouts on all operations.
 
-Ldap4j currently supports the following operations:
-- bind,
+Ldap4j currently supports:
+- all operations defined in [RFC4511](https://www.ietf.org/rfc/rfc4511.txt),
+- [cancel](https://www.ietf.org/rfc/rfc3909.txt),
 - [fast bind](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/58bbd5c4-b5c4-41e2-b12c-cdaad1223d6a),
-- search (with [manage DSA IT](http://oidref.com/2.16.840.1.113730.3.4.2) control),
-- start TLS,
-- unbind.
+- [manage DSA IT](http://oidref.com/2.16.840.1.113730.3.4.2) control.
 
-Ldap4j supports TLS, with optional host name verification,
-and it supports the non-standard LDAPS protocol.
+Ldap4j supports TLS, through the standard StartTLS operation, and it also supports the non-standard LDAPS protocol.
+It supports an optional host name verification in both cases.
 
 Ldap4j doesn't support parallel operations yet.
 A connection pool is provided to alleviate the need for parallel operations.
@@ -149,24 +146,27 @@ This requires a thread pool.
                 System.out.println("connected");
 
                 // authenticate
-                CompletableFuture<Void> rest=connection.bindSimple(
-                                "cn=read-only-admin,dc=example,dc=com", "password".toCharArray())
+                CompletableFuture<Void> rest=connection.writeRequestReadResponseChecked(
+                                BindRequest.simple(
+                                            "cn=read-only-admin,dc=example,dc=com",
+                                            "password".toCharArray())
+                                        .controlsEmpty())
                         .thenCompose((ignore)->{
                             System.out.println("bound");
                             try {
 
                                 // look up mathematicians
                                 return connection.search(
-                                        false,
                                         new SearchRequest(
-                                                List.of("uniqueMember"), // attributes
-                                                "ou=mathematicians,dc=example,dc=com", // base object
-                                                DerefAliases.DEREF_ALWAYS,
-                                                Filter.parse("(objectClass=*)"),
-                                                Scope.WHOLE_SUBTREE,
-                                                100, // size limit
-                                                10, // time limit
-                                                false)); // types only
+                                                    List.of("uniqueMember"), // attributes
+                                                    "ou=mathematicians,dc=example,dc=com", // base object
+                                                    DerefAliases.DEREF_ALWAYS,
+                                                    Filter.parse("(objectClass=*)"),
+                                                    Scope.WHOLE_SUBTREE,
+                                                    100, // size limit
+                                                    10, // time limit
+                                                    false) // types only
+                                                .controlsEmpty());
                             }
                             catch (Throwable throwable) {
                                 return CompletableFuture.failedFuture(throwable);
@@ -216,23 +216,26 @@ Lava can be used reactive-style.
                         System.out.println("connected");
 
                         // authenticate
-                        return connection.bindSimple(
-                                        "cn=read-only-admin,dc=example,dc=com", "password".toCharArray())
+                        return connection.writeRequestReadResponseChecked(
+                                        BindRequest.simple(
+                                                    "cn=read-only-admin,dc=example,dc=com",
+                                                    "password".toCharArray())
+                                                .controlsEmpty())
                                 .composeIgnoreResult(()->{
                                     System.out.println("bound");
 
                                     // look up mathematicians
                                     return connection.search(
-                                            false, // manage DSA IT
                                             new SearchRequest(
-                                                    List.of("uniqueMember"), // attributes
-                                                    "ou=mathematicians,dc=example,dc=com", // base object
-                                                    DerefAliases.DEREF_ALWAYS,
-                                                    Filter.parse("(objectClass=*)"),
-                                                    Scope.WHOLE_SUBTREE,
-                                                    100, // size limit
-                                                    10, // time limit
-                                                    false)); // types only
+                                                        List.of("uniqueMember"), // attributes
+                                                        "ou=mathematicians,dc=example,dc=com", // base object
+                                                        DerefAliases.DEREF_ALWAYS,
+                                                        Filter.parse("(objectClass=*)"),
+                                                        Scope.WHOLE_SUBTREE,
+                                                        100, // size limit
+                                                        10, // time limit
+                                                        false) // types only
+                                                    .controlsEmpty());
                                 })
                                 .compose((searchResults)->{
                                     System.out.println("mathematicians:");
@@ -326,25 +329,27 @@ After starting the sample, the application can be reached [here](http://127.0.0.
         output.append("connected<br>");
 
         // authenticate
-        return connection.bindSimple(
-                        "cn=read-only-admin,dc=example,dc=com",
-                        "password".toCharArray())
+        return connection.writeRequestReadResponseChecked(
+                        BindRequest.simple(
+                                    "cn=read-only-admin,dc=example,dc=com",
+                                    "password".toCharArray())
+                                .controlsEmpty())
                 .flatMap((ignore)->{
                     output.append("bound<br>");
                     try {
 
                         // look up mathematicians
                         return connection.search(
-                                false, // manage DSA IT
-                                new SearchRequest(
-                                        List.of("uniqueMember"), // attributes
-                                        "ou=mathematicians,dc=example,dc=com", // base object
-                                        DerefAliases.DEREF_ALWAYS,
-                                        Filter.parse("(objectClass=*)"),
-                                        Scope.WHOLE_SUBTREE,
-                                        100, // size limit
-                                        10, // time limit
-                                        false)); // types only
+                                        new SearchRequest(
+                                                    List.of("uniqueMember"), // attributes
+                                                    "ou=mathematicians,dc=example,dc=com", // base object
+                                                    DerefAliases.DEREF_ALWAYS,
+                                                    Filter.parse("(objectClass=*)"),
+                                                    Scope.WHOLE_SUBTREE,
+                                                    100, // size limit
+                                                    10, // time limit
+                                                    false) // types only
+                                                .controlsEmpty());
                     }
                     catch (Throwable throwable) {
                         return Mono.error(throwable);
@@ -402,21 +407,26 @@ The transport is hardcoded to Java NIO polling.
             TlsSettings.noTls()); // plain-text connection
 
     // authenticate
-    connection.bindSimple(endNanos, "cn=read-only-admin,dc=example,dc=com", "password".toCharArray());
+    connection.writeRequestReadResponseChecked(
+            endNanos,
+            BindRequest.simple(
+                        "cn=read-only-admin,dc=example,dc=com",
+                        "password".toCharArray())
+                    .controlsEmpty());
 
     // look up mathematicians
     List<SearchResult> searchResults=connection.search(
             endNanos,
-            false, // manage DSA IT
             new SearchRequest(
-                    List.of("uniqueMember"), // attributes
-                    "ou=mathematicians,dc=example,dc=com", // base object
-                    DerefAliases.DEREF_ALWAYS,
-                    Filter.parse("(objectClass=*)"),
-                    Scope.WHOLE_SUBTREE,
-                    100, // size limit
-                    10, // time limit
-                    false)); // types only
+                        List.of("uniqueMember"), // attributes
+                        "ou=mathematicians,dc=example,dc=com", // base object
+                        DerefAliases.DEREF_ALWAYS,
+                        Filter.parse("(objectClass=*)"),
+                        Scope.WHOLE_SUBTREE,
+                        100, // size limit
+                        10, // time limit
+                        false) // types only
+                    .controlsEmpty());
     System.out.println("mathematicians:");
     searchResults.stream()
             .filter(SearchResult::isEntry)
@@ -435,10 +445,10 @@ The transport is hardcoded to Java NIO polling.
 Ldap4j contains a command line client.
 Its main purpose is to facilitate field debugging.
 
-It prints all options when it runs without any arguments.
+It prints all options when it's started without any arguments.
 
     ./ldap4j.sh -plaintext ldap.forumsys.com \
-        bind-simple cn=read-only-admin,dc=example,dc=com console \
+        bind-simple cn=read-only-admin,dc=example,dc=com argument password \
         search -attribute uniqueMember ou=mathematicians,dc=example,dc=com '(objectClass=*)'
     
     connecting to ldap.forumsys.com/54.80.223.88:389
@@ -474,7 +484,7 @@ Standard java libraries can only resolve addresses through a blocking API.
 
 Java lacks the ability to get back exact error codes on I/O errors.
 To classify an exception ldap4j first checks the type of the exception,
-and when this fails, checks the exception message.
+and when this fails, it checks the exception message.
 There's some properties files in ldap4j-java resources to list known types and message patterns:
 - `Exceptions.connection.closed.properties`,
 - `Exceptions.timeout.properties`,

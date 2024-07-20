@@ -3,6 +3,7 @@ package hu.gds.ldap4j.trampoline;
 import hu.gds.ldap4j.AbstractTest;
 import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.TestLog;
+import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.Filter;
 import hu.gds.ldap4j.ldap.LdapServer;
@@ -36,7 +37,12 @@ public class TrampolineLdapTest {
     private void testConnection(
             @NotNull TrampolineLdapConnection connection, long endNanos) throws Throwable {
         Map.Entry<String, String> user=LdapServer.USERS.entrySet().iterator().next();
-        connection.bindSimple(endNanos, user.getKey(), user.getValue().toCharArray());
+        connection.writeRequestReadResponseChecked(
+                endNanos,
+                BindRequest.simple(
+                                user.getKey(),
+                                user.getValue().toCharArray())
+                        .controlsEmpty());
         int index=user.getKey().indexOf(',');
         assertTrue(0<index);
         String first=user.getKey().substring(0, index);
@@ -47,7 +53,6 @@ public class TrampolineLdapTest {
         String value=first.substring(index+1);
         @NotNull List<@NotNull SearchResult> searchResults=connection.search(
                 endNanos,
-                false,
                 new SearchRequest(
                         List.of(attribute),
                         base,
@@ -56,7 +61,8 @@ public class TrampolineLdapTest {
                         Scope.WHOLE_SUBTREE,
                         128,
                         10,
-                        false));
+                        false)
+                        .controlsEmpty());
         assertEquals(2, searchResults.size(), searchResults.toString());
         assertTrue(searchResults.get(0).isEntry());
         SearchResult.Entry entry=searchResults.get(0).asEntry();

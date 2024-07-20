@@ -6,6 +6,7 @@ import hu.gds.ldap4j.lava.Callback;
 import hu.gds.ldap4j.lava.Context;
 import hu.gds.ldap4j.lava.JoinCallback;
 import hu.gds.ldap4j.lava.ScheduledExecutorContext;
+import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.Filter;
 import hu.gds.ldap4j.ldap.LdapServer;
@@ -72,7 +73,6 @@ public class FutureLdapTest {
                                 return CompletableFuture.completedFuture(null);
                             },
                             ()->connection.search(
-                                    false,
                                     new SearchRequest(
                                             List.of(attribute),
                                             base,
@@ -81,9 +81,14 @@ public class FutureLdapTest {
                                             Scope.WHOLE_SUBTREE,
                                             128,
                                             10,
-                                            false)));
+                                            false)
+                                            .controlsEmpty()));
                 },
-                ()->connection.bindSimple(user.getKey(), user.getValue().toCharArray()));
+                ()->connection.writeRequestReadResponseChecked(
+                        BindRequest.simple(
+                                        user.getKey(),
+                                        user.getValue().toCharArray())
+                                .controlsEmpty()));
     }
 
     private @NotNull CompletableFuture<Void> testDirect(

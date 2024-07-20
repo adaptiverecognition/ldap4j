@@ -5,7 +5,10 @@ import java.util.List;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
-public record ModifyRequest(@NotNull List<@NotNull Change> changes, @NotNull String object) {
+public record ModifyRequest(
+        @NotNull List<@NotNull Change> changes,
+        @NotNull String object)
+        implements Request<ModifyRequest, ModifyResponse> {
     public record Change(@NotNull PartialAttribute modification, @NotNull Operation operation) {
         public Change(@NotNull PartialAttribute modification, @NotNull Operation operation) {
             this.modification=Objects.requireNonNull(modification, "modification");
@@ -40,6 +43,17 @@ public record ModifyRequest(@NotNull List<@NotNull Change> changes, @NotNull Str
         this.object=Objects.requireNonNull(object, "object");
     }
 
+    @Override
+    public @NotNull MessageReader<ModifyResponse> responseReader() {
+        return ModifyResponse.READER;
+    }
+
+    @Override
+    public @NotNull ModifyRequest self() {
+        return this;
+    }
+
+    @Override
     public @NotNull ByteBuffer write() throws Throwable {
         ByteBuffer changesBuffer=ByteBuffer.EMPTY;
         for (Change change: changes) {

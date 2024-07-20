@@ -9,7 +9,8 @@ public record ModifyDNRequest(
         boolean deleteOldRDN,
         @NotNull String entry,
         @NotNull String newRDN,
-        @Nullable String newSuperior) {
+        @Nullable String newSuperior)
+        implements Request<ModifyDNRequest, ModifyDNResponse> {
     public ModifyDNRequest(
             boolean deleteOldRDN,
             @NotNull String entry,
@@ -21,6 +22,17 @@ public record ModifyDNRequest(
         this.newSuperior=newSuperior;
     }
 
+    @Override
+    public @NotNull MessageReader<ModifyDNResponse> responseReader() {
+        return ModifyDNResponse.READER;
+    }
+
+    @Override
+    public @NotNull ModifyDNRequest self() {
+        return this;
+    }
+
+    @Override
     public @NotNull ByteBuffer write() throws Throwable {
         ByteBuffer requestBuffer=DER.writeUtf8Tag(entry)
                 .append(DER.writeUtf8Tag(newRDN))

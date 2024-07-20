@@ -23,12 +23,6 @@ public record LdapResult(
         this.resultCode2=resultCode2;
     }
 
-    public void check() throws LdapException {
-        if (!LdapResultCode.SUCCESS.equals(resultCode2)) {
-            throw new LdapException(diagnosticMessages, referrals, resultCode, resultCode2);
-        }
-    }
-
     public void checkCancel() throws LdapException {
         if ((!LdapResultCode.CANCELED.equals(resultCode2))
                 && (!LdapResultCode.CANNOT_CANCEL.equals(resultCode2))
@@ -48,6 +42,12 @@ public record LdapResult(
     public void checkSASL() throws LdapException {
         if ((!LdapResultCode.SASL_BIND_IN_PROGRESS.equals(resultCode2))
                 && (!LdapResultCode.SUCCESS.equals(resultCode2))) {
+            throw new LdapException(diagnosticMessages, referrals, resultCode, resultCode2);
+        }
+    }
+
+    public void checkSuccess() throws LdapException {
+        if (!LdapResultCode.SUCCESS.equals(resultCode2)) {
             throw new LdapException(diagnosticMessages, referrals, resultCode, resultCode2);
         }
     }

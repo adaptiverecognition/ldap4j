@@ -38,63 +38,6 @@ public class LdapConnection implements Connection {
         usingTls=ldaps;
     }
 
-    public @NotNull Lava<Void> abandon(@NotNull AbandonRequest abandonRequest) {
-        Objects.requireNonNull(abandonRequest, "abandonRequest");
-        return Lava.supplier(()->writeMessage(
-                connection(),
-                List.of(),
-                AbandonRequest::write,
-                abandonRequest)
-                .composeIgnoreResult(()->Lava.VOID));
-    }
-
-    public @NotNull Lava<@NotNull AddResponse> add(@NotNull AddRequest addRequest, boolean manageDsaIt) {
-        Objects.requireNonNull(addRequest, "addRequest");
-        return Lava.supplier(()->writeMessage(
-                connection(),
-                manageDsaIt
-                        ?List.of(Control.nonCritical(Ldap.CONTROL_MANAGE_DSA_IT_OID))
-                        :List.of(),
-                AddRequest::write,
-                addRequest)
-                .compose((messageId)->readLdapMessage(AddResponse::read, messageId))
-                .compose((addResponse)->{
-                    addResponse.message().ldapResult().check();
-                    return Lava.complete(addResponse.message());
-                }));
-    }
-
-    public @NotNull Lava<@NotNull BindResponse> bind(@NotNull BindRequest bindRequest) {
-        Objects.requireNonNull(bindRequest, "bindRequest");
-        return Lava.supplier(()->writeMessage(
-                connection(),
-                List.of(),
-                BindRequest::write,
-                bindRequest)
-                .compose((messageId)->readLdapMessage(BindResponse::read, messageId))
-                .compose((bindResponse)->{
-                    bindRequest.authentication().check(bindResponse.message().ldapResult());
-                    return Lava.complete(bindResponse.message());
-                }));
-    }
-
-    public @NotNull Lava<Void> bindSimple(@NotNull String name, char[] password) {
-        return bind(BindRequest.simple(name, password))
-                .composeIgnoreResult(()->Lava.VOID);
-    }
-
-    public @NotNull Lava<@NotNull ExtendedResponse> cancel(int messageId, boolean signKludge) {
-        return Lava.supplier(()->extended(new ExtendedRequest(
-                Ldap.EXTENDED_REQUEST_CANCEL_OP_OID,
-                DER.writeSequence(
-                                DER.writeIntegerTag(signKludge, messageId))
-                        .arrayCopy()))
-                .compose((response)->{
-                    response.ldapResult().checkCancel();
-                    return Lava.complete(response);
-                }));
-    }
-
     @Override
     public @NotNull Lava<Void> close() {
         return Lava.supplier(()->{
@@ -127,31 +70,14 @@ public class LdapConnection implements Connection {
                                             },
                                             ()->writeMessage(
                                                     connection2,
-                                                    List.of(),
-                                                    UnbindRequest::write,
-                                                    new UnbindRequest())
+                                                    new UnbindRequest()
+                                                            .controlsEmpty(),
+                                                    messageIdGenerator)
                                                     .composeIgnoreResult(connection2::shutDownOutputSafe),
                                             Throwable.class);
                                 });
                     });
         });
-    }
-
-    public @NotNull Lava<@NotNull CompareResponse> compare(
-            @NotNull CompareRequest compareRequest, boolean manageDsaIt) {
-        Objects.requireNonNull(compareRequest, "compareRequest");
-        return Lava.supplier(()->writeMessage(
-                connection(),
-                manageDsaIt
-                        ?List.of(Control.nonCritical(Ldap.CONTROL_MANAGE_DSA_IT_OID))
-                        :List.of(),
-                CompareRequest::write,
-                compareRequest)
-                .compose((messageId)->readLdapMessage(CompareResponse::read, messageId))
-                .compose((compareResponse)->{
-                    compareResponse.message().ldapResult().checkCompare();
-                    return Lava.complete(compareResponse.message());
-                }));
     }
 
     private @NotNull TlsConnection connection() {
@@ -166,37 +92,6 @@ public class LdapConnection implements Connection {
             }
         }
         return connection2;
-    }
-
-    public @NotNull Lava<@NotNull DeleteResponse> delete(@NotNull DeleteRequest deleteRequest, boolean manageDsaIt) {
-        Objects.requireNonNull(deleteRequest, "deleteRequest");
-        return Lava.supplier(()->writeMessage(
-                connection(),
-                manageDsaIt
-                        ?List.of(Control.nonCritical(Ldap.CONTROL_MANAGE_DSA_IT_OID))
-                        :List.of(),
-                DeleteRequest::write,
-                deleteRequest)
-                .compose((messageId)->readLdapMessage(DeleteResponse::read, messageId))
-                .compose((deleteResponse)->{
-                    deleteResponse.message().ldapResult().check();
-                    return Lava.complete(deleteResponse.message());
-                }));
-    }
-
-    public @NotNull Lava<@NotNull ExtendedResponse> extended(
-            @NotNull ExtendedRequest extendedRequest) {
-        Objects.requireNonNull(extendedRequest, "extendedRequest");
-        return Lava.supplier(()->writeMessage(
-                connection(),
-                List.of(),
-                ExtendedRequest::write,
-                extendedRequest)
-                .compose((messageId)->readLdapMessage(ExtendedResponse::read, messageId))
-                .compose((extendedResponse)->{
-                    extendedResponse.message().ldapResult().check();
-                    return Lava.complete(extendedResponse.message());
-                }));
     }
 
     public static @NotNull Lava<@NotNull LdapConnection> factory(
@@ -240,19 +135,6 @@ public class LdapConnection implements Connection {
                 });
     }
 
-    public @NotNull Lava<Void> fastBind() {
-        return Lava.supplier(()->writeMessage(
-                connection(),
-                List.of(),
-                ExtendedRequest::write,
-                new ExtendedRequest(Ldap.FAST_BIND_OID, null))
-                .compose((messageId)->readLdapMessage(ExtendedResponse::read, messageId))
-                .compose((extendedResponse)->{
-                    extendedResponse.message().ldapResult().check();
-                    return Lava.VOID;
-                }));
-    }
-
     @Override
     public @NotNull Lava<@NotNull Boolean> isOpenAndNotFailed() {
         return Lava.supplier(()->{
@@ -270,56 +152,12 @@ public class LdapConnection implements Connection {
         });
     }
 
-    public @NotNull Lava<Void> invalidRequestResponse() {
-        return Lava.supplier(()->this.writeMessage(
-                        connection(),
-                        List.of(),
-                        (object)->ByteBuffer.create((byte)0, (byte)1, (byte)0),
-                        new Object())
-                .compose((messageId)->readLdapMessage(ExtendedResponse::read, messageId))
-                .compose((response)->Lava.fail(new IllegalStateException(
-                        "should have failed, response %s".formatted(response)))));
-    }
-
     public @NotNull MessageIdGenerator messageIdGenerator() {
         return messageIdGenerator;
     }
 
-    public @NotNull Lava<@NotNull ModifyResponse> modify(boolean manageDsaIt, @NotNull ModifyRequest modifyRequest) {
-        Objects.requireNonNull(modifyRequest, "modifyRequest");
-        return Lava.supplier(()->writeMessage(
-                connection(),
-                manageDsaIt
-                        ?List.of(Control.nonCritical(Ldap.CONTROL_MANAGE_DSA_IT_OID))
-                        :List.of(),
-                ModifyRequest::write,
-                modifyRequest)
-                .compose((messageId)->readLdapMessage(ModifyResponse::read, messageId))
-                .compose((modifyResponse)->{
-                    modifyResponse.message().ldapResult().check();
-                    return Lava.complete(modifyResponse.message());
-                }));
-    }
-
-    public @NotNull Lava<@NotNull ModifyDNResponse> modifyDN(
-            boolean manageDsaIt, @NotNull ModifyDNRequest modifyDNRequest) {
-        Objects.requireNonNull(modifyDNRequest, "modifyDNRequest");
-        return Lava.supplier(()->writeMessage(
-                connection(),
-                manageDsaIt
-                        ?List.of(Control.nonCritical(Ldap.CONTROL_MANAGE_DSA_IT_OID))
-                        :List.of(),
-                ModifyDNRequest::write,
-                modifyDNRequest)
-                .compose((messageId)->readLdapMessage(ModifyDNResponse::read, messageId))
-                .compose((modifyDNResponse)->{
-                    modifyDNResponse.message().ldapResult().check();
-                    return Lava.complete(modifyDNResponse.message());
-                }));
-    }
-
-    private <T> @NotNull Lava<@NotNull LdapMessage<T>> readLdapMessage(
-            @NotNull Function<ByteBuffer.Reader, T> function, int messageId) {
+    public <T> @NotNull Lava<@NotNull LdapMessage<T>> readMessageChecked(
+            int messageId, @NotNull MessageReader<T> messageReader) {
         return Lava.catchErrors(
                 (throwable)->{
                     if ((!(throwable instanceof EOFException))
@@ -331,7 +169,11 @@ public class LdapConnection implements Connection {
                     }
                     return Lava.fail(throwable);
                 },
-                ()->readMessage(LdapMessage.read(function, messageId)),
+                ()->readMessage(LdapMessage.read(messageId, messageReader))
+                        .compose((message)->{
+                            messageReader.check(message.message());
+                            return Lava.complete(message);
+                        }),
                 Throwable.class);
     }
 
@@ -381,61 +223,28 @@ public class LdapConnection implements Connection {
     }
 
     public @NotNull Lava<@NotNull List<@NotNull SearchResult>> search(
-            boolean manageDsaIt, @NotNull SearchRequest searchRequest) {
-        return search(manageDsaIt, messageIdGenerator, searchRequest);
+            @NotNull ControlsMessage<SearchRequest> request) {
+        return search(messageIdGenerator, request);
     }
 
     public @NotNull Lava<@NotNull List<@NotNull SearchResult>> search(
-            boolean manageDsaIt,
             @NotNull MessageIdGenerator messageIdGenerator,
-            @NotNull SearchRequest searchRequest) {
-        return searchRequest(manageDsaIt, messageIdGenerator, searchRequest)
+            @NotNull ControlsMessage<SearchRequest> request) {
+        return writeMessage(request, messageIdGenerator)
                 .compose((messageId)->search(messageId, new ArrayList<>()));
     }
 
     private @NotNull Lava<@NotNull List<@NotNull SearchResult>> search(
             int messageId, @NotNull List<@NotNull SearchResult> result) {
-        return searchResult(messageId)
+        return readMessageChecked(messageId, SearchResult.READER)
                 .compose((searchResult)->{
-                    result.add(searchResult);
-                    if (searchResult.isDone()) {
+                    result.add(searchResult.message());
+                    if (searchResult.message().isDone()) {
                         return Lava.complete(result);
                     }
                     else {
                         return search(messageId, result);
                     }
-                });
-    }
-
-    /**
-     * @return messageId
-     */
-    public @NotNull Lava<Integer> searchRequest(boolean manageDsaIt, @NotNull SearchRequest searchRequest) {
-        return searchRequest(manageDsaIt, messageIdGenerator, searchRequest);
-    }
-
-    /**
-     * @return messageId
-     */
-    public @NotNull Lava<Integer> searchRequest(
-            boolean manageDsaIt,
-            @NotNull MessageIdGenerator messageIdGenerator,
-            @NotNull SearchRequest searchRequest) {
-        return Lava.supplier(()->writeMessage(
-                connection(),
-                manageDsaIt
-                        ?List.of(Control.nonCritical(Ldap.CONTROL_MANAGE_DSA_IT_OID))
-                        :List.of(),
-                SearchRequest::write,
-                searchRequest,
-                messageIdGenerator));
-    }
-
-    public @NotNull Lava<@NotNull SearchResult> searchResult(int messageId) {
-        return readLdapMessage(SearchResult::read, messageId)
-                .compose((searchResult)->{
-                    searchResult.message().check();
-                    return Lava.complete(searchResult.message());
                 });
     }
 
@@ -449,42 +258,59 @@ public class LdapConnection implements Connection {
                 throw new RuntimeException("already using tls");
             }
             usingTls=true;
-            return extended(new ExtendedRequest(Ldap.EXTENDED_REQUEST_START_TLS_OID, null))
-                    .compose((response)->{
-                        response.ldapResult().check();
-                        return connection().startTls(tls);
-                    });
+            return writeRequestReadResponseChecked(ExtendedRequest.START_TLS.controlsEmpty())
+                    .composeIgnoreResult(()->connection().startTls(tls));
         });
     }
 
     /**
      * @return messageId
      */
-    private <T> @NotNull Lava<@NotNull Integer> writeMessage(
-            @NotNull TlsConnection connection, @NotNull List<@NotNull Control> controls,
-            @NotNull Function<T, @NotNull ByteBuffer> function, T message) throws Throwable {
-        return writeMessage(connection, controls, function, message, messageIdGenerator);
+    public <M extends Message<M>> @NotNull Lava<@NotNull Integer> writeMessage(@NotNull ControlsMessage<M> message) {
+        return writeMessage(connection(), message, messageIdGenerator);
     }
 
     /**
      * @return messageId
      */
-    private <T> @NotNull Lava<@NotNull Integer> writeMessage(
-            @NotNull TlsConnection connection, @NotNull List<@NotNull Control> controls,
-            @NotNull Function<T, @NotNull ByteBuffer> function, T message,
-            @NotNull MessageIdGenerator messageIdGenerator) throws Throwable {
-        int messageId=messageIdGenerator.next();
-        ByteBuffer byteBuffer=new LdapMessage<>(controls, message, messageId, messageIdGenerator.signKludge())
-                .write(function);
-        return Lava.catchErrors(
-                        (throwable)->{
-                            synchronized (lock) {
-                                failed=true;
-                            }
-                            return Lava.fail(throwable);
-                        },
-                        ()->connection.write(byteBuffer),
-                        Throwable.class)
-                .composeIgnoreResult(()->Lava.complete(messageId));
+    public <M extends Message<M>> @NotNull Lava<@NotNull Integer> writeMessage(
+            @NotNull ControlsMessage<M> message, @NotNull MessageIdGenerator messageIdGenerator) {
+        return writeMessage(connection(), message, messageIdGenerator);
+    }
+
+    /**
+     * @return messageId
+     */
+    private <M extends Message<M>> @NotNull Lava<@NotNull Integer> writeMessage(
+            @NotNull TlsConnection connection, @NotNull ControlsMessage<M> message,
+            @NotNull MessageIdGenerator messageIdGenerator) {
+        return Lava.supplier(()->{
+            int messageId=messageIdGenerator.next();
+            ByteBuffer byteBuffer=new LdapMessage<>(
+                    message.controls(),
+                    message.message(),
+                    messageId,
+                    messageIdGenerator.signKludge())
+                    .write(Message::write);
+            return Lava.catchErrors(
+                            (throwable)->{
+                                synchronized (lock) {
+                                    failed=true;
+                                }
+                                return Lava.fail(throwable);
+                            },
+                            ()->connection.write(byteBuffer),
+                            Throwable.class)
+                    .composeIgnoreResult(()->Lava.complete(messageId));
+        });
+    }
+
+    public <M extends Request<M, R>, R> @NotNull Lava<@NotNull ControlsMessage<R>> writeRequestReadResponseChecked(
+            @NotNull ControlsMessage<M> request) {
+        return writeMessage(request)
+                .compose((messageId)->readMessageChecked(messageId, request.message().responseReader()))
+                .compose((response)->Lava.complete(new ControlsMessage<>(
+                        response.controls(),
+                        response.message())));
     }
 }
