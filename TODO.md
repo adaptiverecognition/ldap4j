@@ -2,7 +2,6 @@
 
 - java docs / manual / guides
 - netty kqueue
-- parallel operations
 - speed
 - tls closure, rfc4511 4.14.3, allow, disallow, initiate
 - tls renegotiation

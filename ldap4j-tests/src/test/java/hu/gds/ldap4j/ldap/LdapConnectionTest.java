@@ -12,9 +12,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.stream.Streams;
@@ -23,11 +25,24 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class LdapConnectionTest {
+    private static class InvalidMessage implements Message<InvalidMessage> {
+        @Override
+        public @NotNull InvalidMessage self() {
+            return this;
+        }
+
+        @Override
+        public @NotNull ByteBuffer write() {
+            return ByteBuffer.create((byte)0, (byte)1, (byte)0);
+        }
+    }
+
     private static @NotNull Stream<@NotNull Integer> badMessageIds() {
         return Streams.of(65535, (1<<24)-1);
     }
@@ -376,17 +391,6 @@ public class LdapConnectionTest {
              LdapServer ldapServer=new LdapServer(
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
-            class InvalidMessage implements Message<InvalidMessage> {
-                @Override
-                public @NotNull InvalidMessage self() {
-                    return this;
-                }
-
-                @Override
-                public @NotNull ByteBuffer write() throws Throwable {
-                    return ByteBuffer.create((byte)0, (byte)1, (byte)0);
-                }
-            }
             context.get(
                     Lava.catchErrors(
                             (extendedLdapException)->{
@@ -717,6 +721,132 @@ public class LdapConnectionTest {
                                 }
                             }));
 
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
+    public void testParallelSearch(LdapTestParameters testParameters) throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
+             LdapServer ldapServer=new LdapServer(
+                     false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
+            ldapServer.start();
+            int size=10;
+            context.get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context, ldapServer, LdapServer.adminBind()),
+                            new Function<@NotNull LdapConnection, @NotNull Lava<Void>>() {
+                                private final int[] counts=new int[size];
+
+                                @Override
+                                public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) {
+                                    return startSearches(connection, 0)
+                                            .composeIgnoreResult(()->readResults(connection))
+                                            .composeIgnoreResult(()->{
+                                                for (int ii=size-1; 0<=ii; --ii) {
+                                                    assertEquals(3, counts[ii]);
+                                                }
+                                                return Lava.VOID;
+                                            });
+                                }
+
+                                private @NotNull Lava<Void> readResults(@NotNull LdapConnection connection) {
+                                    return Lava.checkEndNanos("readResults")
+                                            .composeIgnoreResult(()->{
+                                                @NotNull Map<
+                                                        @NotNull Integer,
+                                                        @NotNull ParallelMessageReader<
+                                                                ?,
+                                                                @NotNull LdapMessage<SearchResult>>> readers
+                                                        =new HashMap<>();
+                                                for (int ii=size-1; 0<=ii; --ii) {
+                                                    if (3>counts[ii]) {
+                                                        readers.put(
+                                                                ii+1,
+                                                                SearchResult.READER.parallel(Function::identity));
+                                                    }
+                                                }
+                                                if (readers.isEmpty()) {
+                                                    return Lava.VOID;
+                                                }
+                                                return connection.readMessageCheckedParallel(readers)
+                                                        .compose((searchResult)->{
+                                                            int index=searchResult.messageId()-1;
+                                                            ++counts[index];
+                                                            assertTrue(3>=counts[index]);
+                                                            if (3>counts[index]) {
+                                                                assertTrue(searchResult.message().isEntry());
+                                                            }
+                                                            else {
+                                                                assertTrue(searchResult.message().isDone());
+                                                            }
+                                                            return readResults(connection);
+                                                        });
+                                            });
+                                }
+
+                                private @NotNull Lava<Void> startSearches(
+                                        @NotNull LdapConnection connection, int index) {
+                                    return Lava.checkEndNanos("startSearches")
+                                            .composeIgnoreResult(()->{
+                                                if (size<=index) {
+                                                    return Lava.VOID;
+                                                }
+                                                return connection.writeMessage(
+                                                                new SearchRequest(
+                                                                        List.of(),
+                                                                        "ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                                        DerefAliases.NEVER_DEREF_ALIASES,
+                                                                        Filter.parse("(objectClass=person)"),
+                                                                        Scope.WHOLE_SUBTREE,
+                                                                        100,
+                                                                        10,
+                                                                        true)
+                                                                        .controlsEmpty(),
+                                                                MessageIdGenerator.constant(
+                                                                        true, index+1))
+                                                        .composeIgnoreResult(
+                                                                ()->startSearches(connection, index+1));
+                                            });
+                                }
+                            }));
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
+    public void testReadNoticeOfDisconnect(LdapTestParameters testParameters) throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
+             LdapServer ldapServer=new LdapServer(
+                     false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
+            ldapServer.start();
+            context.get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context, ldapServer, LdapServer.adminBind()),
+                            (connection)->connection.writeMessage(
+                                            new InvalidMessage()
+                                                    .controlsEmpty())
+                                    .compose((messageId)->connection.readMessageChecked(
+                                            0, new ExtendedResponse.Reader() {
+                                                @Override
+                                                public void check(
+                                                        @NotNull List<@NotNull Control> controls,
+                                                        @NotNull ExtendedResponse message,
+                                                        int messageId) {
+                                                }
+                                            }))
+                                    .compose((response)->{
+                                        assertNotEquals(
+                                                LdapResultCode.SUCCESS,
+                                                response.message().ldapResult().resultCode2());
+                                        assertEquals(0, response.messageId());
+                                        assertEquals(
+                                                Ldap.NOTICE_OF_DISCONNECTION_OID,
+                                                response.message().responseName());
+                                        return Lava.VOID;
+                                    })));
         }
     }
 

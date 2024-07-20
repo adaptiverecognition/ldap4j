@@ -1,6 +1,7 @@
 package hu.gds.ldap4j.ldap;
 
 import hu.gds.ldap4j.net.ByteBuffer;
+import java.util.List;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
@@ -8,8 +9,10 @@ public record CompareResponse(
         @NotNull LdapResult ldapResult) {
     public static class Reader implements MessageReader<CompareResponse> {
         @Override
-        public void check(@NotNull CompareResponse message) throws Throwable {
-            message.ldapResult().checkCompare();
+        public void check(
+                @NotNull List<@NotNull Control> controls, @NotNull CompareResponse message, int messageId)
+                throws Throwable {
+            message.ldapResult().checkCompare(controls, messageId);
         }
 
         @Override

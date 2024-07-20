@@ -1,9 +1,11 @@
 package hu.gds.ldap4j.ldap;
 
 import hu.gds.ldap4j.Function;
+import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.net.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
@@ -20,7 +22,7 @@ public record LdapMessage<T>(
         this.messageIdSignKludge=messageIdSignKludge;
     }
 
-    private static @NotNull List<@NotNull Control> controls(@NotNull ByteBuffer.Reader reader) throws Throwable {
+    public static @NotNull List<@NotNull Control> controls(@NotNull ByteBuffer.Reader reader) throws Throwable {
         List<@NotNull Control> controls=new ArrayList<>();
         if (reader.hasRemainingBytes()) {
             DER.readTag(
@@ -35,29 +37,28 @@ public record LdapMessage<T>(
         }
         return controls;
     }
-    public static <T> @NotNull Function<ByteBuffer.Reader, @NotNull LdapMessage<T>> read(
-            int messageId, @NotNull MessageReader<T> messageReader) {
-        if (0>=messageId) {
-            throw new IllegalArgumentException("invalid message id %,d".formatted(messageId));
-        }
+
+    public static <T> @NotNull Function<ByteBuffer.Reader, @NotNull Lava<T>> readCheckedParallel(
+            @NotNull Map<@NotNull Integer, @NotNull ParallelMessageReader<?, T>> messageReadersByMessageId) {
+        Objects.requireNonNull(messageReadersByMessageId, "messageReadersByMessageId");
         return (reader)->DER.readSequence(
                 (reader2)->{
-                    int messageId2=DER.readIntegerTag(reader2);
-                    if ((messageId!=messageId2) && (0!=messageId2)) {
-                        throw new UnexpectedMessageIdException(
-                                "expected message id %,d, got %d".formatted(messageId, messageId2));
+                    int messageId=DER.readIntegerTag(reader2);
+                    ParallelMessageReader<?, T> messageReader=messageReadersByMessageId.get(messageId);
+                    if (null!=messageReader) {
+                        return messageReader.readMessageChecked(messageId, reader2);
                     }
-                    if (0==messageId2) {
+                    else if (0==messageId) {
                         ExtendedResponse response=ExtendedResponse.READER_SUCCESS.read(reader2);
                         @NotNull List<@NotNull Control> controls=controls(reader2);
                         throw new ExtendedLdapException(
-                                new LdapMessage<>(controls, response, messageId2, false));
+                                new LdapMessage<>(controls, response, messageId, false));
                     }
                     else {
-                        @NotNull T message=messageReader.read(reader2);
-                        @NotNull List<@NotNull Control> controls=controls(reader2);
-                        return new LdapMessage<>(
-                                controls, message, messageId2, false);
+                        throw new UnexpectedMessageIdException(
+                                "expected message ids %s, got %,d".formatted(
+                                        messageReadersByMessageId.keySet(),
+                                        messageId));
                     }
                 },
                 reader);

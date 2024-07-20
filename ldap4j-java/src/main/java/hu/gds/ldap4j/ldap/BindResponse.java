@@ -1,6 +1,7 @@
 package hu.gds.ldap4j.ldap;
 
 import hu.gds.ldap4j.net.ByteBuffer;
+import java.util.List;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
@@ -10,15 +11,19 @@ public record BindResponse(
     public static abstract class Reader implements MessageReader<BindResponse> {
         public static class SASL extends BindResponse.Reader {
             @Override
-            public void check(@NotNull BindResponse message) throws Throwable {
-                message.ldapResult.checkSASL();
+            public void check(
+                    @NotNull List<@NotNull Control> controls, @NotNull BindResponse message, int messageId)
+                    throws Throwable {
+                message.ldapResult.checkSASL(controls, messageId);
             }
         }
 
         public static class Success extends BindResponse.Reader {
             @Override
-            public void check(@NotNull BindResponse message) throws Throwable {
-                message.ldapResult.checkSuccess();
+            public void check(
+                    @NotNull List<@NotNull Control> controls, @NotNull BindResponse message, int messageId)
+                    throws Throwable {
+                message.ldapResult.checkSuccess(controls, messageId);
             }
         }
 

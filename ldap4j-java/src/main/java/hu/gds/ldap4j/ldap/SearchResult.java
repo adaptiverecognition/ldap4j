@@ -69,11 +69,13 @@ public sealed interface SearchResult {
 
     class Reader implements MessageReader<SearchResult> {
         @Override
-        public void check(@NotNull SearchResult message) throws Throwable {
+        public void check(
+                @NotNull List<@NotNull Control> controls, @NotNull SearchResult message, int messageId)
+                throws Throwable {
             message.visit(new Visitor<Void>() {
                 @Override
                 public Void done(@NotNull Done done) throws Throwable {
-                    done.ldapResult.checkSuccess();
+                    done.ldapResult.checkSuccess(controls, messageId);
                     return null;
                 }
 

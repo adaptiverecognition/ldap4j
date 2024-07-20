@@ -8,7 +8,9 @@ import hu.gds.ldap4j.ldap.ControlsMessage;
 import hu.gds.ldap4j.ldap.LdapConnection;
 import hu.gds.ldap4j.ldap.LdapMessage;
 import hu.gds.ldap4j.ldap.Message;
+import hu.gds.ldap4j.ldap.MessageIdGenerator;
 import hu.gds.ldap4j.ldap.MessageReader;
+import hu.gds.ldap4j.ldap.ParallelMessageReader;
 import hu.gds.ldap4j.ldap.Request;
 import hu.gds.ldap4j.ldap.SearchRequest;
 import hu.gds.ldap4j.ldap.SearchResult;
@@ -56,6 +58,11 @@ public class ReactorLdapConnection {
         return lavaToMono(connection.readMessageChecked(messageId, messageReader));
     }
 
+    public <T> @NotNull Mono<T> readMessageCheckedParallel(
+            @NotNull Map<@NotNull Integer, @NotNull ParallelMessageReader<?, T>> messageReadersByMessageId) {
+        return lavaToMono(connection.readMessageCheckedParallel(messageReadersByMessageId));
+    }
+
     public @NotNull Mono<@NotNull List<@NotNull SearchResult>> search(
             @NotNull ControlsMessage<SearchRequest> request) {
         return lavaToMono(connection.search(request));
@@ -99,6 +106,11 @@ public class ReactorLdapConnection {
 
     public <M extends Message<M>> @NotNull Mono<@NotNull Integer> writeMessage(@NotNull ControlsMessage<M> message) {
         return lavaToMono(connection.writeMessage(message));
+    }
+
+    public <M extends Message<M>> @NotNull Mono<@NotNull Integer> writeMessage(
+            @NotNull ControlsMessage<M> message, @NotNull MessageIdGenerator messageIdGenerator) {
+        return lavaToMono(connection.writeMessage(message, messageIdGenerator));
     }
 
     public <M extends Request<M, R>, R> @NotNull Mono<@NotNull ControlsMessage<R>> writeRequestReadResponseChecked(

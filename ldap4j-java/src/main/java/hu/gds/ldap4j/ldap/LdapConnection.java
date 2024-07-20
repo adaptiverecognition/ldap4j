@@ -16,6 +16,7 @@ import java.io.StringWriter;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
 import org.jetbrains.annotations.NotNull;
@@ -156,34 +157,14 @@ public class LdapConnection implements Connection {
         return messageIdGenerator;
     }
 
-    public <T> @NotNull Lava<@NotNull LdapMessage<T>> readMessageChecked(
-            int messageId, @NotNull MessageReader<T> messageReader) {
-        return Lava.catchErrors(
-                (throwable)->{
-                    if ((!(throwable instanceof EOFException))
-                            && (!(throwable instanceof LdapException))
-                            && (!(throwable instanceof TimeoutException))) {
-                        synchronized (lock) {
-                            failed=true;
-                        }
-                    }
-                    return Lava.fail(throwable);
-                },
-                ()->readMessage(LdapMessage.read(messageId, messageReader))
-                        .compose((message)->{
-                            messageReader.check(message.message());
-                            return Lava.complete(message);
-                        }),
-                Throwable.class);
-    }
-
-    private <T> @NotNull Lava<T> readMessage(@NotNull Function<ByteBuffer.Reader, T> function) {
+    private <T> @NotNull Lava<@NotNull Lava<T>> readMessage(
+            @NotNull Function<ByteBuffer.@NotNull Reader, @NotNull Lava<T>> function) {
         return Lava.checkEndNanos(LdapConnection.class+"readMessage() timeout")
                 .composeIgnoreResult(()->{
                     ByteBuffer.Reader reader=readBuffer.reader();
-                    T value;
+                    @NotNull Lava<T> checkPhase;
                     try {
-                        value=function.apply(reader);
+                        checkPhase=function.apply(reader);
                     }
                     catch (EOFException ex) {
                         return connection().read()
@@ -203,8 +184,6 @@ public class LdapConnection implements Connection {
                     catch (Throwable throwable) {
                         try (StringWriter writer=new StringWriter();
                              PrintWriter printWriter=new PrintWriter(writer)) {
-                            printWriter.printf(
-                                    "error reading message, size: %,d bytes, %s%n", readBuffer.size(), throwable);
                             DERDump.hexDump(
                                     readBuffer,
                                     "        ",
@@ -218,8 +197,32 @@ public class LdapConnection implements Connection {
                         }
                     }
                     readBuffer=reader.readReaminingByteBuffer();
-                    return Lava.complete(value);
+                    return Lava.complete(checkPhase);
                 });
+    }
+
+    public <T> @NotNull Lava<@NotNull LdapMessage<@NotNull T>> readMessageChecked(
+            int messageId, @NotNull MessageReader<T> messageReader) {
+        return readMessageCheckedParallel(Map.of(messageId, messageReader.parallel(Function::identity)));
+    }
+
+    public <T> @NotNull Lava<T> readMessageCheckedParallel(
+            @NotNull Map<@NotNull Integer, @NotNull ParallelMessageReader<?, T>> messageReadersByMessageId) {
+        Objects.requireNonNull(messageReadersByMessageId, "messageReadersByMessageId");
+        return Lava.catchErrors(
+                (throwable)->{
+                    if ((!(throwable instanceof EOFException))
+                            && (!(throwable instanceof LdapException))
+                            && (!(throwable instanceof TimeoutException))) {
+                        synchronized (lock) {
+                            failed=true;
+                        }
+                    }
+                    return Lava.fail(throwable);
+                },
+                ()->readMessage(LdapMessage.readCheckedParallel(messageReadersByMessageId))
+                        .compose(Function::identity),
+                Throwable.class);
     }
 
     public @NotNull Lava<@NotNull List<@NotNull SearchResult>> search(

@@ -3,6 +3,7 @@ package hu.gds.ldap4j.ldap;
 import hu.gds.ldap4j.Either;
 import hu.gds.ldap4j.Pair;
 import hu.gds.ldap4j.net.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
@@ -15,15 +16,19 @@ public record ExtendedResponse(
     public static abstract class Reader implements MessageReader<ExtendedResponse> {
         public static class Cancel extends ExtendedResponse.Reader {
             @Override
-            public void check(@NotNull ExtendedResponse message) throws Throwable {
-                message.ldapResult.checkCancel();
+            public void check(
+                    @NotNull List<@NotNull Control> controls, @NotNull ExtendedResponse message, int messageId)
+                    throws Throwable {
+                message.ldapResult.checkCancel(controls, messageId);
             }
         }
 
         public static class Success extends ExtendedResponse.Reader {
             @Override
-            public void check(@NotNull ExtendedResponse message) throws Throwable {
-                message.ldapResult.checkSuccess();
+            public void check(
+                    @NotNull List<@NotNull Control> controls, @NotNull ExtendedResponse message, int messageId)
+                    throws Throwable {
+                message.ldapResult.checkSuccess(controls, messageId);
             }
         }
 

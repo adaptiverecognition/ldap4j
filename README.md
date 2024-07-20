@@ -16,6 +16,7 @@ to help you choose an LDAP client implementation.
   - [Lava](#lava)
   - [Reactor](#reactor)
   - [Trampoline](#trampoline)
+  - [Parallel operations](#parallel-operations)
 - [ldap4j.sh](#ldap4jsh)
 - [Docs](#docs)
   - [DNS lookups](#dns-lookups)
@@ -44,8 +45,9 @@ Ldap4j currently supports:
 Ldap4j supports TLS, through the standard StartTLS operation, and it also supports the non-standard LDAPS protocol.
 It supports an optional host name verification in both cases.
 
-Ldap4j doesn't support parallel operations yet.
-A connection pool is provided to alleviate the need for parallel operations.
+A connection pool is provided to support traditional parallelism, and amortize the cost of TCP and TLS handshakes.
+
+Ldap4j supports parallel operations using a single connection.
 
 All operations are non-blocking,
 the client should never wait for parallel results by blocking the current thread.
@@ -438,6 +440,92 @@ The transport is hardcoded to Java NIO polling.
 
     // release resources, timeout only affects the LDAP and TLS shutdown sequences
     connection.close(endNanos);
+```
+
+### Parallel operations
+
+Operations can be issued concurrently on a single connection.
+
+A `MessageIdGenerator` object is used to provide ids to new messages.
+The default `MessageIdGenerator` cycles through the ids from 1 to 127.
+This is acceptable when there are no parallel operations, or just some occasional abandon, or cancel.
+
+While sending and receiving concurrent messages only
+`LdapConnection.writeMessage(ControlsMessage<M>, MessageIdGenerator)`
+and `LdapConnection.readMessageCheckedParallel(Map<Integer, ParallelMessageReader<?, T>>)`
+can be used.
+
+As usual, reads cannot be called concurrently with other reads,
+and writes cannot be called concurrently with other writes.
+
+The caller must also generate and track the message ids used throughout the computation.
+
+`TrampolineParallelSample.java` contains a simple example of a parallel search.
+It connects to the public ldap server [ldap.forumsys.com:389](https://www.forumsys.com/2022/05/10/online-ldap-test-server/),
+and queries all the objects 10 times concurrently.
+
+The result of running that should look like this:
+
+    ldap4j trampoline parallel sample
+    connected
+    bound
+    result size: 22
+    parallel requests: 10
+    inversions: 0
+
+There are 22 objects in the directory, and by `inversions=0` we know that we received all the results
+strictly ordered according to their respective request.
+So we failed to detect any parallel execution of the parallel requests.
+
+```java
+    ControlsMessage<SearchRequest> searchRequest=new SearchRequest(
+            List.of("uniqueMember"), // attributes
+            "dc=example,dc=com", // base object
+            DerefAliases.DEREF_ALWAYS,
+            Filter.parse("(objectClass=*)"),
+            Scope.WHOLE_SUBTREE,
+            100, // size limit
+            10, // time limit
+            false) // types only
+            .controlsEmpty();
+
+    // count all the entries + done
+    int resultSize=connection.search(endNanos, searchRequest).size();
+    System.out.printf("result size: %,d%n", resultSize);
+
+    // start requests in parallel
+    int parallelRequests=10;
+    System.out.printf("parallel requests: %,d%n", parallelRequests);
+    for (int ii=0; parallelRequests>ii; ++ii) {
+        connection.writeMessage(
+                endNanos,
+                searchRequest,
+                MessageIdGenerator.constant(true, ii+1));
+    }
+
+    // read all result
+    int[] counts=new int[parallelRequests];
+    int inversions=0;
+    while (true) {
+        @NotNull Map<@NotNull Integer, ParallelMessageReader<?, @NotNull LdapMessage<SearchResult>>> readers
+                =new HashMap<>(parallelRequests);
+        for (int ii=parallelRequests-1; 0<=ii; --ii) {
+            if (resultSize!=counts[ii]) {
+                readers.put(ii+1, SearchResult.READER.parallel(Function::identity));
+            }
+        }
+        if (readers.isEmpty()) {
+            break;
+        }
+        @NotNull LdapMessage<SearchResult> searchResult
+                =connection.readMessageCheckedParallel(endNanos, readers);
+        int index=searchResult.messageId()-1;
+        ++counts[index];
+        for (int ii=index-1; 0<=ii; --ii) {
+            inversions+=resultSize-counts[ii];
+        }
+    }
+    System.out.printf("inversions: %,d%n", inversions);
 ```
 
 ## ldap4j.sh

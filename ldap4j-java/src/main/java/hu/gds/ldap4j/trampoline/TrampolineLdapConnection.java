@@ -8,7 +8,9 @@ import hu.gds.ldap4j.ldap.ControlsMessage;
 import hu.gds.ldap4j.ldap.LdapConnection;
 import hu.gds.ldap4j.ldap.LdapMessage;
 import hu.gds.ldap4j.ldap.Message;
+import hu.gds.ldap4j.ldap.MessageIdGenerator;
 import hu.gds.ldap4j.ldap.MessageReader;
+import hu.gds.ldap4j.ldap.ParallelMessageReader;
 import hu.gds.ldap4j.ldap.Request;
 import hu.gds.ldap4j.ldap.SearchRequest;
 import hu.gds.ldap4j.ldap.SearchResult;
@@ -106,6 +108,17 @@ public record TrampolineLdapConnection(
                         connection.readMessageChecked(messageId, messageReader));
     }
 
+    public <T> T readMessageCheckedParallel(
+            long endNanos,
+            @NotNull Map<@NotNull Integer, @NotNull ParallelMessageReader<?, T>> messageReadersByMessageId)
+            throws Throwable {
+        return trampoline.contextEndNanos(endNanos)
+                .get(
+                        true,
+                        true,
+                        connection.readMessageCheckedParallel(messageReadersByMessageId));
+    }
+
     public @NotNull List<@NotNull SearchResult> search(
             long endNanos, @NotNull ControlsMessage<SearchRequest> request) throws Throwable {
         return trampoline.contextEndNanos(endNanos)
@@ -121,6 +134,13 @@ public record TrampolineLdapConnection(
             long endNanos, @NotNull ControlsMessage<M> message) throws Throwable {
         return trampoline.contextEndNanos(endNanos)
                 .get(true, true, connection.writeMessage(message));
+    }
+
+    public <M extends Message<M>> int writeMessage(
+            long endNanos, @NotNull ControlsMessage<M> message, @NotNull MessageIdGenerator messageIdGenerator)
+            throws Throwable {
+        return trampoline.contextEndNanos(endNanos)
+                .get(true, true, connection.writeMessage(message, messageIdGenerator));
     }
 
     public <M extends Request<M, R>, R> @NotNull ControlsMessage<R> writeRequestReadResponseChecked(

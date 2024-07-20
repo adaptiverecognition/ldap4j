@@ -10,7 +10,9 @@ import hu.gds.ldap4j.ldap.ControlsMessage;
 import hu.gds.ldap4j.ldap.LdapConnection;
 import hu.gds.ldap4j.ldap.LdapMessage;
 import hu.gds.ldap4j.ldap.Message;
+import hu.gds.ldap4j.ldap.MessageIdGenerator;
 import hu.gds.ldap4j.ldap.MessageReader;
+import hu.gds.ldap4j.ldap.ParallelMessageReader;
 import hu.gds.ldap4j.ldap.Request;
 import hu.gds.ldap4j.ldap.SearchRequest;
 import hu.gds.ldap4j.ldap.SearchResult;
@@ -98,6 +100,11 @@ public class FutureLdapConnection {
         return startLava(connection.readMessageChecked(messageId, messageReader));
     }
 
+    public <T> @NotNull CompletableFuture<T> readMessageCheckedParallel(
+            @NotNull Map<@NotNull Integer, @NotNull ParallelMessageReader<?, T>> messageReadersByMessageId) {
+        return startLava(connection.readMessageCheckedParallel(messageReadersByMessageId));
+    }
+
     public @NotNull CompletableFuture<@NotNull List<@NotNull SearchResult>> search(
             @NotNull ControlsMessage<SearchRequest> request) {
         return startLava(connection.search(request));
@@ -116,6 +123,11 @@ public class FutureLdapConnection {
     public <M extends Message<M>> @NotNull CompletableFuture<@NotNull Integer> writeMessage(
             @NotNull ControlsMessage<M> message) {
         return startLava(connection.writeMessage(message));
+    }
+
+    public <M extends Message<M>> @NotNull CompletableFuture<@NotNull Integer> writeMessage(
+            @NotNull ControlsMessage<M> message, @NotNull MessageIdGenerator messageIdGenerator) {
+        return startLava(connection.writeMessage(message, messageIdGenerator));
     }
 
     public <M extends Request<M, R>, R>

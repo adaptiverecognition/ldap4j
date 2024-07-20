@@ -15,7 +15,9 @@ public class ExtendedLdapException extends LdapException {
 
     public ExtendedLdapException(@NotNull LdapMessage<ExtendedResponse> response) {
         super(
+                response.controls(),
                 response.toString(),
+                response.messageId(),
                 response.message().ldapResult().referrals(),
                 response.message().ldapResult().resultCode(),
                 response.message().ldapResult().resultCode2());

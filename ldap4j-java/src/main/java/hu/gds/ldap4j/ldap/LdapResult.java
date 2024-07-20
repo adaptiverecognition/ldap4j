@@ -23,32 +23,32 @@ public record LdapResult(
         this.resultCode2=resultCode2;
     }
 
-    public void checkCancel() throws LdapException {
+    public void checkCancel(@NotNull List<@NotNull Control> controls, int messageId) throws LdapException {
         if ((!LdapResultCode.CANCELED.equals(resultCode2))
                 && (!LdapResultCode.CANNOT_CANCEL.equals(resultCode2))
                 && (!LdapResultCode.NO_SUCH_OPERATION.equals(resultCode2))
                 && (!LdapResultCode.TOO_LATE.equals(resultCode2))) {
-            throw new LdapException(diagnosticMessages, referrals, resultCode, resultCode2);
+            throw new LdapException(controls, diagnosticMessages, messageId, referrals, resultCode, resultCode2);
         }
     }
 
-    public void checkCompare() throws LdapException {
+    public void checkCompare(@NotNull List<@NotNull Control> controls, int messageId) throws LdapException {
         if ((!LdapResultCode.COMPARE_FALSE.equals(resultCode2))
                 && (!LdapResultCode.COMPARE_TRUE.equals(resultCode2))) {
-            throw new LdapException(diagnosticMessages, referrals, resultCode, resultCode2);
+            throw new LdapException(controls, diagnosticMessages, messageId, referrals, resultCode, resultCode2);
         }
     }
 
-    public void checkSASL() throws LdapException {
+    public void checkSASL(@NotNull List<@NotNull Control> controls, int messageId) throws LdapException {
         if ((!LdapResultCode.SASL_BIND_IN_PROGRESS.equals(resultCode2))
                 && (!LdapResultCode.SUCCESS.equals(resultCode2))) {
-            throw new LdapException(diagnosticMessages, referrals, resultCode, resultCode2);
+            throw new LdapException(controls, diagnosticMessages, messageId, referrals, resultCode, resultCode2);
         }
     }
 
-    public void checkSuccess() throws LdapException {
+    public void checkSuccess(@NotNull List<@NotNull Control> controls, int messageId) throws LdapException {
         if (!LdapResultCode.SUCCESS.equals(resultCode2)) {
-            throw new LdapException(diagnosticMessages, referrals, resultCode, resultCode2);
+            throw new LdapException(controls, diagnosticMessages, messageId, referrals, resultCode, resultCode2);
         }
     }
 
