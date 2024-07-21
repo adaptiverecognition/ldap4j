@@ -113,9 +113,9 @@
                         </executions>
                         <configuration>
                             <gpgArguments>
-                                <arg>--batch</arg>
-                                <arg>--pinentry-mode</arg>
-                                <arg>loopback</arg>
+                                <gpgArgument>--batch</gpgArgument>
+                                <gpgArgument>--pinentry-mode</gpgArgument>
+                                <gpgArgument>loopback</gpgArgument>
                                 <gpgArgument>--passphrase-file</gpgArgument>
                                 <gpgArgument>${env.HOME}/gpg.passphrase.secret</gpgArgument>
                             </gpgArguments>
