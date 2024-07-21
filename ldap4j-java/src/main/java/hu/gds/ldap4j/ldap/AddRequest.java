@@ -25,7 +25,7 @@ public record AddRequest(
     }
 
     @Override
-    public @NotNull ByteBuffer write() throws Throwable {
+    public @NotNull ByteBuffer write() {
         ByteBuffer attributesBuffer=ByteBuffer.EMPTY;
         for (PartialAttribute attribute: attributes) {
             attributesBuffer=attributesBuffer.append(attribute.write());

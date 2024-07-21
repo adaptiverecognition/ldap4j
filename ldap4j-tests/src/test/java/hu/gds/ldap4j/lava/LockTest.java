@@ -303,7 +303,7 @@ public class LockTest {
                     AbstractTest.TIMEOUT_NANOS,
                     Lava.supplier(new Supplier<>() {
                         private final Lock lock=new Lock();
-                        private final List<@NotNull Lock.Condition> lockConditions
+                        private final List<Lock.@NotNull Condition> lockConditions
                                 =List.of(lock.newCondition(), lock.newCondition(), lock.newCondition());
                         private int value;
 

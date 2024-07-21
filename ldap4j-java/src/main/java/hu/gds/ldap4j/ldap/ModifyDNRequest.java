@@ -33,7 +33,7 @@ public record ModifyDNRequest(
     }
 
     @Override
-    public @NotNull ByteBuffer write() throws Throwable {
+    public @NotNull ByteBuffer write() {
         ByteBuffer requestBuffer=DER.writeUtf8Tag(entry)
                 .append(DER.writeUtf8Tag(newRDN))
                 .append(DER.writeBooleanTag(deleteOldRDN));

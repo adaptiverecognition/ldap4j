@@ -45,7 +45,7 @@ public record Control(@NotNull String controlType, @Nullable String controlValue
                 reader);
     }
 
-    public @NotNull ByteBuffer write() throws Throwable {
+    public @NotNull ByteBuffer write() {
         if (null!=controlValue) {
             return DER.writeSequence(
                     DER.writeUtf8Tag(controlType)

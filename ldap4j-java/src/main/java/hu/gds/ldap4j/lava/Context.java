@@ -52,7 +52,7 @@ public interface Context extends Executor {
         }
 
         @Override
-        public Context endNanos(long endNanos) throws Throwable {
+        public @NotNull Context endNanos(long endNanos) throws Throwable {
             if ((null!=this.endNanos)
                     && (0>clock.compareEndNanos(this.endNanos, endNanos))) {
                 return this;

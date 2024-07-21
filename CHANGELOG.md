@@ -8,7 +8,7 @@ Snapshot:
   - modify
   - modify dn
   - SASL bind
-- fix integer encoding
+- fix enumeration, integer, and length codecs
 - support parallel operations
 
 Version 1.0.0:

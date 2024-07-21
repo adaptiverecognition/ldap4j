@@ -10,7 +10,7 @@ public record UnbindRequest() implements Message<UnbindRequest> {
     }
 
     @Override
-    public @NotNull ByteBuffer write() throws Throwable {
+    public @NotNull ByteBuffer write() {
         return DER.writeTag(Ldap.PROTOCOL_OP_UNBIND_REQUEST, DER.writeNullNoTag());
     }
 }

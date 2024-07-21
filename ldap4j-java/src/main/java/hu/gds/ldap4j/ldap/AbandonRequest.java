@@ -12,7 +12,7 @@ public record AbandonRequest(
     }
 
     @Override
-    public @NotNull ByteBuffer write() throws Throwable {
+    public @NotNull ByteBuffer write() {
         return DER.writeTag(
                 Ldap.PROTOCOL_OP_ABANDON_REQUEST,
                 DER.writeIntegerNoTag(messageId));

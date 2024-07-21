@@ -46,7 +46,7 @@ public class DERDump {
         };
         put.apply(DER.BOOLEAN).accept("BOOLEAN", DER::readBooleanNoTag);
         put.apply(DER.ENUMERATED).accept("ENUMERATED", DER::readEnumeratedNoTag);
-        put.apply(DER.INTEGER).accept("INTEGER", (reader)->DER.readIntegerNoTag(true, reader));
+        put.apply(DER.INTEGER).accept("INTEGER", (reader)->DER.readIntegerNoTag(false, reader));
         put.apply(DER.OCTET_STRING).accept("OCTET STRING", DER::readUtf8NoTag);
         put.apply(DER.SEQUENCE).accept("SEQUENCE", null);
         put.apply(Ldap.FILTER_AND).accept("LDAP and filter?", null);

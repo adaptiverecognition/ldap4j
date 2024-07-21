@@ -41,7 +41,7 @@ public record LdapMessage<T>(
         Objects.requireNonNull(messageReadersByMessageId, "messageReadersByMessageId");
         return (reader)->DER.readSequence(
                 (reader2)->{
-                    int messageId=DER.readIntegerTag(reader2);
+                    int messageId=DER.readIntegerTag(true, reader2);
                     ParallelMessageReader<?, T> messageReader=messageReadersByMessageId.get(messageId);
                     if (null!=messageReader) {
                         return messageReader.readMessageChecked(messageId, reader2);

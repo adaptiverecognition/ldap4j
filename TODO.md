@@ -6,8 +6,11 @@
 - tls closure, rfc4511 4.14.3, allow, disallow, initiate
 - tls renegotiation
 - unit tests
-  - abandon (both apache ds and unboundid ldap sdk send a notice of disconnect)
-  - cancel (unboundid is unwilling, apache notifies of a disconnect)
+  - abandon
+  - approx match that works differently than equality match
+    - compare
+    - search filter
+  - cancel
   - extensible match
   - fast bind
   - ms domain controller

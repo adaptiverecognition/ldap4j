@@ -15,7 +15,7 @@ public record ModifyRequest(
             this.operation=Objects.requireNonNull(operation, "operation");
         }
 
-        public @NotNull ByteBuffer write() throws Throwable {
+        public @NotNull ByteBuffer write() {
             return DER.writeSequence(
                     operation.write()
                             .append(modification.write()));
@@ -33,7 +33,7 @@ public record ModifyRequest(
             this.value=value;
         }
 
-        public @NotNull ByteBuffer write() throws Throwable {
+        public @NotNull ByteBuffer write() {
             return DER.writeEnumeratedTag(value);
         }
     }
@@ -54,7 +54,7 @@ public record ModifyRequest(
     }
 
     @Override
-    public @NotNull ByteBuffer write() throws Throwable {
+    public @NotNull ByteBuffer write() {
         ByteBuffer changesBuffer=ByteBuffer.EMPTY;
         for (Change change: changes) {
             changesBuffer=changesBuffer.append(change.write());

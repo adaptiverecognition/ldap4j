@@ -6,7 +6,6 @@ import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public abstract class DER {
     public static final byte BOOLEAN=0x01;
@@ -60,30 +59,28 @@ public abstract class DER {
         return readTag(DER::readEnumeratedNoTag, reader, ENUMERATED);
     }
 
-    public static int readIntegerNoTag(boolean integer, @NotNull ByteBuffer.Reader reader) throws Throwable {
+    public static int readIntegerNoTag(boolean nonNegative, @NotNull ByteBuffer.Reader reader) throws Throwable {
         if (4<reader.remainingBytes()) {
-            throw new RuntimeException("integer too large, size: %d".formatted(reader.remainingBytes()));
+            throw new RuntimeException("integer too large, size: %,d bytes".formatted(reader.remainingBytes()));
         }
-        boolean negative=false;
         int result=0;
         if (reader.hasRemainingBytes()) {
-            result=reader.readByte()&255;
-            if (integer && (0!=(result&0x80))) {
-                negative=true;
+            result=reader.readByte()&0xff;
+            if (0!=(result&0x80)) {
                 result^=0xffffff00;
             }
             while (reader.hasRemainingBytes()) {
-                result=(result<<8)|(reader.readByte()&255);
+                result=(result<<8)|(reader.readByte()&0xff);
             }
         }
-        if (negative) {
+        if (nonNegative && (0>result)) {
             throw new RuntimeException("negative integer %,d".formatted(result));
         }
         return result;
     }
 
-    public static int readIntegerTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
-        return readTag((reader2)->DER.readIntegerNoTag(true, reader2), reader, INTEGER);
+    public static int readIntegerTag(boolean nonNegative, @NotNull ByteBuffer.Reader reader) throws Throwable {
+        return readTag((reader2)->DER.readIntegerNoTag(nonNegative, reader2), reader, INTEGER);
     }
 
     public static int readLength(ByteBuffer.Reader reader) throws Throwable {
@@ -95,7 +92,17 @@ public abstract class DER {
         if (0==bb) {
             throw new RuntimeException("indefinite length is not supported yet");
         }
-        return reader.readBytes(bb, (reader2)->DER.readIntegerNoTag(false, reader2));
+        if (4<bb) {
+            throw new RuntimeException("length too large, size: %,d bytes".formatted(bb));
+        }
+        int result=0;
+        for (; 0<bb; --bb) {
+            result=(result<<8)|(reader.readByte()&0xff);
+        }
+        if (0>result) {
+            throw new RuntimeException("length too large, size: %,d".formatted(result));
+        }
+        return result;
     }
 
     public static <T> T readSequence(
@@ -145,53 +152,55 @@ public abstract class DER {
         return ByteBuffer.create((byte)(value?1:0));
     }
 
-    public static @NotNull ByteBuffer writeBooleanTag(boolean value) throws Throwable {
+    public static @NotNull ByteBuffer writeBooleanTag(boolean value) {
         return DER.writeTag(BOOLEAN, writeBooleanNoTag(value));
     }
 
-    public static @NotNull ByteBuffer writeEnumeratedNoTag(int value) throws Throwable {
-        return writeIntegerNoTag(false, null, value);
+    public static @NotNull ByteBuffer writeEnumeratedNoTag(int value) {
+        return writeIntegerNoTag(value);
     }
 
-    public static @NotNull ByteBuffer writeEnumeratedTag(int value) throws Throwable {
-        return writeTag(ENUMERATED, writeIntegerNoTag(false, null, value));
+    public static @NotNull ByteBuffer writeEnumeratedTag(int value) {
+        return writeTag(ENUMERATED, writeEnumeratedNoTag(value));
     }
 
-    public static @NotNull ByteBuffer writeIntegerNoTag(
-            boolean integer, @Nullable Function<@NotNull Integer, @NotNull ByteBuffer> size, int value)
-            throws Throwable {
-        if ((0>value)) {
-            throw new IllegalArgumentException("invalid integer value %d".formatted(value));
-        }
-        byte b0=(byte)(value&255);
-        byte b1=(byte)((value>>8)&255);
-        byte b2=(byte)((value>>16)&255);
-        byte b3=(byte)((value>>24)&255);
-        ByteBuffer value2;
-        if (0!=b3 || (integer && (0!=(b2&0x80)))) {
-            value2=ByteBuffer.create(b3, b2, b1, b0);
-        }
-        else if ((0!=b2) || (integer && (0!=(b1&0x80)))) {
-            value2=ByteBuffer.create(b2, b1, b0);
-        }
-        else if ((0!=b1) || (integer && (0!=(b0&0x80)))) {
-            value2=ByteBuffer.create(b1, b0);
+    public static @NotNull ByteBuffer writeIntegerNoTag(int value) {
+        byte b0=(byte)(value&0xff);
+        byte b1=(byte)((value>>8)&0xff);
+        byte b2=(byte)((value>>16)&0xff);
+        byte b3=(byte)((value>>24)&0xff);
+        if (0<=value) {
+            if ((0!=b3) || (0!=(b2&0x80))) {
+                return ByteBuffer.create(b3, b2, b1, b0);
+            }
+            else if ((0!=b2) || (0!=(b1&0x80))) {
+                return ByteBuffer.create(b2, b1, b0);
+            }
+            else if ((0!=b1) || (0!=(b0&0x80))) {
+                return ByteBuffer.create(b1, b0);
+            }
+            else {
+                return ByteBuffer.create(b0);
+            }
         }
         else {
-            value2=ByteBuffer.create(b0);
+            if ((0xff!=(b3&0xff)) || (0==(b2&0x80))) {
+                return ByteBuffer.create(b3, b2, b1, b0);
+            }
+            else if ((0xff!=(b2&0xff)) || (0==(b1&0x80))) {
+                return ByteBuffer.create(b2, b1, b0);
+            }
+            else if ((0xff!=(b1&0xff)) || (0==(b0&0x80))) {
+                return ByteBuffer.create(b1, b0);
+            }
+            else {
+                return ByteBuffer.create(b0);
+            }
         }
-        if (null==size) {
-            return value2;
-        }
-        return size.apply(value2.size()).append(value2);
     }
 
-    public static @NotNull ByteBuffer writeIntegerNoTag(int value) throws Throwable {
-        return writeIntegerNoTag(true, null, value);
-    }
-
-    public static @NotNull ByteBuffer writeIntegerTag(int value) throws Throwable {
-        return writeTag(INTEGER, writeIntegerNoTag(true, null, value));
+    public static @NotNull ByteBuffer writeIntegerTag(int value) {
+        return writeTag(INTEGER, writeIntegerNoTag(value));
     }
 
     public static <T> @NotNull ByteBuffer writeIterable(
@@ -203,29 +212,36 @@ public abstract class DER {
         return result;
     }
 
-    public static @NotNull ByteBuffer writeLength(int length) throws Throwable {
+    public static @NotNull ByteBuffer writeLength(int length) {
         if ((0>length)) {
             throw new IllegalArgumentException("invalid length %d".formatted(length));
         }
         if (127>=length) {
             return ByteBuffer.create((byte)length);
         }
-        return writeIntegerNoTag(
-                false,
-                (size)->{
-                    if ((1>size) || (126<size)) {
-                        throw new IllegalArgumentException("invalid size %,d".formatted(size));
-                    }
-                    return ByteBuffer.create((byte)(size|0x80));
-                },
-                length);
+        byte b0=(byte)(length&0xff);
+        byte b1=(byte)((length>>8)&0xff);
+        byte b2=(byte)((length>>16)&0xff);
+        byte b3=(byte)((length>>24)&0xff);
+        if (0!=b3) {
+            return ByteBuffer.create((byte)0x84, b3, b2, b1, b0);
+        }
+        else if (0!=b2) {
+            return ByteBuffer.create((byte)0x83, b2, b1, b0);
+        }
+        else if (0!=b1) {
+            return ByteBuffer.create((byte)0x82, b1, b0);
+        }
+        else {
+            return ByteBuffer.create((byte)0x81, b0);
+        }
     }
 
     public static @NotNull ByteBuffer writeNullNoTag() {
         return ByteBuffer.EMPTY;
     }
 
-    public static @NotNull ByteBuffer writeSequence(@NotNull ByteBuffer byteBuffer) throws Throwable {
+    public static @NotNull ByteBuffer writeSequence(@NotNull ByteBuffer byteBuffer) {
         return writeTag(SEQUENCE, byteBuffer);
     }
 
@@ -236,7 +252,7 @@ public abstract class DER {
         return ByteBuffer.create(tag);
     }
 
-    public static @NotNull ByteBuffer writeTag(byte tag, @NotNull ByteBuffer byteBuffer) throws Throwable {
+    public static @NotNull ByteBuffer writeTag(byte tag, @NotNull ByteBuffer byteBuffer) {
         return writeTag(tag)
                 .append(writeLength(byteBuffer.size()))
                 .append(byteBuffer);
@@ -250,7 +266,7 @@ public abstract class DER {
         return writeUtf8NoTag(value.toCharArray());
     }
 
-    public static @NotNull ByteBuffer writeUtf8Tag(@NotNull String value) throws Throwable {
+    public static @NotNull ByteBuffer writeUtf8Tag(@NotNull String value) {
         return writeTag(OCTET_STRING, writeUtf8NoTag(value));
     }
 }

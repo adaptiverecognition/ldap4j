@@ -25,7 +25,7 @@ public record BindRequest(
             }
 
             @Override
-            public @NotNull ByteBuffer write() throws Throwable {
+            public @NotNull ByteBuffer write() {
                 ByteBuffer saslBuffer=DER.writeUtf8Tag(mechanism);
                 if (null!=credentials) {
                     saslBuffer=saslBuffer.append(
@@ -48,7 +48,7 @@ public record BindRequest(
             }
 
             @Override
-            public @NotNull ByteBuffer write() throws Throwable {
+            public @NotNull ByteBuffer write() {
                 return DER.writeTag(
                         Ldap.AUTHENTICATION_CHOICE_SIMPLE,
                         DER.writeUtf8NoTag(password));
@@ -57,7 +57,7 @@ public record BindRequest(
 
         @NotNull MessageReader<BindResponse> responseReader();
 
-        @NotNull ByteBuffer write() throws Throwable;
+        @NotNull ByteBuffer write();
     }
 
     public BindRequest(
@@ -95,7 +95,7 @@ public record BindRequest(
     }
 
     @Override
-    public @NotNull ByteBuffer write() throws Throwable {
+    public @NotNull ByteBuffer write() {
         return DER.writeTag(
                 Ldap.PROTOCOL_OP_BIND_REQUEST,
                 DER.writeIntegerTag(version)

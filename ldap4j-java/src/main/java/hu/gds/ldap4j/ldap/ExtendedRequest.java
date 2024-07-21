@@ -23,7 +23,7 @@ public record ExtendedRequest(
         this.responseReader=Objects.requireNonNull(responseReader, "responseReader");
     }
     
-    public static @NotNull ExtendedRequest cancel(int messageId) throws Throwable {
+    public static @NotNull ExtendedRequest cancel(int messageId) {
         return new ExtendedRequest(
                 Ldap.EXTENDED_REQUEST_CANCEL_OP_OID,
                 DER.writeSequence(
@@ -38,7 +38,7 @@ public record ExtendedRequest(
     }
 
     @Override
-    public @NotNull ByteBuffer write() throws Throwable {
+    public @NotNull ByteBuffer write() {
         ByteBuffer byteBuffer=DER.writeTag(
                 Ldap.PROTOCOL_OP_EXTENDED_REQUEST_NAME,
                 DER.writeUtf8NoTag(requestName));

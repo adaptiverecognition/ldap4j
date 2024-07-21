@@ -80,7 +80,7 @@ public sealed abstract class Filter {
         protected abstract String toStringRelation();
 
         @Override
-        protected ByteBuffer writeContent() throws Throwable {
+        protected ByteBuffer writeContent() {
             return DER.writeUtf8Tag(attributeDescription)
                     .append(DER.writeUtf8Tag(assertionValue));
         }
@@ -145,7 +145,7 @@ public sealed abstract class Filter {
         }
 
         @Override
-        protected ByteBuffer writeContent() throws Throwable {
+        protected ByteBuffer writeContent() {
             ByteBuffer result=ByteBuffer.EMPTY;
             if (null!=matchingRule) {
                 result=result.append(DER.writeTag(
@@ -315,7 +315,7 @@ public sealed abstract class Filter {
         }
 
         @Override
-        protected ByteBuffer writeContent() throws Throwable {
+        protected ByteBuffer writeContent() {
             ByteBuffer substrings=ByteBuffer.EMPTY;
             if (null!=initial) {
                 substrings=substrings.append(

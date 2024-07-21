@@ -56,6 +56,8 @@ While there's only a handful of integers used directly in LDAP messages, integer
 
 ### Apache Directory Server
 
+There's no abandon (notice of disconnect), cancel (notice of disconnect), nor fast bind.
+
 Approx match works like an equality match, while officially it's not even supported.
 
 There's no fast bind.
@@ -74,9 +76,7 @@ There's some integer parsing woes:
 - search size limit,
 - search time limit.
 
-There's no approx match.
-
-There's no fast bind.
+There's no abandon (notice of disconnect), approx match, cancel (unwilling), nor fast bind.
 
 ## Transports
 
@@ -87,7 +87,7 @@ There's no fast bind.
 There's no shut down output.
 
 Read is broken, only auto read works reliably.
-There's no way to limit how much Apache MINA will read ahead.
+There's no way to limit how much Apache MINA will read ahead if you leave the worker thread.
 Read issues:
 - `IoSession.read()` won't return an EOF unless the session gets closed.
 - `IoSession.resumeRead()/.suspendRead()` are ridiculously slow.
@@ -121,7 +121,7 @@ Transports:
 
 Auto read is broken.
 `SimpleChannelInboundHandler.channelRead0()` gets called without a matching `Channel.read()` call.
-There's no way to limit how much Netty will read ahead.
+There's no way to limit how much Netty will read ahead if you leave the worker thread.
 Transports:
 - Epoll.
 

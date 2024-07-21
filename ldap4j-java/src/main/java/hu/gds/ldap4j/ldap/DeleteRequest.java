@@ -22,7 +22,7 @@ public record DeleteRequest(
     }
 
     @Override
-    public @NotNull ByteBuffer write() throws Throwable {
+    public @NotNull ByteBuffer write() {
         return DER.writeTag(
                 Ldap.PROTOCOL_OP_DELETE_REQUEST,
                 DER.writeUtf8NoTag(entry));

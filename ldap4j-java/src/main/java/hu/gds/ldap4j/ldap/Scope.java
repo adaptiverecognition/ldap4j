@@ -13,7 +13,7 @@ public enum Scope {
         this.value=value;
     }
 
-    public ByteBuffer write() throws Throwable {
+    public ByteBuffer write() {
         return DER.writeEnumeratedTag(value);
     }
 }
