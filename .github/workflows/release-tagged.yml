@@ -1,0 +1,124 @@
+name: Release tagged
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version'
+        required: true
+
+env:
+  JAVA_VERSION: '17'
+  JAVA_DISTRO: 'adopt'
+
+jobs:
+  precheck:
+    name: Precheck
+    runs-on: ubuntu-latest
+    outputs:
+      VERSION: ${{ steps.vars.outputs.VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Version
+        id: vars
+        shell: bash
+        run: |
+          echo "date"
+          date
+          echo "uname"
+          uname -a
+          echo "lsb release"
+          lsb_release -a
+          echo "get version"
+          VERSION=${{ github.event.inputs.version }}
+          echo "set git email"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo "set git user"
+          git config --global user.name "GitHub Action"
+          #echo "set pom.xml revision"
+          #mvn -B -Prelease versions:set-property -Dproperty=revision "-DnewVersion=$VERSION" -DgenerateBackupPoms=false
+          #echo "git add pom.xml"
+          #git add pom.xml
+          #echo "git commit"
+          #git commit --all --allow-empty --message "Releasing version $VERSION"
+          #echo "git tag"
+          #git tag --annotate --message "Releasing version $VERSION" "$VERSION"
+          #echo "git push"
+          #git push --tags origin master
+          echo "git checkout tag"
+          git checkout "$VERSION"
+
+  release:
+    name: Release
+    needs: [ precheck ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRO }}
+
+      - name: Cache Maven
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Publish package
+        env:
+          JRELEASER_NEXUS2_USERNAME: ${{ secrets.JRELEASER_NEXUS2_USERNAME }}
+          JRELEASER_NEXUS2_PASSWORD: ${{ secrets.JRELEASER_NEXUS2_PASSWORD }}
+          JRELEASER_GPG_PASSPHRASE: ${{ secrets.JRELEASER_GPG_PASSPHRASE }}
+          JRELEASER_GPG_SECRET_KEY: ${{ secrets.JRELEASER_GPG_SECRET_KEY }}
+          JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.JRELEASER_GPG_PUBLIC_KEY }}
+          JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "set gpg homedir"
+          HOMEDIR="$HOME/.gnupg"
+          echo "set ossrh credentials file"
+          OSSRH_FILE="$HOME/ossrh-settings.xml.secret"
+          echo "set passphrase file"
+          PASSPHRASE_FILE="$HOME/gpg.passphrase.secret"
+          echo "kill gpg-agent"
+          killall -9 gpg-agent || echo gpg-agent not found
+          echo "remove gpg homedir"
+          rm -rf "$HOMEDIR"
+          echo "create gpg homedir"
+          mkdir "$HOMEDIR"
+          echo "set gpg homedir permissions"
+          chmod 700 "$HOMEDIR"
+          echo "gpg version"
+          gpg --version
+          echo "find pinentry"
+          find /usr -name "pinentry*"
+          echo "import gpg key"
+          echo $JRELEASER_GPG_SECRET_KEY | base64 -d | gpg --homedir "$HOMEDIR" --batch --import -
+          echo "remove ossrh credentials file"
+          rm -f "$OSSRH_FILE"
+          echo "create ossrh credentials file"
+          cat ./ossrh-settings.xml | sed "s/magic0/$JRELEASER_NEXUS2_USERNAME/g" | sed "s/magic1/$JRELEASER_NEXUS2_PASSWORD/g" > "$OSSRH_FILE"
+          echo "remove passphrase file"
+          rm -f "$PASSPHRASE_FILE"
+          echo "create passphrase file"
+          echo $JRELEASER_GPG_PASSPHRASE > "$PASSPHRASE_FILE"
+          echo "maven clean"
+          mvn -B -s "$OSSRH_FILE" -Prelease clean
+          echo "maven deploy"
+          mvn -B -s "$OSSRH_FILE" -Prelease deploy
+          echo "remove gpg home dir"
+          rm -rf "$HOMEDIR"
+          echo "remove ossrh credentials file"
+          rm -f "$OSSRH_FILE"
+          echo "remove passphrase file"
+          rm -f "$PASSPHRASE_FILE"
+          echo "release done"
