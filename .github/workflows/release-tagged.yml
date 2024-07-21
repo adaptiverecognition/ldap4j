@@ -130,7 +130,7 @@ jobs:
           echo "maven clean"
           mvn -B -s "$OSSRH_FILE" -Prelease clean
           echo "maven deploy"
-          mvn -B -s "a$OSSRH_FILE" -Prelease deploy
+          mvn -B -s "$OSSRH_FILE" -Prelease deploy
           echo "remove gpg home dir"
           rm -rf "$HOMEDIR"
           echo "remove ossrh credentials file"
