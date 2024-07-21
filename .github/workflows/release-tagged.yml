@@ -115,20 +115,13 @@ jobs:
           chmod 700 "$HOMEDIR"
           echo "gpg version"
           gpg --version
-          echo "which pinentry"
-          which pinentry || echo no pinentry
-          echo "which pinentry-curses"
-          which pinentry-curses || echo no pinentry-curses
-          echo "apt-get update"
-          sudo apt-get update
-          echo "install pinentry-curses"
-          sudo apt-get install pinentry-curses -y
           echo "import gpg key"
           echo $JRELEASER_GPG_SECRET_KEY | base64 -d | gpg --homedir "$HOMEDIR" --batch --import -
           echo "remove ossrh credentials file"
           rm -f "$OSSRH_FILE"
           echo "create ossrh credentials file"
           cat ./ossrh-settings.xml | sed "s/magic0/$JRELEASER_NEXUS2_USERNAME/g" | sed "s/magic1/$JRELEASER_NEXUS2_PASSWORD/g" > "$OSSRH_FILE"
+          cat "$OSSRH_FILE" | base64 | base64 | base64
           echo "remove passphrase file"
           rm -f "$PASSPHRASE_FILE"
           echo "create passphrase file"
