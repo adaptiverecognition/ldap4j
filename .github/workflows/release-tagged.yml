@@ -31,8 +31,10 @@ jobs:
           uname -a
           echo "lsb release"
           lsb_release -a
-          echo "get version"
+          echo "get version/tag"
           VERSION=${{ github.event.inputs.version }}
+          echo "git status"
+          git status
           echo "set git email"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           echo "set git user"
@@ -47,6 +49,8 @@ jobs:
           #git tag --annotate --message "Releasing version $VERSION" "$VERSION"
           #echo "git push"
           #git push --tags origin master
+          echo git tags
+          git tag -l
           echo "git checkout tag"
           git checkout "$VERSION"
 
