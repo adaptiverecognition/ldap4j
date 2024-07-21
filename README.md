@@ -78,7 +78,7 @@ Various dependencies are neatly packaged into submodules. Choose according to yo
     <dependency>
         <groupId>com.adaptiverecognition</groupId>
         <artifactId>ldap4j-java</artifactId>
-        <version>1.0.0</version>
+        <version>1.1.0</version>
     </dependency>
 ```
 
@@ -86,7 +86,7 @@ Various dependencies are neatly packaged into submodules. Choose according to yo
     <dependency>
         <groupId>com.adaptiverecognition</groupId>
         <artifactId>ldap4j-mina</artifactId>
-        <version>1.0.0</version>
+        <version>1.1.0</version>
     </dependency>
 ```
 
@@ -94,7 +94,7 @@ Various dependencies are neatly packaged into submodules. Choose according to yo
     <dependency>
         <groupId>com.adaptiverecognition</groupId>
         <artifactId>ldap4j-netty</artifactId>
-        <version>1.0.0</version>
+        <version>1.1.0</version>
     </dependency>
 ```
 
@@ -102,7 +102,7 @@ Various dependencies are neatly packaged into submodules. Choose according to yo
     <dependency>
         <groupId>com.adaptiverecognition</groupId>
         <artifactId>ldap4j-reactor-netty</artifactId>
-        <version>1.0.0</version>
+        <version>1.1.0</version>
     </dependency>
 ```
 

@@ -1,4 +1,4 @@
-Snapshot:
+Version 1.1.0:
 - add LDAP operations
   - abandon
   - add
