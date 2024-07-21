@@ -120,7 +120,7 @@ jobs:
           echo "remove ossrh credentials file"
           rm -f "$OSSRH_FILE"
           echo "create ossrh credentials file"
-          cat ./ossrh-settings.xml | sed "s/magica/$JRELEASER_NEXUS2_USERNAME/g" | sed "s/magic1/$JRELEASER_NEXUS2_PASSWORD/g" > "$OSSRH_FILE"
+          cat ./ossrh-settings.xml | sed "s/magic0/$JRELEASER_NEXUS2_USERNAME/g" | sed "s/magic1/$JRELEASER_NEXUS2_PASSWORD/g" > "$OSSRH_FILE"
           echo "remove passphrase file"
           rm -f "$PASSPHRASE_FILE"
           echo "create passphrase file"
