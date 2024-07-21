@@ -113,6 +113,7 @@
                         </executions>
                         <configuration>
                             <gpgArguments>
+                                <arg>--batch</arg>
                                 <arg>--pinentry-mode</arg>
                                 <arg>loopback</arg>
                                 <gpgArgument>--passphrase-file</gpgArgument>
