@@ -51,8 +51,12 @@ jobs:
           #git tag --annotate --message "Releasing version $VERSION" "$VERSION"
           #echo "git push"
           #git push --tags origin master
-          echo git branches
+          echo "git remotes"
+          git remote -v
+          echo "git branches"
           git branch -a
+          echo "git pull"
+          git pull
           echo git tags
           git tag -l
           echo "git log"
