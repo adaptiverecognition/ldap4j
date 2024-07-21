@@ -152,7 +152,7 @@
                         <configuration>
                             <autoReleaseAfterClose>true</autoReleaseAfterClose>
                             <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-                            <serverId>ossrh</serverId>
+                            <serverId>ossrha</serverId>
                         </configuration>
                     </plugin>
                 </plugins>
