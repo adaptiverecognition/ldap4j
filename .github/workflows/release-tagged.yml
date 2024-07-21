@@ -31,6 +31,8 @@ jobs:
           uname -a
           echo "lsb release"
           lsb_release -a
+          echo "git version"
+          git --version
           echo "get version/tag"
           VERSION=${{ github.event.inputs.version }}
           echo "git status"
@@ -49,8 +51,12 @@ jobs:
           #git tag --annotate --message "Releasing version $VERSION" "$VERSION"
           #echo "git push"
           #git push --tags origin master
+          echo git branches
+          git branch -a
           echo git tags
           git tag -l
+          echo "git log"
+          git log -n 10
           echo "git checkout tag"
           git checkout "$VERSION"
 
