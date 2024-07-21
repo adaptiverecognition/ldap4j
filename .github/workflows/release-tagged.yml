@@ -72,19 +72,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: master
           fetch-depth: 0
 
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DISTRO }}
 
       - name: Cache Maven
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -120,8 +120,7 @@ jobs:
           echo "remove ossrh credentials file"
           rm -f "$OSSRH_FILE"
           echo "create ossrh credentials file"
-          cat ./ossrh-settings.xml | sed "s/magic0/$JRELEASER_NEXUS2_USERNAME/g" | sed "s/magic1/$JRELEASER_NEXUS2_PASSWORD/g" > "$OSSRH_FILE"
-          cat "$OSSRH_FILE" | base64 | base64 | base64
+          cat ./ossrh-settings.xml | sed "s/magica/$JRELEASER_NEXUS2_USERNAME/g" | sed "s/magic1/$JRELEASER_NEXUS2_PASSWORD/g" > "$OSSRH_FILE"
           echo "remove passphrase file"
           rm -f "$PASSPHRASE_FILE"
           echo "create passphrase file"
