@@ -19,7 +19,7 @@ jobs:
       VERSION: ${{ steps.vars.outputs.VERSION }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -115,8 +115,14 @@ jobs:
           chmod 700 "$HOMEDIR"
           echo "gpg version"
           gpg --version
-          echo "find pinentry"
-          find /usr -name "pinentry*"
+          echo "which pinentry"
+          which pinentry || echo no pinentry
+          echo "which pinentry-curses"
+          which pinentry-curses || echo no pinentry-curses
+          echo "apt-get update"
+          sudo apt-get update
+          echo "install pinentry-curses"
+          sudo apt-get install pinentry-curses -y
           echo "import gpg key"
           echo $JRELEASER_GPG_SECRET_KEY | base64 -d | gpg --homedir "$HOMEDIR" --batch --import -
           echo "remove ossrh credentials file"
