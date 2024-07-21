@@ -133,6 +133,8 @@ jobs:
           rm -f "$PASSPHRASE_FILE"
           echo "create passphrase file"
           echo $JRELEASER_GPG_PASSPHRASE > "$PASSPHRASE_FILE"
+          echo "set MAVEN_GPG_PASSPHRASE"
+          export MAVEN_GPG_PASSPHRASE=$JRELEASER_GPG_PASSPHRASE
           echo "maven clean"
           mvn -B -s "$OSSRH_FILE" -Prelease clean
           echo "maven deploy"

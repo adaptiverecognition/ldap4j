@@ -111,15 +111,6 @@
                                 </goals>
                             </execution>
                         </executions>
-                        <configuration>
-                            <gpgArguments>
-                                <gpgArgument>--batch</gpgArgument>
-                                <gpgArgument>--pinentry-mode</gpgArgument>
-                                <gpgArgument>loopback</gpgArgument>
-                                <gpgArgument>--passphrase-file</gpgArgument>
-                                <gpgArgument>${env.HOME}/gpg.passphrase.secret</gpgArgument>
-                            </gpgArguments>
-                        </configuration>
                     </plugin>
 
                     <plugin>
