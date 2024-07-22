@@ -15,13 +15,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.apache.geronimo.javamail</groupId>
-            <artifactId>geronimo-javamail_1.6_mail</artifactId>
-            <version>1.0.1</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>com.adaptiverecognition</groupId>
             <artifactId>ldap4j-java</artifactId>
             <version>${revision}</version>
@@ -76,6 +69,13 @@
             <groupId>org.apache.directory.server</groupId>
             <artifactId>apacheds-test-framework</artifactId>
             <version>2.0.0.AM27</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.apache.geronimo.javamail</groupId>
+            <artifactId>geronimo-javamail_1.6_mail</artifactId>
+            <version>1.0.1</version>
             <scope>test</scope>
         </dependency>
 
