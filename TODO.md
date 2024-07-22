@@ -15,4 +15,3 @@
   - fast bind
   - ms domain controller
   - samba domain controller
-- versions for external issues to help track changes

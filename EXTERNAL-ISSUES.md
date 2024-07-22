@@ -27,6 +27,8 @@ These are not all bugs.
 `LdapNetworkConnection.connect()` blocks, and there's no async alternative.
 Various async operations call `LdapNetworkConnection.connect()` in the calling thread.
 
+Version 2.1.6.
+
 ### JNDI
 
 JNDI is blocking.
@@ -35,6 +37,8 @@ Host name verification for LDAPS connections can only be turned on and off using
 
 Trust and key managers for LDAPS connections can only be specified through a static method.
 
+Version 17.
+
 ### Ldaptive
 
 Bind blocks.
@@ -42,6 +46,8 @@ Bind blocks.
 Async search requires a blocking workaround.
 
 TLS handlers sometimes fail.
+
+Version 2.2.0.
 
 ### Unboundid LDAP SDK
 
@@ -62,6 +68,8 @@ Approx match works like an equality match, while officially it's not even suppor
 
 There's no fast bind.
 
+Version 2.0.0.AM27.
+
 ### MS Windows domain controller
 
 There's some integer parsing woes:
@@ -77,6 +85,8 @@ There's some integer parsing woes:
 - search time limit.
 
 There's no abandon (notice of disconnect), approx match, cancel (unwilling), nor fast bind.
+
+Version 6.0.11.
 
 ## Transports
 
@@ -95,7 +105,9 @@ Read issues:
 
 Sessions are closed on connection reset.
 
-Writes don't complete on session close.
+Pending writes won't complete on session close.
+
+Version 2.2.3.
 
 ### Java NIO
 
@@ -103,6 +115,8 @@ DNS lookups are blocking.
 
 There's no way to get back error codes from I/O exceptions, like "broken pipe", or "connection reset".
 As Apache MINA and Netty use the java NIO library the same issues apply.
+
+Version 17.
 
 ### MS Windows
 
@@ -126,3 +140,5 @@ Transports:
 - Epoll.
 
 Broken auto close combined with auto read means that the channel may get closed any time without warning.
+
+Version 4.1.106.Final.
