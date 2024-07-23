@@ -74,6 +74,8 @@ Currently, it supports the following libraries:
 
 Various dependencies are neatly packaged into submodules. Choose according to your need.
 
+***Please use version 1.0.0, or build version 1.1.0 for yourself, until we sort out some deployment issues!***
+
 ```xml
     <dependency>
         <groupId>com.adaptiverecognition</groupId>
