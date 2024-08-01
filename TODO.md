@@ -1,5 +1,6 @@
 # nice to have
 
+- apahce mina/netty codec
 - java docs / manual / guides
 - netty kqueue
 - speed
