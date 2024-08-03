@@ -41,7 +41,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <revision>1.1.0</revision>
+        <revision>1.1.1-SNAPSHOT</revision>
     </properties>
 
     <dependencyManagement>
@@ -158,6 +158,34 @@
                 </plugins>
             </build>
         </profile>
+
+        <profile>
+            <id>test</id>
+
+            <modules>
+                <module>ldap4j-java</module>
+                <module>ldap4j-mina</module>
+                <module>ldap4j-netty</module>
+                <module>ldap4j-reactor-netty</module>
+                <module>ldap4j-samples</module>
+                <module>ldap4j-slf4j-shim</module>
+                <module>ldap4j-tests</module>
+                <module>ldap4j-tests-slf4j</module>
+            </modules>
+            
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>3.2.2</version>
+                        <configuration>
+                            <skipTests>false</skipTests>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
     <build>
@@ -200,6 +228,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.2</version>
                 <configuration>
+                    <argLine>-Xshare:off</argLine>
                     <skipTests>true</skipTests>
                 </configuration>
             </plugin>

@@ -19,10 +19,11 @@
             <artifactId>ldap4j-java</artifactId>
             <version>${revision}</version>
         </dependency>
+        
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <version>4.1.106.Final</version>
+            <version>4.1.112.Final</version>
         </dependency>
     </dependencies>
 </project>
