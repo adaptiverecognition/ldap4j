@@ -2,6 +2,8 @@
 
 set -e
 
+rm -f server-bad.p12
+rm -f server-good.p12
 rm -fr tempkeys
 mkdir tempkeys
 cd tempkeys
@@ -24,4 +26,12 @@ rm "LdapTest.serverca.key.pem"
 
 chmod 644 *
 
+cp LdapTest.0.server.p12 ../ldap4j-tests/src/main/resources/hu/gds/ldap4j/ldap/server-good.p12
+cp LdapTest.0.server.cer.pem ../ldap4j-tests/src/main/resources/hu/gds/ldap4j/ldap/server-good.cer.pem
+cp LdapTest.1.server.p12 ../ldap4j-tests/src/main/resources/hu/gds/ldap4j/ldap/server-bad.p12
+cp LdapTest.1.server.cer.pem ../ldap4j-tests/src/main/resources/hu/gds/ldap4j/ldap/server-bad.cer.pem
+cp LdapTest.serverca.cer.pem ../ldap4j-tests/src/main/resources/hu/gds/ldap4j/ldap/serverca.pem
+
 cd ..
+
+rm -fr tempkeys
