@@ -29,6 +29,6 @@ Create test keys and certificates.
 
 Run the tests.
 ```console
-    mvn -Ptest test -pl ldap4j-tests-slf4j 
-    mvn -Ptest test -pl ldap4j-tests 
+    mvn -Pdevelopment,test test -pl ldap4j-tests-slf4j 
+    mvn -Pdevelopment,test test -pl ldap4j-tests 
 ```
