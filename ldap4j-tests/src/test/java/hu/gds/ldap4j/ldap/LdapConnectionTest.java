@@ -22,6 +22,7 @@ import org.apache.commons.lang3.stream.Streams;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -101,7 +102,7 @@ public class LdapConnectionTest {
                                                     new AddRequest(
                                                             List.of(
                                                                     new PartialAttribute(
-                                                                            "objectclass",
+                                                                            "objectClass",
                                                                             List.of("top", "groupOfNames")),
                                                                     new PartialAttribute(
                                                                             "cn",
@@ -1145,6 +1146,28 @@ public class LdapConnectionTest {
                                     group),
                             results.get(ii));
                 }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
+    public void testTlsSession(LdapTestParameters testParameters) throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
+             LdapServer ldapServer=new LdapServer(
+                     false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
+            ldapServer.start();
+            for (Pair<String, String> bind: LdapServer.allBinds()) {
+                context.<Void>get(
+                        Closeable.withCloseable(
+                                ()->context.parameters().connectionFactory(context, ldapServer, bind),
+                                (connection)->connection.tlsSession()
+                                        .compose((tlsSession)->{
+                                            assertEquals(
+                                                    LdapTestParameters.Tls.CLEAR_TEXT.equals(testParameters.tls),
+                                                    null==tlsSession);
+                                            return Lava.VOID;
+                                        })));
             }
         }
     }

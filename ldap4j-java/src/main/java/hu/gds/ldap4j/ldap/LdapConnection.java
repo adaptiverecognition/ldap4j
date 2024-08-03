@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
+import javax.net.ssl.SSLSession;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -264,6 +265,11 @@ public class LdapConnection implements Connection {
             return writeRequestReadResponseChecked(ExtendedRequest.START_TLS.controlsEmpty())
                     .composeIgnoreResult(()->connection().startTls(tls));
         });
+    }
+
+    public @NotNull Lava<@Nullable SSLSession> tlsSession() {
+        return Lava.supplier(()->connection()
+                .tlsSession());
     }
 
     /**

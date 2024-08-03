@@ -25,7 +25,9 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import javax.net.ssl.SSLSession;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 public class ReactorLdapConnection {
@@ -70,6 +72,10 @@ public class ReactorLdapConnection {
 
     public @NotNull Mono<Void> startTls(@NotNull TlsSettings.Tls tls) {
         return lavaToMono(connection.startTls(tls));
+    }
+
+    public @NotNull Mono<@Nullable SSLSession> tlsSession() {
+        return lavaToMono(connection.tlsSession());
     }
 
     public static <T> @NotNull Mono<T> withConnection(

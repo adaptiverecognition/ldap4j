@@ -1,3 +1,6 @@
+Version 1.1.1-SNAPSHOT:
+- return TLS session
+
 Version 1.1.0:
 - add LDAP operations
   - abandon

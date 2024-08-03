@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
+import javax.net.ssl.SSLSession;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -118,6 +119,10 @@ public class FutureLdapConnection {
 
     public @NotNull CompletableFuture<Void> startTls(TlsSettings.@NotNull Tls tls) {
         return startLava(connection.startTls(tls));
+    }
+
+    public @NotNull CompletableFuture<@Nullable SSLSession> tlsSession() {
+        return startLava(connection.tlsSession());
     }
 
     public <M extends Message<M>> @NotNull CompletableFuture<@NotNull Integer> writeMessage(

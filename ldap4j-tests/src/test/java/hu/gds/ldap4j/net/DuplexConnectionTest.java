@@ -30,6 +30,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -392,13 +393,13 @@ public class DuplexConnectionTest {
                                 endNanosSoft,
                                 new Supplier<Lava<Void>>() {
                                     @Override
-                                    public Lava<Void> get() throws Throwable {
+                                    public @NotNull Lava<Void> get() throws Throwable {
                                         return loop(
                                                 connection, endNanosHard, endNanosSoft, true, ByteBuffer.EMPTY);
                                     }
 
-                                    private Lava<Void> loop(
-                                            DuplexConnection connection, long endNanosHard, long endNanosSoft,
+                                    private @NotNull Lava<Void> loop(
+                                            @NotNull DuplexConnection connection, long endNanosHard, long endNanosSoft,
                                             boolean first, ByteBuffer readResult) throws Throwable {
                                         long nowNanos=context.contextHolder().clock().nowNanos();
                                         if (null==readResult) {
@@ -458,13 +459,13 @@ public class DuplexConnectionTest {
                             Map.of()),
                     new Function<DuplexConnection, Lava<Void>>() {
                         @Override
-                        public Lava<Void> apply(DuplexConnection connection) {
+                        public @NotNull Lava<Void> apply(@NotNull DuplexConnection connection) {
                             return loop(connection, 0L, 1L, 55L, 10L, new ReadBuffer());
                         }
 
-                        private Lava<Void> loop(
-                                DuplexConnection connection, long aa, long bb, long ee, long nn,
-                                ReadBuffer readBuffer) {
+                        private @NotNull Lava<Void> loop(
+                                @NotNull DuplexConnection connection, long aa, long bb, long ee, long nn,
+                                @NotNull ReadBuffer readBuffer) {
                             context.assertSize(0);
                             if (0L>=nn) {
                                 assertEquals(aa, ee);
@@ -577,6 +578,46 @@ public class DuplexConnectionTest {
                                                                 ProxyConnection.Mode.DROP_WRITE))),
                                                 (connection)->Lava.fail(new IllegalStateException()))),
                                 TimeoutException.class);
+                    }));
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("hu.gds.ldap4j.net.NetworkTestParameters#streamNetwork")
+    public void testTlsSession(NetworkTestParameters parameters) throws Throwable {
+        try (TestContext<NetworkTestParameters> context=TestContext.create(parameters);
+             NetworkServer<Void, Void> testServer=new NetworkServer<>(
+                     context,
+                     (context2, input, output, socket, state)->{
+                         output.write(-1);
+                         output.flush();
+                     })) {
+            testServer.start();
+            context.get(Closeable.withCloseable(
+                    ()->context.parameters().connectionFactory(
+                            context,
+                            testServer.localAddress(),
+                            Map.of()),
+                    new Function<DuplexConnection, Lava<Void>>() {
+                        @Override
+                        public @NotNull Lava<Void> apply(@NotNull DuplexConnection connection) {
+                            TlsConnection tlsConnection=(connection instanceof TlsConnection connection2)
+                                    ?connection2
+                                    :null;
+                            return readFully(connection, ByteBuffer.EMPTY, 1)
+                                    .compose((readResult)->{
+                                        assertArrayEquals(new byte[]{-1}, readResult.arrayCopy());
+                                        return (null==tlsConnection)
+                                                ?(Lava.complete(null))
+                                                :(tlsConnection.tlsSession())
+                                                .compose((tlsSession)->{
+                                                    assertEquals(
+                                                            NetworkTestParameters.Tls.USE_TLS.equals(parameters.tls),
+                                                            null!=tlsSession);
+                                                    return Lava.VOID;
+                                                });
+                                    });
+                        }
                     }));
         }
     }

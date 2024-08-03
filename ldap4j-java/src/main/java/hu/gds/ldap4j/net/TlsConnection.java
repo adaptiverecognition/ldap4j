@@ -12,6 +12,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeoutException;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
+import javax.net.ssl.SSLSession;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,7 +33,7 @@ public class TlsConnection implements DuplexConnection {
         }
 
         @Override
-        @NotNull Lava<@NotNull Boolean> isOpenAndNotFailedLocked() {
+        @NotNull Lava<@Nullable Boolean> isOpenAndNotFailedLocked() {
             return Lava.complete(false);
         }
 
@@ -73,6 +74,11 @@ public class TlsConnection implements DuplexConnection {
 
         @Override
         @NotNull Lava<@NotNull Boolean> supportsShutDownOutputResultLocked(boolean supportsShutdownOutput) {
+            throw new ClosedException();
+        }
+
+        @Override
+        @NotNull Lava<@NotNull SSLSession> tlsSession() {
             throw new ClosedException();
         }
 
@@ -146,6 +152,11 @@ public class TlsConnection implements DuplexConnection {
 
         @Override
         @NotNull Lava<@NotNull Boolean> supportsShutDownOutputResultLocked(boolean supportsShutdownOutput) {
+            throw new RuntimeException("connection already failed", throwable);
+        }
+
+        @Override
+        @NotNull Lava<@Nullable SSLSession> tlsSession() {
             throw new RuntimeException("connection already failed", throwable);
         }
 
@@ -273,9 +284,9 @@ public class TlsConnection implements DuplexConnection {
             }
             SSLEngine sslEngine=tlsSettings.createSSLEngine(remoteAddress);
             sslEngine.beginHandshake();
-            TlsInitialHandshake tlsInitialHandshake=new TlsInitialHandshake(sslEngine);
-            state=tlsInitialHandshake;
-            return tlsInitialHandshake.handshakeLoopLocked();
+            TlsHandshake tlsHandshake=new TlsHandshake(sslEngine);
+            state=tlsHandshake;
+            return tlsHandshake.handshakeLoopLocked();
         }
 
         @Override
@@ -293,6 +304,11 @@ public class TlsConnection implements DuplexConnection {
         @NotNull Lava<@NotNull Boolean> supportsShutDownOutputResultLocked(boolean supportsShutdownOutput) {
             gettingSupportsShutdownOutput=false;
             return Lava.complete(supportsShutdownOutput);
+        }
+
+        @Override
+        @NotNull Lava<@Nullable SSLSession> tlsSession() {
+            return Lava.complete(null);
         }
 
         @Override
@@ -341,6 +357,8 @@ public class TlsConnection implements DuplexConnection {
         abstract @NotNull Lava<@NotNull Boolean> supportsShutDownOutputLocked();
 
         abstract @NotNull Lava<@NotNull Boolean> supportsShutDownOutputResultLocked(boolean supportsShutdownOutput);
+
+        abstract @NotNull Lava<@Nullable SSLSession> tlsSession();
 
         abstract @NotNull Lava<Void> writeLocked(@NotNull ByteBuffer value);
 
@@ -550,6 +568,11 @@ public class TlsConnection implements DuplexConnection {
         }
 
         @Override
+        @NotNull Lava<@Nullable SSLSession> tlsSession() {
+            return Lava.supplier(()->Lava.complete(sslEngine.getSession()));
+        }
+
+        @Override
         @NotNull Lava<Void> writeLocked(@NotNull ByteBuffer value) {
             if (outputShutDown) {
                 throw new RuntimeException("output already shut down");
@@ -569,10 +592,10 @@ public class TlsConnection implements DuplexConnection {
         }
     }
 
-    private class TlsInitialHandshake extends Tls {
+    private class TlsHandshake extends Tls {
         private boolean task;
 
-        public TlsInitialHandshake(@NotNull SSLEngine sslEngine) {
+        public TlsHandshake(@NotNull SSLEngine sslEngine) {
             super(false, ByteBuffer.EMPTY, sslEngine);
         }
 
@@ -648,6 +671,11 @@ public class TlsConnection implements DuplexConnection {
         @Override
         @NotNull Lava<@NotNull Boolean> supportsShutDownOutputLocked() {
             throw new RuntimeException("tls handshaking");
+        }
+
+        @Override
+        @NotNull Lava<@Nullable SSLSession> tlsSession() {
+            return Lava.complete(sslEngine.getHandshakeSession());
         }
 
         @Override
@@ -733,6 +761,10 @@ public class TlsConnection implements DuplexConnection {
     @Override
     public @NotNull Lava<@NotNull Boolean> supportsShutDownOutput() {
         return getGuardedLock(()->state.supportsShutDownOutputLocked());
+    }
+
+    public @NotNull Lava<@Nullable SSLSession> tlsSession() {
+        return getGuardedLock(()->state.tlsSession());
     }
 
     @Override

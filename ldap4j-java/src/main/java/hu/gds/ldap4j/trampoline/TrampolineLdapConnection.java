@@ -23,6 +23,7 @@ import java.nio.channels.AsynchronousChannelGroup;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import javax.net.ssl.SSLSession;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -128,6 +129,11 @@ public record TrampolineLdapConnection(
     public void startTls(long endNanos, @NotNull TlsSettings.Tls tls) throws Throwable {
         trampoline.contextEndNanos(endNanos)
                 .get(true, true, connection.startTls(tls));
+    }
+
+    public @Nullable SSLSession tlsSession(long endNanos) throws Throwable {
+        return trampoline.contextEndNanos(endNanos)
+                .get(true, true, connection.tlsSession());
     }
 
     public <M extends Message<M>> int writeMessage(
