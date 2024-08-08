@@ -1158,9 +1158,8 @@ public class LdapConnectionTest {
         }
     }
 
-    @ParameterizedTest
-    @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdapTls")
-    public void testTlsRenegotiation(LdapTestParameters testParameters) throws Throwable {
+    private void testTlsRenegotiation(
+            boolean explicitTlsRenegotiation, LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters)) {
             class Server {
                 private final @NotNull LdapConnection ldapConnection;
@@ -1267,21 +1266,29 @@ public class LdapConnectionTest {
 
                 private @NotNull Lava<Void> client(@NotNull LdapConnection connection) {
                     return connection.writeMessage(ExtendedRequest.cancel(13).controlsEmpty())
-                            .compose((messageId)->Lava.catchErrors(
+                            .compose((messageId)->{
+                                @NotNull Lava<Void> tryRead;
+                                if (explicitTlsRenegotiation) {
+                                    tryRead=Lava.catchErrors(
                                             (throwable)->connection.restartTlsHandshake(),
                                             ()->connection.readMessageChecked(
                                                             messageId,
                                                             ExtendedResponse.READER_SUCCESS)
                                                     .composeIgnoreResult(()->Lava.fail(new RuntimeException(
                                                             "should have failed"))),
-                                            TlsHandshakeRestartNeededException.class)
-                                    .composeIgnoreResult(()->connection.readMessageChecked(
-                                                    messageId,
-                                                    ExtendedResponse.READER_SUCCESS)
-                                            .compose((response)->{
-                                                assertEquals(Ldap.FAST_BIND_OID, response.message().responseName());
-                                                return Lava.VOID;
-                                            })));
+                                            TlsHandshakeRestartNeededException.class);
+                                }
+                                else {
+                                    tryRead=Lava.VOID;
+                                }
+                                return tryRead.composeIgnoreResult(()->connection.readMessageChecked(
+                                                messageId,
+                                                ExtendedResponse.READER_SUCCESS)
+                                        .compose((response)->{
+                                            assertEquals(Ldap.FAST_BIND_OID, response.message().responseName());
+                                            return Lava.VOID;
+                                        }));
+                            });
                 }
 
                 private @NotNull Lava<Void> connect() {
@@ -1289,6 +1296,7 @@ public class LdapConnectionTest {
                             .compose((localAddress)->Closeable.withCloseable(
                                     ()->context.parameters().connectionFactory(
                                             context,
+                                            explicitTlsRenegotiation,
                                             ()->localAddress,
                                             ()->localAddress,
                                             null),
@@ -1309,6 +1317,18 @@ public class LdapConnectionTest {
                     (server)->new TlsRenegotiationTest(server)
                             .test()));
         }
+    }
+
+    @ParameterizedTest
+    @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdapTls")
+    public void testTlsRenegotiationExplicit(LdapTestParameters testParameters) throws Throwable {
+        testTlsRenegotiation(true, testParameters);
+    }
+
+    @ParameterizedTest
+    @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdapTls")
+    public void testTlsRenegotiationImplicit(LdapTestParameters testParameters) throws Throwable {
+        testTlsRenegotiation(false, testParameters);
     }
 
     @ParameterizedTest

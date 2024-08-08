@@ -585,9 +585,8 @@ public class DuplexConnectionTest {
         }
     }
 
-    @ParameterizedTest
-    @MethodSource("hu.gds.ldap4j.net.NetworkTestParameters#streamNetworkUseTls")
-    public void testTlsRenegotiation(NetworkTestParameters parameters) throws Throwable {
+    private void testTlsRenegotiation(
+            boolean explicitTlsRenegotiation, NetworkTestParameters parameters) throws Throwable {
         try (TestContext<NetworkTestParameters> context=TestContext.create(parameters)) {
             class TlsRenegotiationTest {
                 private final @NotNull JavaAsyncChannelConnection.Server server;
@@ -604,12 +603,19 @@ public class DuplexConnectionTest {
 
                 public @NotNull Lava<Void> client(@NotNull TlsConnection connection) {
                     return connection.write(ByteBuffer.create((byte)1))
-                            .composeIgnoreResult(()->Lava.catchErrors(
-                                    (throwable)->connection.restartTlsHandshake(),
-                                    ()->connection.readNonEmpty()
-                                            .composeIgnoreResult(()->Lava.fail(
-                                                    new RuntimeException("should have failed"))),
-                                    TlsHandshakeRestartNeededException.class))
+                            .composeIgnoreResult(()->{
+                                if (explicitTlsRenegotiation) {
+                                    return Lava.catchErrors(
+                                            (throwable)->connection.restartTlsHandshake(),
+                                            ()->connection.readNonEmpty()
+                                                    .composeIgnoreResult(()->Lava.fail(
+                                                            new RuntimeException("should have failed"))),
+                                            TlsHandshakeRestartNeededException.class);
+                                }
+                                else {
+                                    return Lava.VOID;
+                                }
+                            })
                             .composeIgnoreResult(connection::readNonEmpty)
                             .compose((readResult)->{
                                 assertNotNull(readResult);
@@ -621,7 +627,11 @@ public class DuplexConnectionTest {
                 private @NotNull Lava<Void> connect() {
                     return server.localAddress()
                             .compose((localAddress)->Closeable.withCloseable(
-                                    ()->context.parameters().connectionFactory(context, localAddress, Map.of()),
+                                    ()->context.parameters().connectionFactory(
+                                            context,
+                                            explicitTlsRenegotiation,
+                                            localAddress,
+                                            Map.of()),
                                     (connection)->client((TlsConnection)connection)));
                 }
 
@@ -657,6 +667,18 @@ public class DuplexConnectionTest {
                     (server)->new TlsRenegotiationTest(server)
                             .test()));
         }
+    }
+
+    @ParameterizedTest
+    @MethodSource("hu.gds.ldap4j.net.NetworkTestParameters#streamNetworkUseTls")
+    public void testTlsRenegotiationExplicit(NetworkTestParameters parameters) throws Throwable {
+        testTlsRenegotiation(true, parameters);
+    }
+
+    @ParameterizedTest
+    @MethodSource("hu.gds.ldap4j.net.NetworkTestParameters#streamNetworkUseTls")
+    public void testTlsRenegotiationImplicit(NetworkTestParameters parameters) throws Throwable {
+        testTlsRenegotiation(false, parameters);
     }
 
     @ParameterizedTest

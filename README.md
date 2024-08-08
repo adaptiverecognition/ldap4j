@@ -541,9 +541,15 @@ and `LdapConnection.restartTlsHandshake(@NotNull Consumer<@NotNull SSLEngine> co
 A renegotiation cannot be run parallel with any read nor write,
 as it will produce output, and may consume some input.
 
-After receiving a renegotiation request the read receiving it, and any subsequent read and write, will
-throw a `TlsHandshakeRestartNeededException`.
-The renegotiation can be completed by calling one of the `LdapConnection.restartTlsHandshake()` methods.
+The reception of renegotiation requests can be controlled by the creation time parameter `explicitTlsRenegotiation`.
+
+With implicit tls renegotiation a renegotiation request will trigger a handshake,
+but no further action is needed. Subsequent reads and writes will complete the handshake.
+
+With explicit tls renegotiation a renegotiation request will trigger a handshake,
+and the read that received it will throw a `TlsHandshakeRestartNeededException`.
+The handshake can be completed by calling one of the `LdapConnection.restartTlsHandshake()` methods.
+Until the handshake completes all reads and writes will throw `TlsHandshakeRestartNeededException`.
 
 As a consequence, anyone wishing to support TLS renegotiations must implement its own logic to
 correctly sequence reads, writes, renegotiations, and to retry reads after a renegotiation.

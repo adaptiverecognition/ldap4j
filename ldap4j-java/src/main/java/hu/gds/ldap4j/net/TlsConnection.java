@@ -523,9 +523,11 @@ public class TlsConnection implements DuplexConnection {
         }
 
         private void checkHandshakeLocked() {
-            switch (sslEngine.getHandshakeStatus()) {
-                case NEED_TASK, NEED_UNWRAP, NEED_UNWRAP_AGAIN, NEED_WRAP ->
-                        throw new TlsHandshakeRestartNeededException();
+            if (explicitTlsRenegotiation) {
+                switch (sslEngine.getHandshakeStatus()) {
+                    case NEED_TASK, NEED_UNWRAP, NEED_UNWRAP_AGAIN, NEED_WRAP ->
+                            throw new TlsHandshakeRestartNeededException();
+                }
             }
         }
 
@@ -749,12 +751,20 @@ public class TlsConnection implements DuplexConnection {
         }
     }
 
+    public static final boolean DEFAULT_EXPLICIT_TLS_RENEGOTIATION=false;
+
     private final @NotNull DuplexConnection connection;
+    private final boolean explicitTlsRenegotiation;
     private final Lock lock=new Lock();
     private @NotNull State state=new Plaintext();
 
     public TlsConnection(@NotNull DuplexConnection connection) {
+        this(connection, DEFAULT_EXPLICIT_TLS_RENEGOTIATION);
+    }
+
+    public TlsConnection(@NotNull DuplexConnection connection, boolean explicitTlsRenegotiation) {
         this.connection=Objects.requireNonNull(connection, "connection");
+        this.explicitTlsRenegotiation=explicitTlsRenegotiation;
     }
 
     @Override
@@ -769,14 +779,20 @@ public class TlsConnection implements DuplexConnection {
     }
 
     public static @NotNull Function<@NotNull InetSocketAddress, @NotNull Lava<@NotNull TlsConnection>> factory(
+            boolean explicitTlsRenegotiation,
             @NotNull Function<@NotNull InetSocketAddress, @NotNull Lava<@NotNull DuplexConnection>> factory) {
         Objects.requireNonNull(factory, "factory");
         return (remoteAddress)->{
             Objects.requireNonNull(remoteAddress, "remoteAddress");
             return Closeable.wrapOrClose(
                     ()->factory.apply(remoteAddress),
-                    (connection)->Lava.complete(new TlsConnection(connection)));
+                    (connection)->Lava.complete(new TlsConnection(connection, explicitTlsRenegotiation)));
         };
+    }
+
+    public static @NotNull Function<@NotNull InetSocketAddress, @NotNull Lava<@NotNull TlsConnection>> factory(
+            @NotNull Function<@NotNull InetSocketAddress, @NotNull Lava<@NotNull DuplexConnection>> factory) {
+        return factory(DEFAULT_EXPLICIT_TLS_RENEGOTIATION, factory);
     }
 
     private <T> @NotNull Lava<T> getGuardedLock(@NotNull Supplier<@NotNull Lava<T>> supplier) {

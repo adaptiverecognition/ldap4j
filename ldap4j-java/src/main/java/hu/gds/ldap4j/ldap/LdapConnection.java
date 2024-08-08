@@ -100,10 +100,12 @@ public class LdapConnection implements Connection {
     }
 
     public static @NotNull Lava<@NotNull LdapConnection> factory(
+            boolean explicitTlsRenegotiation,
             @NotNull Function<@NotNull InetSocketAddress, @NotNull Lava<@NotNull DuplexConnection>> factory,
             @NotNull InetSocketAddress remoteAddress,
             @NotNull TlsSettings tlsSettings) {
         return factory(
+                explicitTlsRenegotiation,
                 factory,
                 MessageIdGenerator.smallValues(),
                 remoteAddress,
@@ -111,6 +113,7 @@ public class LdapConnection implements Connection {
     }
 
     public static @NotNull Lava<@NotNull LdapConnection> factory(
+            boolean explicitTlsRenegotiation,
             @NotNull Function<@NotNull InetSocketAddress, @NotNull Lava<@NotNull DuplexConnection>> factory,
             @NotNull MessageIdGenerator messageIdGenerator,
             @NotNull InetSocketAddress remoteAddress,
@@ -119,7 +122,7 @@ public class LdapConnection implements Connection {
         Objects.requireNonNull(messageIdGenerator, "messageIdGenerator");
         Objects.requireNonNull(tlsSettings, "tlsSettings");
         return Closeable.wrapOrClose(
-                ()->TlsConnection.factory(factory).apply(remoteAddress),
+                ()->TlsConnection.factory(explicitTlsRenegotiation, factory).apply(remoteAddress),
                 (connection)->{
                     if (tlsSettings.isTls()) {
                         if (tlsSettings.isStarttls()) {
@@ -138,6 +141,17 @@ public class LdapConnection implements Connection {
                         return Lava.complete(new LdapConnection(connection, false, messageIdGenerator));
                     }
                 });
+    }
+
+    public static @NotNull Lava<@NotNull LdapConnection> factory(
+            @NotNull Function<@NotNull InetSocketAddress, @NotNull Lava<@NotNull DuplexConnection>> factory,
+            @NotNull InetSocketAddress remoteAddress,
+            @NotNull TlsSettings tlsSettings) {
+        return factory(
+                TlsConnection.DEFAULT_EXPLICIT_TLS_RENEGOTIATION,
+                factory,
+                remoteAddress,
+                tlsSettings);
     }
 
     @Override

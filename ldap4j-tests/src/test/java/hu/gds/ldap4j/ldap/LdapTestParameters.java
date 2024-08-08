@@ -11,6 +11,7 @@ import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.ContextHolder;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.net.NetworkConnectionFactory;
+import hu.gds.ldap4j.net.TlsConnection;
 import hu.gds.ldap4j.net.TlsSettings;
 import java.net.InetSocketAddress;
 import java.util.Map;
@@ -57,11 +58,13 @@ public class LdapTestParameters extends TestParameters {
 
     public @NotNull Lava<@NotNull LdapConnection> connectionFactory(
             @NotNull TestContext<LdapTestParameters> context,
+            boolean explicitTlsRenegotiation,
             @NotNull LdapServer ldapServer,
             @Nullable Pair<@NotNull String, @NotNull String> simpleBind)
             throws Throwable {
         return connectionFactory(
                 context,
+                explicitTlsRenegotiation,
                 ldapServer::localAddressClearText,
                 ldapServer::localAddressTls,
                 simpleBind);
@@ -69,6 +72,7 @@ public class LdapTestParameters extends TestParameters {
 
     public @NotNull Lava<@NotNull LdapConnection> connectionFactory(
             @NotNull TestContext<LdapTestParameters> context,
+            boolean explicitTlsRenegotiation,
             @NotNull Supplier<@NotNull InetSocketAddress> remoteClearTextAddress,
             @NotNull Supplier<@NotNull InetSocketAddress> remoteTlsAddress,
             @Nullable Pair<@NotNull String, @NotNull String> simpleBind)
@@ -91,6 +95,7 @@ public class LdapTestParameters extends TestParameters {
             default -> throw new IllegalStateException("unknown tls value %s".formatted(tls));
         }
         @NotNull Lava<@NotNull LdapConnection> connectionFactory0=LdapConnection.factory(
+                explicitTlsRenegotiation,
                 context.networkConnectionFactory().factory(
                         context.blockingIoContextHolder().context(),
                         Map.of()),
@@ -111,6 +116,18 @@ public class LdapTestParameters extends TestParameters {
                             .composeIgnoreResult(()->Lava.complete(connection)));
         }
         return connectionFactory1;
+    }
+
+    public @NotNull Lava<@NotNull LdapConnection> connectionFactory(
+            @NotNull TestContext<LdapTestParameters> context,
+            @NotNull LdapServer ldapServer,
+            @Nullable Pair<@NotNull String, @NotNull String> simpleBind)
+            throws Throwable {
+        return connectionFactory(
+                context,
+                TlsConnection.DEFAULT_EXPLICIT_TLS_RENEGOTIATION,
+                ldapServer,
+                simpleBind);
     }
 
     public static @NotNull Stream<@NotNull LdapTestParameters> streamLdap() {
