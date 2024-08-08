@@ -7,6 +7,12 @@ import hu.gds.ldap4j.TestContext;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.net.ByteBuffer;
+import hu.gds.ldap4j.net.DuplexConnection;
+import hu.gds.ldap4j.net.JavaAsyncChannelConnection;
+import hu.gds.ldap4j.net.TlsConnection;
+import hu.gds.ldap4j.net.TlsHandshakeRestartNeededException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,6 +22,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.stream.Streams;
@@ -27,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -726,7 +734,7 @@ public class LdapConnectionTest {
                                                 if (readers.isEmpty()) {
                                                     return Lava.VOID;
                                                 }
-                                                return connection.readMessageCheckedParallel(readers)
+                                                return connection.readMessageCheckedParallel(readers::get)
                                                         .compose((searchResult)->{
                                                             int index=searchResult.messageId()-1;
                                                             ++counts[index];
@@ -1147,6 +1155,159 @@ public class LdapConnectionTest {
                             results.get(ii));
                 }
             }
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdapTls")
+    public void testTlsRenegotiation(LdapTestParameters testParameters) throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(testParameters)) {
+            class Server {
+                private final @NotNull LdapConnection ldapConnection;
+                private final @NotNull TlsConnection tlsConnection;
+
+                public Server(@NotNull DuplexConnection connection) {
+                    tlsConnection=new TlsConnection(connection);
+                    ldapConnection=new LdapConnection(
+                            tlsConnection,
+                            LdapTestParameters.Tls.TLS.equals(context.parameters().tls),
+                            MessageIdGenerator.smallValues());
+                }
+
+                private @NotNull Lava<Void> readStartTls() {
+                    return Lava.supplier(()->switch (context.parameters().tls) {
+                        case CLEAR_TEXT -> throw new IllegalStateException();
+                        case START_TLS -> ldapConnection.readMessageCheckedParallel(
+                                        (messageId)->{
+                                            if (0>=messageId) {
+                                                return null;
+                                            }
+                                            return new ExtendedRequest.Reader(
+                                                    MessageReader.fail(()->{
+                                                        throw new UnsupportedOperationException();
+                                                    }))
+                                                    .parallel(Function::identity);
+                                        })
+                                .compose((request)->{
+                                    assertTrue(request.controls().isEmpty());
+                                    assertEquals(
+                                            Ldap.EXTENDED_REQUEST_START_TLS_OID,
+                                            request.message().requestName());
+                                    assertNull(request.message().requestValue());
+                                    return ldapConnection.writeMessage(
+                                            new ExtendedResponse(
+                                                    new LdapResult(
+                                                            "",
+                                                            "",
+                                                            List.of(),
+                                                            LdapResultCode.SUCCESS.code,
+                                                            LdapResultCode.SUCCESS),
+                                                    null,
+                                                    null)
+                                                    .controlsEmpty(),
+                                            MessageIdGenerator.constant(request.messageId()));
+                                })
+                                .composeIgnoreResult(()->Lava.VOID);
+                        case TLS -> Lava.VOID;
+                    });
+                }
+
+                public @NotNull Lava<Void> run() {
+                    return readStartTls()
+                            .composeIgnoreResult(()->tlsConnection.startTlsHandshake(LdapServer.serverTls(false)))
+                            .composeIgnoreResult(()->ldapConnection.readMessageCheckedParallel((messageId)->{
+                                if (0>=messageId) {
+                                    return null;
+                                }
+                                return new ExtendedRequest.Reader(
+                                        MessageReader.fail(()->{
+                                            throw new UnsupportedOperationException();
+                                        }))
+                                        .parallel(Function::identity);
+                            }))
+                            .compose((request)->{
+                                assertEquals(Ldap.EXTENDED_REQUEST_CANCEL_OP_OID, request.message().requestName());
+                                return ldapConnection.restartTlsHandshake()
+                                        .composeIgnoreResult(()->ldapConnection.writeMessage(
+                                                new ExtendedResponse(
+                                                        new LdapResult(
+                                                                "",
+                                                                "",
+                                                                List.of(),
+                                                                LdapResultCode.SUCCESS.code,
+                                                                LdapResultCode.SUCCESS),
+                                                        Ldap.FAST_BIND_OID,
+                                                        null)
+                                                        .controlsEmpty(),
+                                                MessageIdGenerator.constant(request.messageId())));
+                            })
+                            .composeIgnoreResult(()->ldapConnection.readMessageCheckedParallel(
+                                    (messageId)->{
+                                        if (0>=messageId) {
+                                            return null;
+                                        }
+                                        return UnbindRequest.READER.parallel(Function::identity);
+                                    }))
+                            .composeIgnoreResult(tlsConnection::close);
+                }
+            }
+            class TlsRenegotiationTest {
+                private final @NotNull JavaAsyncChannelConnection.Server server;
+
+                public TlsRenegotiationTest(@NotNull JavaAsyncChannelConnection.Server server) {
+                    this.server=Objects.requireNonNull(server, "server");
+                }
+
+                private @NotNull Lava<Void> accept() {
+                    return Closeable.withCloseable(
+                            server::acceptNotNull,
+                            (connection)->new Server(connection)
+                                    .run());
+                }
+
+                private @NotNull Lava<Void> client(@NotNull LdapConnection connection) {
+                    return connection.writeMessage(ExtendedRequest.cancel(13).controlsEmpty())
+                            .compose((messageId)->Lava.catchErrors(
+                                            (throwable)->connection.restartTlsHandshake(),
+                                            ()->connection.readMessageChecked(
+                                                            messageId,
+                                                            ExtendedResponse.READER_SUCCESS)
+                                                    .composeIgnoreResult(()->Lava.fail(new RuntimeException(
+                                                            "should have failed"))),
+                                            TlsHandshakeRestartNeededException.class)
+                                    .composeIgnoreResult(()->connection.readMessageChecked(
+                                                    messageId,
+                                                    ExtendedResponse.READER_SUCCESS)
+                                            .compose((response)->{
+                                                assertEquals(Ldap.FAST_BIND_OID, response.message().responseName());
+                                                return Lava.VOID;
+                                            })));
+                }
+
+                private @NotNull Lava<Void> connect() {
+                    return server.localAddress()
+                            .compose((localAddress)->Closeable.withCloseable(
+                                    ()->context.parameters().connectionFactory(
+                                            context,
+                                            ()->localAddress,
+                                            ()->localAddress,
+                                            null),
+                                    this::client));
+                }
+
+                public @NotNull Lava<Void> test() {
+                    return Lava.forkJoin(this::accept, this::connect)
+                            .composeIgnoreResult(()->Lava.VOID);
+                }
+            }
+            context.get(Closeable.withCloseable(
+                    ()->JavaAsyncChannelConnection.Server.factory(
+                            null,
+                            1,
+                            new InetSocketAddress(InetAddress.getLoopbackAddress(), 0),
+                            Map.of()),
+                    (server)->new TlsRenegotiationTest(server)
+                            .test()));
         }
     }
 

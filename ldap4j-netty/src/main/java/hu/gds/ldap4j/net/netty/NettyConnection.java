@@ -241,8 +241,18 @@ public class NettyConnection implements DuplexConnection {
     }
 
     @Override
+    public @NotNull Lava<@NotNull InetSocketAddress> localAddress() {
+        return Lava.supplier(()->Lava.complete((InetSocketAddress)channel.localAddress()));
+    }
+
+    @Override
     public @NotNull Lava<@Nullable ByteBuffer> read() {
-        return read.read((context)->channel.read());
+        return read.work((context, work)->channel.read());
+    }
+
+    @Override
+    public @NotNull Lava<@NotNull InetSocketAddress> remoteAddress() {
+        return Lava.supplier(()->Lava.complete((InetSocketAddress)channel.remoteAddress()));
     }
 
     @Override
@@ -256,14 +266,14 @@ public class NettyConnection implements DuplexConnection {
     @Override
     public @NotNull Lava<Void> write(@NotNull ByteBuffer value) {
         return Write.writeStatic(
-                (context)->(write)->{
+                (context, work)->{
                     ByteBuf byteBuf=Unpooled.buffer(value.size());
                     value.write(byteBuf::writeBytes);
                     channel.writeAndFlush(byteBuf)
                             .addListener(new ErrorListener(log) {
                                 @Override
                                 protected void completed() {
-                                    write.completed();
+                                    work.completed(null);
                                 }
 
                                 @Override
@@ -273,7 +283,7 @@ public class NettyConnection implements DuplexConnection {
                                             && Exceptions.isConnectionClosedException(throwable.getCause())) {
                                         throwable=throwable.getCause();
                                     }
-                                    write.failed(throwable);
+                                    work.failed(throwable);
                                 }
                             });
                 }

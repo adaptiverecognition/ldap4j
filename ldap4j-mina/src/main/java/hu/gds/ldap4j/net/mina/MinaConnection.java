@@ -125,7 +125,8 @@ public class MinaConnection implements DuplexConnection {
         public void sessionClosed(IoSession ioSession) {
             synchronized (lock) {
                 sessionClosed=true;
-                for (Iterator<Write> iterator=writes.iterator(); iterator.hasNext(); ) {
+                for (Iterator<@NotNull SynchronizedWork<Void, Void>> iterator=writes.iterator();
+                     iterator.hasNext(); ) {
                     iterator.next().failed(new ClosedException());
                     iterator.remove();
                 }
@@ -183,7 +184,7 @@ public class MinaConnection implements DuplexConnection {
     private final Read read=new Read();
     private IoSession session;
     private boolean sessionClosed;
-    private final Set<Write> writes=new HashSet<>();
+    private final Set<@NotNull SynchronizedWork<Void, Void>> writes=new HashSet<>();
 
     private MinaConnection(@NotNull NioSocketConnector connector, @NotNull Log log) {
         this.connector=Objects.requireNonNull(connector, "connector");
@@ -297,9 +298,19 @@ public class MinaConnection implements DuplexConnection {
     }
 
     @Override
+    public @NotNull Lava<@NotNull InetSocketAddress> localAddress() {
+        return Lava.supplier(()->Lava.complete((InetSocketAddress)session.getLocalAddress()));
+    }
+
+    @Override
     public @NotNull Lava<@Nullable ByteBuffer> read() {
-        return read.read((context)->{
+        return read.work((context, work)->{
         });
+    }
+
+    @Override
+    public @NotNull Lava<@NotNull InetSocketAddress> remoteAddress() {
+        return Lava.supplier(()->Lava.complete((InetSocketAddress)session.getRemoteAddress()));
     }
 
     @Override
@@ -315,23 +326,23 @@ public class MinaConnection implements DuplexConnection {
     @Override
     public @NotNull Lava<Void> write(@NotNull ByteBuffer value) {
         return Write.writeStatic(
-                (context)->(write)->{
+                (context, work)->{
                     if (value.isEmpty()) {
-                        write.completed();
+                        work.completed(null);
                     }
                     else {
                         synchronized (lock) {
                             if (sessionClosed) {
                                 throw new ClosedException();
                             }
-                            writes.add(write);
+                            writes.add(work);
                         }
                         session.write(IoBuffer.wrap(value.arrayCopy()))
                                 .addListener(new ErrorListener<WriteFuture>(log) {
                                     @Override
                                     protected void operationCompleteImpl(WriteFuture future) {
                                         synchronized (lock) {
-                                            if (!writes.remove(write)) {
+                                            if (!writes.remove(work)) {
                                                 return;
                                             }
                                         }
@@ -340,14 +351,14 @@ public class MinaConnection implements DuplexConnection {
                                             if (throwable instanceof WriteToClosedSessionException) {
                                                 throwable=new ClosedChannelException();
                                             }
-                                            write.failed(throwable);
+                                            work.failed(throwable);
                                             return;
                                         }
                                         if (!future.isWritten()) {
-                                            write.failed(new IllegalStateException("not written"));
+                                            work.failed(new IllegalStateException("not written"));
                                             return;
                                         }
-                                        write.completed();
+                                        work.completed(null);
                                     }
                                 });
                     }

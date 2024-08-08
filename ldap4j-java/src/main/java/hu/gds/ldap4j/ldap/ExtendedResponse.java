@@ -12,7 +12,8 @@ import org.jetbrains.annotations.Nullable;
 public record ExtendedResponse(
         @NotNull LdapResult ldapResult,
         @Nullable String responseName,
-        @Nullable String responseValue) {
+        @Nullable String responseValue)
+        implements Message<ExtendedResponse> {
     public static abstract class Reader implements MessageReader<ExtendedResponse> {
         public static class Cancel extends ExtendedResponse.Reader {
             @Override
@@ -94,5 +95,28 @@ public record ExtendedResponse(
         this.ldapResult=Objects.requireNonNull(ldapResult, "ldapResult");
         this.responseName=responseName;
         this.responseValue=responseValue;
+    }
+
+    @Override
+    public @NotNull ExtendedResponse self() {
+        return this;
+    }
+
+    @Override
+    public @NotNull ByteBuffer write() {
+        ByteBuffer contentBuffer=ldapResult.write();
+        if (null!=responseName) {
+            contentBuffer=contentBuffer.append(DER.writeTag(
+                    Ldap.PROTOCOL_OP_EXTENDED_RESPONSE_NAME,
+                    DER.writeUtf8NoTag(responseName)));
+        }
+        if (null!=responseValue) {
+            contentBuffer=contentBuffer.append(DER.writeTag(
+                    Ldap.PROTOCOL_OP_EXTENDED_RESPONSE_VALUE,
+                    DER.writeUtf8NoTag(responseValue)));
+        }
+        return DER.writeTag(
+                Ldap.PROTOCOL_OP_EXTENDED_RESPONSE,
+                contentBuffer);
     }
 }

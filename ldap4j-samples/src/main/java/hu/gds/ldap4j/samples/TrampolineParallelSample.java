@@ -84,7 +84,7 @@ public class TrampolineParallelSample {
                     break;
                 }
                 @NotNull LdapMessage<SearchResult> searchResult
-                        =connection.readMessageCheckedParallel(endNanos, readers);
+                        =connection.readMessageCheckedParallel(endNanos, readers::get);
                 int index=searchResult.messageId()-1;
                 ++counts[index];
                 for (int ii=index-1; 0<=ii; --ii) {

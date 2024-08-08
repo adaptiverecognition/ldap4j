@@ -1,6 +1,7 @@
 package hu.gds.ldap4j.ldap;
 
 import hu.gds.ldap4j.net.ByteBuffer;
+import java.util.List;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
@@ -9,9 +10,43 @@ public record ExtendedRequest(
         byte[] requestValue,
         @NotNull MessageReader<ExtendedResponse> responseReader)
         implements Request<ExtendedRequest, ExtendedResponse> {
-    public static final ExtendedRequest FAST_BIND=new ExtendedRequest(
+    public static class Reader implements MessageReader<ExtendedRequest> {
+        private final @NotNull MessageReader<ExtendedResponse> responseReader;
+
+        public Reader(@NotNull MessageReader<ExtendedResponse> responseReader) {
+            this.responseReader=Objects.requireNonNull(responseReader, "responseReader");
+        }
+
+        @Override
+        public void check(@NotNull List<@NotNull Control> controls, @NotNull ExtendedRequest message, int messageId) {
+        }
+
+        @Override
+        public @NotNull ExtendedRequest read(ByteBuffer.@NotNull Reader reader) throws Throwable {
+            return DER.readTag(
+                    (reader2)->{
+                        @NotNull String requestName=DER.readTag(
+                                DER::readUtf8NoTag,
+                                reader2,
+                                Ldap.PROTOCOL_OP_EXTENDED_REQUEST_NAME);
+                        byte[] requestValue=null;
+                        if (reader2.hasRemainingBytes()) {
+                            requestValue=DER.readTag(
+                                    (reader3)->reader3.readReaminingByteBuffer().arrayCopy(),
+                                    reader2,
+                                    Ldap.PROTOCOL_OP_EXTENDED_REQUEST_VALUE);
+                        }
+                        reader2.assertNoRemainingBytes();
+                        return new ExtendedRequest(requestName, requestValue, responseReader);
+                    },
+                    reader,
+                    Ldap.PROTOCOL_OP_EXTENDED_REQUEST);
+        }
+    }
+    
+    public static final @NotNull ExtendedRequest FAST_BIND=new ExtendedRequest(
             Ldap.FAST_BIND_OID, null, ExtendedResponse.READER_SUCCESS);
-    public static final ExtendedRequest START_TLS=new ExtendedRequest(
+    public static final @NotNull ExtendedRequest START_TLS=new ExtendedRequest(
             Ldap.EXTENDED_REQUEST_START_TLS_OID, null, ExtendedResponse.READER_SUCCESS);
 
     public ExtendedRequest(

@@ -1,12 +1,11 @@
 package hu.gds.ldap4j.net;
 
-import hu.gds.ldap4j.Consumer;
 import hu.gds.ldap4j.Either;
 import hu.gds.ldap4j.Exceptions;
-import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.lava.Context;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.lava.SynchronizedWait;
+import java.net.InetSocketAddress;
 import java.net.SocketOption;
 import java.net.StandardSocketOptions;
 import java.util.Map;
@@ -23,76 +22,72 @@ import org.jetbrains.annotations.Nullable;
 public interface DuplexConnection extends Connection {
     int PAGE_SIZE=1<<14;
 
-    class Read {
+    class Read extends SynchronizedWork<@Nullable ByteBuffer, @Nullable ByteBuffer> {
         private @NotNull ByteBuffer buffer=ByteBuffer.EMPTY;
         private boolean endOfStream;
         private @Nullable Throwable error;
-        private boolean reading;
-        public final SynchronizedWait wait=new SynchronizedWait();
 
-        private void completedSynchronized() {
-            wait.signalAll();
-            reading=false;
-        }
-
-        public void completed(@Nullable ByteBuffer value) {
-            synchronized (wait.lock) {
-                completedSynchronized();
-                if (null==value) {
-                    endOfStream=true;
-                }
-                else {
-                    buffer=buffer.append(value);
-                }
+        @Override
+        protected @Nullable ByteBuffer completedSynchronized() throws Throwable {
+            if (null!=error) {
+                Throwable throwable=error;
+                error=null;
+                throw throwable;
             }
+            if (buffer.isEmpty() && endOfStream) {
+                return null;
+            }
+            ByteBuffer byteBuffer=buffer;
+            buffer=ByteBuffer.EMPTY;
+            return byteBuffer;
         }
 
-        public void failed(@NotNull Throwable throwable) {
-            if (Exceptions.isConnectionClosedException(throwable)) {
-                completed(null);
+        @Override
+        protected void completedSynchronized(@Nullable ByteBuffer value) {
+            if (null==value) {
+                endOfStream=true;
             }
             else {
-                synchronized (wait.lock) {
-                    completedSynchronized();
-                    error=Exceptions.join(error, throwable);
-                }
+                buffer=buffer.append(value);
             }
         }
 
-        public @NotNull Lava<@Nullable ByteBuffer> read(Consumer<Context> read) {
-            return Lava.context()
-                    .compose((context)->{
-                        boolean read2;
-                        synchronized (wait.lock) {
-                            read2=buffer.isEmpty() && (!endOfStream) && (null==error) && (!reading);
-                            if (read2) {
-                                reading=true;
-                            }
+        @Override
+        protected void failedSynchronized(@NotNull Throwable throwable) {
+            if (Exceptions.isConnectionClosedException(throwable)) {
+                endOfStream=true;
+            }
+            else {
+                error=Exceptions.join(error, throwable);
+            }
+        }
+
+        @Override
+        protected boolean startWorkingSynchronized() {
+            return buffer.isEmpty() && (!endOfStream) && (null==error);
+        }
+
+        @Override
+        protected @Nullable ByteBuffer timeoutSynchronized() {
+            return ByteBuffer.EMPTY;
+        }
+    }
+
+    interface Server<T> extends Connection {
+        @NotNull Lava<@Nullable T> accept();
+
+        default @NotNull Lava<@NotNull T> acceptNotNull() {
+            return Lava.checkEndNanos("accept timeout")
+                    .composeIgnoreResult(this::accept)
+                    .compose((result)->{
+                        if (null==result) {
+                            return acceptNotNull();
                         }
-                        if (read2) {
-                            read.accept(context);
-                        }
-                        return wait.await((context2)->{
-                            if (reading) {
-                                if (context2.isEndNanosInTheFuture()) {
-                                    return Either.right(null);
-                                }
-                                return Either.left(ByteBuffer.EMPTY);
-                            }
-                            if (null!=error) {
-                                Throwable throwable=error;
-                                error=null;
-                                throw throwable;
-                            }
-                            if (buffer.isEmpty() && endOfStream) {
-                                return Either.left(null);
-                            }
-                            ByteBuffer byteBuffer=buffer;
-                            buffer=ByteBuffer.EMPTY;
-                            return Either.left(byteBuffer);
-                        });
+                        return Lava.complete(result);
                     });
         }
+
+        @NotNull Lava<@NotNull InetSocketAddress> localAddress();
     }
 
     interface SocketOptionVisitor<T> {
@@ -162,52 +157,108 @@ public interface DuplexConnection extends Connection {
             throw new RuntimeException("unsupported socket option %s, value %s".formatted(socketOption, value));
         }
     }
-    
-    class Write {
-        private @Nullable Throwable error;
-        public final @NotNull SynchronizedWait wait=new SynchronizedWait();
-        private boolean written;
 
-        public void completed() {
+    abstract class SynchronizedWork<T, U> {
+        @FunctionalInterface
+        public interface Work<T, U> {
+            void work(@NotNull Context context, @NotNull SynchronizedWork<T, U> work) throws Throwable;
+        }
+
+        public final @NotNull SynchronizedWait wait=new SynchronizedWait();
+        private boolean working;
+        
+        public void completed(U value) {
             synchronized (wait.lock) {
-                wait.signal();
-                written=true;
+                wait.signalAll();
+                working=false;
+                completedSynchronized(value);
             }
         }
+
+        protected abstract T completedSynchronized() throws Throwable;
+
+        protected abstract void completedSynchronized(U value);
 
         public void failed(@NotNull Throwable throwable) {
             synchronized (wait.lock) {
-                wait.signal();
-                written=true;
-                this.error=Exceptions.join(error, throwable);
+                wait.signalAll();
+                working=false;
+                failedSynchronized(throwable);
             }
         }
 
-        public @NotNull Lava<Void> write(
-                @NotNull Function<@NotNull Context, @NotNull Consumer<@NotNull Write>> write) {
+        protected abstract void failedSynchronized(@NotNull Throwable throwable);
+
+        protected abstract boolean startWorkingSynchronized() throws Throwable;
+
+        protected abstract T timeoutSynchronized() throws Throwable;
+
+        public @NotNull Lava<T> work(@NotNull Work<T, U> work) {
+            Objects.requireNonNull(work, "work");
             return Lava.context()
                     .compose((context)->{
-                        write.apply(context).accept(this);
+                        boolean startWorking;
+                        synchronized (wait.lock) {
+                            startWorking=(!working) && startWorkingSynchronized();
+                            if (startWorking) {
+                                working=true;
+                            }
+                        }
+                        if (startWorking) {
+                            work.work(context, this);
+                        }
                         return wait.await((context2)->{
-                            if (written) {
-                                if (null==error) {
-                                    return Either.left(null);
+                            if (working) {
+                                if (context2.isEndNanosInTheFuture()) {
+                                    return Either.right(null);
                                 }
-                                throw error;
+                                return Either.left(timeoutSynchronized());
                             }
-                            if (context2.isEndNanosInTheFuture()) {
-                                return Either.right(null);
-                            }
-                            throw new TimeoutException();
+                            return Either.left(completedSynchronized());
                         });
                     });
         }
+    }
+    
+    class Write extends SynchronizedWork<Void, Void> {
+        private @Nullable Throwable error;
 
-        public static  @NotNull Lava<Void> writeStatic(
-                @NotNull Function<@NotNull Context, @NotNull Consumer<@NotNull Write>> write) {
-            return new Write().write(write);
+        @Override
+        protected Void completedSynchronized() throws Throwable {
+            if (null==error) {
+                return null;
+            }
+            else {
+                throw error;
+            }
+        }
+
+        @Override
+        protected void completedSynchronized(Void value) {
+        }
+
+        @Override
+        protected void failedSynchronized(@NotNull Throwable throwable) {
+            this.error=Exceptions.join(error, throwable);
+        }
+
+        @Override
+        protected boolean startWorkingSynchronized() {
+            return true;
+        }
+
+        @Override
+        protected Void timeoutSynchronized() throws Throwable {
+            throw new TimeoutException();
+        }
+
+        public static  @NotNull Lava<Void> writeStatic(@NotNull Work<Void, Void> write) {
+            return new Write()
+                    .work(write);
         }
     }
+
+    @NotNull Lava<@NotNull InetSocketAddress> localAddress();
 
     /**
      * result == null => end of stream
@@ -224,6 +275,8 @@ public interface DuplexConnection extends Connection {
                     return Lava.complete(readResult);
                 });
     }
+
+    @NotNull Lava<@NotNull InetSocketAddress> remoteAddress();
 
     @NotNull Lava<Void> shutDownOutput();
 

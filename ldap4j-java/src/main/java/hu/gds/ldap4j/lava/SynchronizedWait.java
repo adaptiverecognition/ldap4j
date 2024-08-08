@@ -42,11 +42,7 @@ public class SynchronizedWait {
                     @Override
                     protected void completedImpl(Void value) {
                         try {
-                            synchronized (lock) {
-                                if (null!=remove) {
-                                    remove.run();
-                                }
-                            }
+                            remove();
                             awaitLoop(callback, context, function);
                         }
                         catch (Throwable throwable) {
@@ -57,15 +53,24 @@ public class SynchronizedWait {
                     @Override
                     protected void failedImpl(@NotNull Throwable throwable) {
                         try {
-                            synchronized (lock) {
-                                if (null!=remove) {
-                                    remove.run();
-                                }
-                            }
+                            remove();
                             context.fail(callback, throwable);
                         }
                         catch (Throwable throwable2) {
                             context.fail(callback, throwable2);
+                        }
+                    }
+
+                    private void remove() {
+                        synchronized (lock) {
+                            if (null!=remove) {
+                                try {
+                                    remove.run();
+                                }
+                                finally {
+                                    remove=null;
+                                }
+                            }
                         }
                     }
                 }

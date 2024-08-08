@@ -237,10 +237,6 @@ public abstract class DER {
         }
     }
 
-    public static @NotNull ByteBuffer writeNullNoTag() {
-        return ByteBuffer.EMPTY;
-    }
-
     public static @NotNull ByteBuffer writeSequence(@NotNull ByteBuffer byteBuffer) {
         return writeTag(SEQUENCE, byteBuffer);
     }

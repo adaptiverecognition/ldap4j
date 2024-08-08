@@ -209,7 +209,7 @@ public sealed interface TlsSettings {
                 engine=context.createSSLEngine(peerAddress.getHostString(), peerAddress.getPort());
             }
             clientAuthentication().set(engine);
-            engine.setUseClientMode(client);
+            engine.setUseClientMode(client());
             return engine;
         }
 

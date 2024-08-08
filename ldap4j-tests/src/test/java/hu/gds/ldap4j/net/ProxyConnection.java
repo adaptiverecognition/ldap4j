@@ -3,6 +3,7 @@ package hu.gds.ldap4j.net;
 import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.lava.Lock;
+import java.net.InetSocketAddress;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -78,6 +79,11 @@ public class ProxyConnection implements DuplexConnection {
     }
 
     @Override
+    public @NotNull Lava<@NotNull InetSocketAddress> localAddress() {
+        return connection.localAddress();
+    }
+
+    @Override
     public @NotNull Lava<@Nullable ByteBuffer> read() {
         return connection.read()
                 .compose((result)->{
@@ -89,6 +95,11 @@ public class ProxyConnection implements DuplexConnection {
                     }
                     return Lava.complete(result);
                 });
+    }
+
+    @Override
+    public @NotNull Lava<@NotNull InetSocketAddress> remoteAddress() {
+        return connection.remoteAddress();
     }
 
     @Override

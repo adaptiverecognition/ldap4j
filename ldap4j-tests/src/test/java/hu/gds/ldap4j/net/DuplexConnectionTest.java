@@ -11,8 +11,11 @@ import hu.gds.ldap4j.lava.Clock;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.JoinCallback;
 import hu.gds.ldap4j.lava.Lava;
+import hu.gds.ldap4j.ldap.LdapServer;
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.NoRouteToHostException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
@@ -579,6 +582,80 @@ public class DuplexConnectionTest {
                                                 (connection)->Lava.fail(new IllegalStateException()))),
                                 TimeoutException.class);
                     }));
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("hu.gds.ldap4j.net.NetworkTestParameters#streamNetworkUseTls")
+    public void testTlsRenegotiation(NetworkTestParameters parameters) throws Throwable {
+        try (TestContext<NetworkTestParameters> context=TestContext.create(parameters)) {
+            class TlsRenegotiationTest {
+                private final @NotNull JavaAsyncChannelConnection.Server server;
+
+                public TlsRenegotiationTest(@NotNull JavaAsyncChannelConnection.Server server) {
+                    this.server=Objects.requireNonNull(server, "server");
+                }
+
+                private @NotNull Lava<Void> accept() {
+                    return Closeable.withCloseable(
+                            server::acceptNotNull,
+                            (connection)->server(new TlsConnection(connection)));
+                }
+
+                public @NotNull Lava<Void> client(@NotNull TlsConnection connection) {
+                    return connection.write(ByteBuffer.create((byte)1))
+                            .composeIgnoreResult(()->Lava.catchErrors(
+                                    (throwable)->connection.restartTlsHandshake(),
+                                    ()->connection.readNonEmpty()
+                                            .composeIgnoreResult(()->Lava.fail(
+                                                    new RuntimeException("should have failed"))),
+                                    TlsHandshakeRestartNeededException.class))
+                            .composeIgnoreResult(connection::readNonEmpty)
+                            .compose((readResult)->{
+                                assertNotNull(readResult);
+                                assertArrayEquals(new byte[]{2}, readResult.arrayCopy());
+                                return connection.write(ByteBuffer.create((byte)3));
+                            });
+                }
+
+                private @NotNull Lava<Void> connect() {
+                    return server.localAddress()
+                            .compose((localAddress)->Closeable.withCloseable(
+                                    ()->context.parameters().connectionFactory(context, localAddress, Map.of()),
+                                    (connection)->client((TlsConnection)connection)));
+                }
+
+                public @NotNull Lava<Void> server(@NotNull TlsConnection connection) throws Throwable {
+                    @NotNull TlsConnection tlsConnection=new TlsConnection(connection);
+                    return tlsConnection.startTlsHandshake(LdapServer.serverTls(false))
+                            .composeIgnoreResult(tlsConnection::readNonEmpty)
+                            .compose((readResult)->{
+                                assertNotNull(readResult);
+                                assertArrayEquals(new byte[]{1}, readResult.arrayCopy());
+                                return tlsConnection.restartTlsHandshake();
+                            })
+                            .composeIgnoreResult(()->tlsConnection.write(ByteBuffer.create((byte)2)))
+                            .composeIgnoreResult(tlsConnection::readNonEmpty)
+                            .compose((readResult)->{
+                                assertNotNull(readResult);
+                                assertArrayEquals(new byte[]{3}, readResult.arrayCopy());
+                                return tlsConnection.close();
+                            });
+                }
+
+                public @NotNull Lava<Void> test() {
+                    return Lava.forkJoin(this::accept, this::connect)
+                            .composeIgnoreResult(()->Lava.VOID);
+                }
+            }
+            context.get(Closeable.withCloseable(
+                    ()->JavaAsyncChannelConnection.Server.factory(
+                            null,
+                            1,
+                            new InetSocketAddress(InetAddress.getLoopbackAddress(), 0),
+                            Map.of()),
+                    (server)->new TlsRenegotiationTest(server)
+                            .test()));
         }
     }
 

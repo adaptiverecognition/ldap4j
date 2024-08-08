@@ -17,6 +17,7 @@ to help you choose an LDAP client implementation.
   - [Reactor](#reactor)
   - [Trampoline](#trampoline)
   - [Parallel operations](#parallel-operations)
+  - [TLS renegotiation](#ts-renegotiation)
 - [ldap4j.sh](#ldap4jsh)
 - [Docs](#docs)
   - [DNS lookups](#dns-lookups)
@@ -44,6 +45,7 @@ Ldap4j currently supports:
 
 Ldap4j supports TLS, through the standard StartTLS operation, and it also supports the non-standard LDAPS protocol.
 It supports an optional host name verification in both cases.
+Ldap4j supports TLS renegotiations.
 
 A connection pool is provided to support traditional parallelism, and amortize the cost of TCP and TLS handshakes.
 
@@ -454,7 +456,7 @@ This is acceptable when there are no parallel operations, or just some occasiona
 
 While sending and receiving concurrent messages only
 `LdapConnection.writeMessage(ControlsMessage<M>, MessageIdGenerator)`
-and `LdapConnection.readMessageCheckedParallel(Map<Integer, ParallelMessageReader<?, T>>)`
+and `LdapConnection.readMessageCheckedParallel(Function<Integer, ParallelMessageReader<?, T>>)`
 can be used.
 
 As usual, reads cannot be called concurrently with other reads,
@@ -520,7 +522,7 @@ So we failed to detect any parallel execution of the parallel requests.
             break;
         }
         @NotNull LdapMessage<SearchResult> searchResult
-                =connection.readMessageCheckedParallel(endNanos, readers);
+                =connection.readMessageCheckedParallel(endNanos, readers::get);
         int index=searchResult.messageId()-1;
         ++counts[index];
         for (int ii=index-1; 0<=ii; --ii) {
@@ -529,6 +531,22 @@ So we failed to detect any parallel execution of the parallel requests.
     }
     System.out.printf("inversions: %,d%n", inversions);
 ```
+
+### TLS renegotiation
+
+Ldap4j can send and receive TLS renegotiation requests.
+
+A TLS renegotiation can be started by methods `LdapConnection.restartTlsHandshake()`
+and `LdapConnection.restartTlsHandshake(@NotNull Consumer<@NotNull SSLEngine> consumer)`.
+A renegotiation cannot be run parallel with any read nor write,
+as it will produce output, and may consume some input.
+
+After receiving a renegotiation request the read receiving it, and any subsequent read and write, will
+throw a `TlsHandshakeRestartNeededException`.
+The renegotiation can be completed by calling one of the `LdapConnection.restartTlsHandshake()` methods.
+
+As a consequence, anyone wishing to support TLS renegotiations must implement its own logic to
+correctly sequence reads, writes, renegotiations, and to retry reads after a renegotiation.
 
 ## ldap4j.sh
 

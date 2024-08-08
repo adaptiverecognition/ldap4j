@@ -1,5 +1,6 @@
 package hu.gds.ldap4j.reactor.netty;
 
+import hu.gds.ldap4j.Consumer;
 import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.Supplier;
 import hu.gds.ldap4j.lava.Closeable;
@@ -25,6 +26,7 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -55,14 +57,30 @@ public class ReactorLdapConnection {
         return LavaMono.create(ReactorContext.createTimeoutNanos(timeoutNanos), lava);
     }
 
+    public @NotNull Mono<@NotNull InetSocketAddress> localAddress() {
+        return lavaToMono(connection.localAddress());
+    }
+
     public <T> @NotNull Mono<@NotNull LdapMessage<T>> readMessageChecked(
             int messageId, @NotNull MessageReader<T> messageReader) {
         return lavaToMono(connection.readMessageChecked(messageId, messageReader));
     }
 
     public <T> @NotNull Mono<T> readMessageCheckedParallel(
-            @NotNull Map<@NotNull Integer, @NotNull ParallelMessageReader<?, T>> messageReadersByMessageId) {
+            @NotNull Function<@NotNull Integer, @Nullable ParallelMessageReader<?, T>> messageReadersByMessageId) {
         return lavaToMono(connection.readMessageCheckedParallel(messageReadersByMessageId));
+    }
+
+    public @NotNull Mono<@NotNull InetSocketAddress> remoteAddress() {
+        return lavaToMono(connection.remoteAddress());
+    }
+
+    public @NotNull Mono<Void> restartTlsHandshake() {
+        return lavaToMono(connection.restartTlsHandshake());
+    }
+
+    public @NotNull Mono<Void> restartTlsHandshake(@NotNull Consumer<@NotNull SSLEngine> consumer) {
+        return lavaToMono(connection.restartTlsHandshake(consumer));
     }
 
     public @NotNull Mono<@NotNull List<@NotNull SearchResult>> search(

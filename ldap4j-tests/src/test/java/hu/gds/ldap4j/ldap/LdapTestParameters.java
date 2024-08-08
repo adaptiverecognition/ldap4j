@@ -56,21 +56,36 @@ public class LdapTestParameters extends TestParameters {
     }
 
     public @NotNull Lava<@NotNull LdapConnection> connectionFactory(
-            @NotNull TestContext<LdapTestParameters> context, @NotNull LdapServer ldapServer,
-            @Nullable Pair<@NotNull String, @NotNull String> simpleBind) throws Throwable {
+            @NotNull TestContext<LdapTestParameters> context,
+            @NotNull LdapServer ldapServer,
+            @Nullable Pair<@NotNull String, @NotNull String> simpleBind)
+            throws Throwable {
+        return connectionFactory(
+                context,
+                ldapServer::localAddressClearText,
+                ldapServer::localAddressTls,
+                simpleBind);
+    }
+
+    public @NotNull Lava<@NotNull LdapConnection> connectionFactory(
+            @NotNull TestContext<LdapTestParameters> context,
+            @NotNull Supplier<@NotNull InetSocketAddress> remoteClearTextAddress,
+            @NotNull Supplier<@NotNull InetSocketAddress> remoteTlsAddress,
+            @Nullable Pair<@NotNull String, @NotNull String> simpleBind)
+            throws Throwable {
         @NotNull InetSocketAddress remoteAddress;
         @NotNull TlsSettings tlsSettings;
         switch (tls) {
             case CLEAR_TEXT -> {
-                remoteAddress=ldapServer.localAddressClearText();
+                remoteAddress=remoteClearTextAddress.get();
                 tlsSettings=TlsSettings.noTls();
             }
             case START_TLS -> {
-                remoteAddress=ldapServer.localAddressClearText();
+                remoteAddress=remoteClearTextAddress.get();
                 tlsSettings=LdapServer.clientTls(false, true, true);
             }
             case TLS -> {
-                remoteAddress=ldapServer.localAddressTls();
+                remoteAddress=remoteTlsAddress.get();
                 tlsSettings=LdapServer.clientTls(false, false, true);
             }
             default -> throw new IllegalStateException("unknown tls value %s".formatted(tls));
@@ -103,5 +118,10 @@ public class LdapTestParameters extends TestParameters {
                 (parameters)->Stream.of(Tls.values())
                         .flatMap((tls)->Stream.of(new LdapTestParameters(
                                 parameters, AbstractTest.SERVER_PORT_CLEAR_TEXT, AbstractTest.SERVER_PORT_TLS, tls))));
+    }
+
+    public static @NotNull Stream<@NotNull LdapTestParameters> streamLdapTls() {
+        return streamLdap()
+                .filter((parameters)->!Tls.CLEAR_TEXT.equals(parameters.tls));
     }
 }

@@ -1,5 +1,6 @@
 package hu.gds.ldap4j.ldap;
 
+import hu.gds.ldap4j.Consumer;
 import hu.gds.ldap4j.Exceptions;
 import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.lava.Closeable;
@@ -9,6 +10,7 @@ import hu.gds.ldap4j.net.ClosedException;
 import hu.gds.ldap4j.net.Connection;
 import hu.gds.ldap4j.net.DuplexConnection;
 import hu.gds.ldap4j.net.TlsConnection;
+import hu.gds.ldap4j.net.TlsHandshakeRestartNeededException;
 import hu.gds.ldap4j.net.TlsSettings;
 import java.io.EOFException;
 import java.io.PrintWriter;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -32,7 +35,7 @@ public class LdapConnection implements Connection {
     private ByteBuffer readBuffer=ByteBuffer.EMPTY;
     private boolean usingTls;
 
-    private LdapConnection(
+    public LdapConnection(
             @NotNull TlsConnection connection, boolean ldaps, @NotNull MessageIdGenerator messageIdGenerator) {
         this.connection=Objects.requireNonNull(connection, "connection");
         this.ldaps=ldaps;
@@ -126,7 +129,7 @@ public class LdapConnection implements Connection {
                                             .composeIgnoreResult(()->Lava.complete(connection2)));
                         }
                         else {
-                            return connection.startTls(tlsSettings.asTls())
+                            return connection.startTlsHandshake(tlsSettings.asTls())
                                     .composeIgnoreResult(()->Lava.complete(
                                             new LdapConnection(connection, true, messageIdGenerator)));
                         }
@@ -152,6 +155,10 @@ public class LdapConnection implements Connection {
             }
             return connection2.isOpenAndNotFailed();
         });
+    }
+
+    public @NotNull Lava<@NotNull InetSocketAddress> localAddress() {
+        return Lava.supplier(()->connection().localAddress());
     }
 
     public @NotNull MessageIdGenerator messageIdGenerator() {
@@ -204,17 +211,18 @@ public class LdapConnection implements Connection {
 
     public <T> @NotNull Lava<@NotNull LdapMessage<@NotNull T>> readMessageChecked(
             int messageId, @NotNull MessageReader<T> messageReader) {
-        return readMessageCheckedParallel(Map.of(messageId, messageReader.parallel(Function::identity)));
+        return readMessageCheckedParallel(Map.of(messageId, messageReader.parallel(Function::identity))::get);
     }
 
     public <T> @NotNull Lava<T> readMessageCheckedParallel(
-            @NotNull Map<@NotNull Integer, @NotNull ParallelMessageReader<?, T>> messageReadersByMessageId) {
+            @NotNull Function<@NotNull Integer, @Nullable ParallelMessageReader<?, T>> messageReadersByMessageId) {
         Objects.requireNonNull(messageReadersByMessageId, "messageReadersByMessageId");
         return Lava.catchErrors(
                 (throwable)->{
                     if ((!(throwable instanceof EOFException))
                             && (!(throwable instanceof LdapException))
-                            && (!(throwable instanceof TimeoutException))) {
+                            && (!(throwable instanceof TimeoutException))
+                            && (!(throwable instanceof TlsHandshakeRestartNeededException))) {
                         synchronized (lock) {
                             failed=true;
                         }
@@ -224,6 +232,19 @@ public class LdapConnection implements Connection {
                 ()->readMessage(LdapMessage.readCheckedParallel(messageReadersByMessageId))
                         .compose(Function::identity),
                 Throwable.class);
+    }
+
+    public @NotNull Lava<@NotNull InetSocketAddress> remoteAddress() {
+        return Lava.supplier(()->connection().remoteAddress());
+    }
+
+    public @NotNull Lava<Void> restartTlsHandshake() {
+        return Lava.supplier(()->connection().restartTlsHandshake());
+    }
+
+    public @NotNull Lava<Void> restartTlsHandshake(@NotNull Consumer<@NotNull SSLEngine> consumer) {
+        Objects.requireNonNull(consumer, "consumer");
+        return Lava.supplier(()->connection().restartTlsHandshake(consumer));
     }
 
     public @NotNull Lava<@NotNull List<@NotNull SearchResult>> search(
@@ -263,7 +284,7 @@ public class LdapConnection implements Connection {
             }
             usingTls=true;
             return writeRequestReadResponseChecked(ExtendedRequest.START_TLS.controlsEmpty())
-                    .composeIgnoreResult(()->connection().startTls(tls));
+                    .composeIgnoreResult(()->connection().startTlsHandshake(tls));
         });
     }
 
@@ -276,7 +297,7 @@ public class LdapConnection implements Connection {
      * @return messageId
      */
     public <M extends Message<M>> @NotNull Lava<@NotNull Integer> writeMessage(@NotNull ControlsMessage<M> message) {
-        return writeMessage(connection(), message, messageIdGenerator);
+        return Lava.supplier(()->writeMessage(connection(), message, messageIdGenerator));
     }
 
     /**
@@ -284,7 +305,7 @@ public class LdapConnection implements Connection {
      */
     public <M extends Message<M>> @NotNull Lava<@NotNull Integer> writeMessage(
             @NotNull ControlsMessage<M> message, @NotNull MessageIdGenerator messageIdGenerator) {
-        return writeMessage(connection(), message, messageIdGenerator);
+        return Lava.supplier(()->writeMessage(connection(), message, messageIdGenerator));
     }
 
     /**
@@ -302,8 +323,10 @@ public class LdapConnection implements Connection {
                     .write(Message::write);
             return Lava.catchErrors(
                             (throwable)->{
-                                synchronized (lock) {
-                                    failed=true;
+                                if (!(throwable instanceof TlsHandshakeRestartNeededException)) {
+                                    synchronized (lock) {
+                                        failed=true;
+                                    }
                                 }
                                 return Lava.fail(throwable);
                             },

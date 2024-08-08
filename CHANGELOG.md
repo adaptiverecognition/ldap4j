@@ -1,4 +1,5 @@
 Version 1.1.1-SNAPSHOT:
+- receive and send TLS renegotiations
 - return TLS session
 
 Version 1.1.0:

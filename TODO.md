@@ -5,7 +5,6 @@
 - netty kqueue
 - speed
 - tls closure, rfc4511 4.14.3, allow, disallow, initiate
-- tls renegotiation
 - unit tests
   - abandon
   - approx match that works differently than equality match

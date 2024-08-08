@@ -1,5 +1,6 @@
 package hu.gds.ldap4j.future;
 
+import hu.gds.ldap4j.Consumer;
 import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.Supplier;
@@ -26,6 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -96,14 +98,30 @@ public class FutureLdapConnection {
         return startLava(connection.isOpenAndNotFailed());
     }
 
+    public @NotNull CompletableFuture<@NotNull InetSocketAddress> localAddress() {
+        return startLava(connection.localAddress());
+    }
+
     public <T> @NotNull CompletableFuture<@NotNull LdapMessage<T>> readMessageChecked(
             int messageId, @NotNull MessageReader<T> messageReader) {
         return startLava(connection.readMessageChecked(messageId, messageReader));
     }
 
     public <T> @NotNull CompletableFuture<T> readMessageCheckedParallel(
-            @NotNull Map<@NotNull Integer, @NotNull ParallelMessageReader<?, T>> messageReadersByMessageId) {
+            @NotNull Function<@NotNull Integer, @Nullable ParallelMessageReader<?, T>> messageReadersByMessageId) {
         return startLava(connection.readMessageCheckedParallel(messageReadersByMessageId));
+    }
+
+    public @NotNull CompletableFuture<@NotNull InetSocketAddress> remoteAddress() {
+        return startLava(connection.remoteAddress());
+    }
+
+    public @NotNull CompletableFuture<Void> restartTlsHandshake() {
+        return startLava(connection.restartTlsHandshake());
+    }
+
+    public @NotNull CompletableFuture<Void> restartTlsHandshake(@NotNull Consumer<@NotNull SSLEngine> consumer) {
+        return startLava(connection.restartTlsHandshake(consumer));
     }
 
     public @NotNull CompletableFuture<@NotNull List<@NotNull SearchResult>> search(

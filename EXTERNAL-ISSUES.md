@@ -116,6 +116,9 @@ DNS lookups are blocking.
 There's no way to get back error codes from I/O exceptions, like "broken pipe", or "connection reset".
 As Apache MINA and Netty use the java NIO library the same issues apply.
 
+TLS 1.3 post-handshake authentication is not supported.
+See [JDK-8206923](https://bugs.openjdk.org/browse/JDK-8206923).
+
 Version 17.
 
 ### MS Windows

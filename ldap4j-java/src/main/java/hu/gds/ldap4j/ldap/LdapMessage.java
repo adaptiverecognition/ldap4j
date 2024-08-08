@@ -5,9 +5,9 @@ import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.net.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public record LdapMessage<T>(
         @NotNull List<@NotNull Control> controls,
@@ -37,12 +37,12 @@ public record LdapMessage<T>(
     }
 
     public static <T> @NotNull Function<ByteBuffer.Reader, @NotNull Lava<T>> readCheckedParallel(
-            @NotNull Map<@NotNull Integer, @NotNull ParallelMessageReader<?, T>> messageReadersByMessageId) {
+            @NotNull Function<@NotNull Integer, @Nullable ParallelMessageReader<?, T>> messageReadersByMessageId) {
         Objects.requireNonNull(messageReadersByMessageId, "messageReadersByMessageId");
         return (reader)->DER.readSequence(
                 (reader2)->{
                     int messageId=DER.readIntegerTag(true, reader2);
-                    ParallelMessageReader<?, T> messageReader=messageReadersByMessageId.get(messageId);
+                    ParallelMessageReader<?, T> messageReader=messageReadersByMessageId.apply(messageId);
                     if (null!=messageReader) {
                         return messageReader.readMessageChecked(messageId, reader2);
                     }
@@ -52,10 +52,7 @@ public record LdapMessage<T>(
                         throw new ExtendedLdapException(new LdapMessage<>(controls, response, messageId));
                     }
                     else {
-                        throw new UnexpectedMessageIdException(
-                                "expected message ids %s, got %,d".formatted(
-                                        messageReadersByMessageId.keySet(),
-                                        messageId));
+                        throw new UnexpectedMessageIdException("expected message id %,d".formatted(messageId));
                     }
                 },
                 reader);

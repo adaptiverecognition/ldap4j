@@ -1,5 +1,6 @@
 package hu.gds.ldap4j.trampoline;
 
+import hu.gds.ldap4j.Consumer;
 import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.lava.Closeable;
@@ -23,6 +24,7 @@ import java.nio.channels.AsynchronousChannelGroup;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -100,6 +102,11 @@ public record TrampolineLdapConnection(
                 .get(true, true, connection.isOpenAndNotFailed());
     }
 
+    public @NotNull InetSocketAddress localAddress(long endNanos) throws Throwable {
+        return trampoline.contextEndNanos(endNanos)
+                .get(true, true, connection.localAddress());
+    }
+
     public <T> @NotNull LdapMessage<T> readMessageChecked(
             long endNanos, int messageId, @NotNull MessageReader<T> messageReader) throws Throwable {
         return trampoline.contextEndNanos(endNanos)
@@ -111,13 +118,28 @@ public record TrampolineLdapConnection(
 
     public <T> T readMessageCheckedParallel(
             long endNanos,
-            @NotNull Map<@NotNull Integer, @NotNull ParallelMessageReader<?, T>> messageReadersByMessageId)
+            @NotNull Function<@NotNull Integer, @Nullable ParallelMessageReader<?, T>> messageReadersByMessageId)
             throws Throwable {
         return trampoline.contextEndNanos(endNanos)
                 .get(
                         true,
                         true,
                         connection.readMessageCheckedParallel(messageReadersByMessageId));
+    }
+
+    public @NotNull InetSocketAddress remoteAddress(long endNanos) throws Throwable {
+        return trampoline.contextEndNanos(endNanos)
+                .get(true, true, connection.remoteAddress());
+    }
+
+    public void restartTlsHandshake(long endNanos) throws Throwable {
+        trampoline.contextEndNanos(endNanos)
+                .get(true, true, connection.restartTlsHandshake());
+    }
+
+    public void restartTlsHandshake(@NotNull Consumer<@NotNull SSLEngine> consumer, long endNanos) throws Throwable {
+        trampoline.contextEndNanos(endNanos)
+                .get(true, true, connection.restartTlsHandshake(consumer));
     }
 
     public @NotNull List<@NotNull SearchResult> search(

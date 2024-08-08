@@ -88,7 +88,7 @@ public class NetworkTestParameters extends TestParameters {
             if (NetworkTestParameters.Tls.USE_TLS.equals(context.parameters().tls)) {
                 connectionFactory2=Closeable.wrapOrClose(
                         ()->tlsConnectionFactory,
-                        (connection)->connection.startTls(
+                        (connection)->connection.startTlsHandshake(
                                         LdapServer.clientTls(badCertificate, false, verifyHostname))
                                 .composeIgnoreResult(()->Lava.complete(connection)));
             }

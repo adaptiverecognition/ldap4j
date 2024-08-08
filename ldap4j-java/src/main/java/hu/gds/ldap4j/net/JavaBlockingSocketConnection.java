@@ -171,8 +171,13 @@ public class JavaBlockingSocketConnection implements DuplexConnection {
     }
 
     @Override
+    public @NotNull Lava<@NotNull InetSocketAddress> localAddress() {
+        return Lava.supplier(()->Lava.complete((InetSocketAddress)socket.getLocalSocketAddress()));
+    }
+
+    @Override
     public @NotNull Lava<@Nullable ByteBuffer> read() {
-        return read.read((context)->blockingRun(()->{
+        return read.work((context, work)->blockingRun(()->{
             try {
                 byte[] array=new byte[PAGE_SIZE];
                 int length=inputStream.read(array);
@@ -190,6 +195,11 @@ public class JavaBlockingSocketConnection implements DuplexConnection {
     }
 
     @Override
+    public @NotNull Lava<@NotNull InetSocketAddress> remoteAddress() {
+        return Lava.supplier(()->Lava.complete((InetSocketAddress)socket.getRemoteSocketAddress()));
+    }
+
+    @Override
     public @NotNull Lava<Void> shutDownOutput() {
         return Lava.supplier(()->{
             socket.shutdownOutput();
@@ -200,15 +210,15 @@ public class JavaBlockingSocketConnection implements DuplexConnection {
     @Override
     public @NotNull Lava<Void> write(@NotNull ByteBuffer value) {
         return Write.writeStatic(
-                (context)->(write)->blockingRun(()->{
+                (context, work)->blockingRun(()->{
                     try {
                         byte[] array=value.arrayCopy();
                         outputStream.write(array);
                         outputStream.flush();
-                        write.completed();
+                        work.completed(null);
                     }
                     catch (Throwable throwable) {
-                        write.failed(throwable);
+                        work.failed(throwable);
                     }
                 }));
     }

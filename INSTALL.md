@@ -22,6 +22,7 @@ Build and install ldap4j.
 
 ## Test ldap4j
 
+Set up openssl.
 Create test keys and certificates.
 ```console
     ./create-keys.sh

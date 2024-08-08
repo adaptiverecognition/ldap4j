@@ -120,6 +120,11 @@ public class JavaChannelPollConnection implements DuplexConnection {
         return Lava.supplier(()->Lava.complete(channel.isOpen()));
     }
 
+    @Override
+    public @NotNull Lava<@NotNull InetSocketAddress> localAddress() {
+        return Lava.supplier(()->Lava.complete((InetSocketAddress)channel.getLocalAddress()));
+    }
+
     private static <T> @NotNull Lava<T> poll(
             @NotNull Supplier<@NotNull Either<@NotNull Lava<T>, @NotNull Boolean>> poll,
             @NotNull Supplier<@NotNull Lava<T>> timeout) {
@@ -180,6 +185,11 @@ public class JavaChannelPollConnection implements DuplexConnection {
                     },
                     ()->Lava.complete(ByteBuffer.EMPTY));
         });
+    }
+
+    @Override
+    public @NotNull Lava<@NotNull InetSocketAddress> remoteAddress() {
+        return Lava.supplier(()->Lava.complete((InetSocketAddress)channel.getRemoteAddress()));
     }
 
     @Override

@@ -75,4 +75,20 @@ public record LdapResult(
                 resultCode,
                 LdapResultCode.ldapResultCode(resultCode));
     }
+
+    public @NotNull ByteBuffer write() {
+        @NotNull ByteBuffer resultBuffer=DER.writeEnumeratedTag(resultCode)
+                .append(DER.writeUtf8Tag(matchedDn))
+                .append(DER.writeUtf8Tag(diagnosticMessages));
+        if (!referrals.isEmpty()) {
+            @NotNull ByteBuffer referralsBuffer=ByteBuffer.EMPTY;
+            for (@NotNull String referral: referrals) {
+                referralsBuffer=referralsBuffer.append(DER.writeUtf8Tag(referral));
+            }
+            resultBuffer=resultBuffer.append(DER.writeTag(
+                    Ldap.LDAP_RESULT_REFERRALS,
+                    referralsBuffer));
+        }
+        return resultBuffer;
+    }
 }
