@@ -17,7 +17,7 @@ to help you choose an LDAP client implementation.
   - [Reactor](#reactor)
   - [Trampoline](#trampoline)
   - [Parallel operations](#parallel-operations)
-  - [TLS renegotiation](#ts-renegotiation)
+  - [TLS renegotiation](#tls-renegotiation)
 - [ldap4j.sh](#ldap4jsh)
 - [Docs](#docs)
   - [DNS lookups](#dns-lookups)
