@@ -75,6 +75,7 @@
                 <module>ldap4j-samples</module>
                 <module>ldap4j-slf4j-shim</module>
                 <module>ldap4j-tests</module>
+                <module>ldap4j-tests-docker</module>
                 <module>ldap4j-tests-slf4j</module>
             </modules>
         </profile>

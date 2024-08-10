@@ -28,8 +28,11 @@ Create test keys and certificates.
     ./create-keys.sh
 ```
 
+Set up docker.
+
 Run the tests.
 ```console
     mvn -Pdevelopment,test test -pl ldap4j-tests-slf4j 
     mvn -Pdevelopment,test test -pl ldap4j-tests 
+    mvn -Pdevelopment,test test -pl ldap4j-tests-docker 
 ```

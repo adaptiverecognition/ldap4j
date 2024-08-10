@@ -78,6 +78,15 @@ There's some integer parsing woes:
 
 Closes socket on unbind without a TLS shutdown.
 
+### Samba
+
+Fast bind is not supported.
+[Bug 9919 - Feature request: LDAP fast bind control (1.2.840.113556.1.4.1781) is not supported](https://bugzilla.samba.org/show_bug.cgi?id=9919)
+
+Samba refuses to approx match on vanilla attributes.
+
+Version: Samba 4
+
 ### Unboundid LDAP SDK
 
 There's some integer parsing woes:

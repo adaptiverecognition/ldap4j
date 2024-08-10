@@ -13,4 +13,3 @@
   - extensible match
   - fast bind
   - ms domain controller
-  - samba domain controller
