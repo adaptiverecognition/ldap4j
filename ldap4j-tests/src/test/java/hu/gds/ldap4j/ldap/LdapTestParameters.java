@@ -56,6 +56,18 @@ public class LdapTestParameters extends TestParameters {
                 serverPortClearText, serverPortTls, tls);
     }
 
+    public static @NotNull Pair<@NotNull InetSocketAddress, @NotNull TlsSettings> addressTlsSettings(
+            @NotNull Supplier<@NotNull InetSocketAddress> remoteClearTextAddress,
+            @NotNull Supplier<@NotNull InetSocketAddress> remoteTlsAddress,
+            @NotNull Tls tls)
+            throws Throwable {
+        return switch (tls) {
+            case CLEAR_TEXT -> Pair.of(remoteClearTextAddress.get(), TlsSettings.noTls());
+            case START_TLS -> Pair.of(remoteClearTextAddress.get(), LdapServer.clientTls(false, true, true));
+            case TLS -> Pair.of(remoteTlsAddress.get(), LdapServer.clientTls(false, false, true));
+        };
+    }
+
     public @NotNull Lava<@NotNull LdapConnection> connectionFactory(
             @NotNull TestContext<LdapTestParameters> context,
             boolean explicitTlsRenegotiation,
@@ -77,30 +89,16 @@ public class LdapTestParameters extends TestParameters {
             @NotNull Supplier<@NotNull InetSocketAddress> remoteTlsAddress,
             @Nullable Pair<@NotNull String, @NotNull String> simpleBind)
             throws Throwable {
-        @NotNull InetSocketAddress remoteAddress;
-        @NotNull TlsSettings tlsSettings;
-        switch (tls) {
-            case CLEAR_TEXT -> {
-                remoteAddress=remoteClearTextAddress.get();
-                tlsSettings=TlsSettings.noTls();
-            }
-            case START_TLS -> {
-                remoteAddress=remoteClearTextAddress.get();
-                tlsSettings=LdapServer.clientTls(false, true, true);
-            }
-            case TLS -> {
-                remoteAddress=remoteTlsAddress.get();
-                tlsSettings=LdapServer.clientTls(false, false, true);
-            }
-            default -> throw new IllegalStateException("unknown tls value %s".formatted(tls));
-        }
+        @NotNull Pair<@NotNull InetSocketAddress, @NotNull TlsSettings> addressTlsSettings
+                =addressTlsSettings(remoteClearTextAddress, remoteTlsAddress, tls);
         @NotNull Lava<@NotNull LdapConnection> connectionFactory0=LdapConnection.factory(
                 explicitTlsRenegotiation,
                 context.networkConnectionFactory().factory(
                         context.blockingIoContextHolder().context(),
+                        context.log(),
                         Map.of()),
-                remoteAddress,
-                tlsSettings);
+                addressTlsSettings.first(),
+                addressTlsSettings.second());
         @NotNull Lava<@NotNull LdapConnection> connectionFactory1;
         if (null==simpleBind) {
             connectionFactory1=connectionFactory0;

@@ -32,6 +32,7 @@ import org.apache.directory.server.protocol.shared.transport.TcpTransport;
 import org.apache.geronimo.javamail.authentication.CramMD5Authenticator;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -39,12 +40,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @CreateDS(
-        allowAnonAccess = true,
-        name = "test-directory-service",
-        partitions = {
+        allowAnonAccess=true,
+        name="test-directory-service",
+        partitions={
                 @CreatePartition(
-                        name = "test",
-                        suffix = "dc=test,dc=ldap4j,dc=gds,dc=hu")
+                        name="test",
+                        suffix="dc=test,dc=ldap4j,dc=gds,dc=hu")
         })
 @ApplyLdifFiles("hu/gds/ldap4j/ldap/apache-directory-studio-test.ldif")
 public class LdapConnectionVsApacheDirectoryStudioTest {
@@ -398,13 +399,16 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                 .compose((results)->{
                     assertFalse(results.isEmpty());
                     results=new ArrayList<>(results);
-                    assertTrue(results.remove(results.size()-1).isDone());
+                    assertTrue(results.remove(results.size()-1).message().isDone());
                     results.sort(
-                            Comparator.<SearchResult, Integer>comparing((result)->result.isReferral()?0:1)
-                                    .thenComparing((result)->result.isReferral()
-                                            ?result.asReferral().uris().toString()
-                                            :result.asEntry().objectName()));
-                    return Lava.complete(results);
+                            Comparator.<ControlsMessage<SearchResult>, Integer>comparing(
+                                            (result)->result.message().isReferral()?0:1)
+                                    .thenComparing((result)->result.message().isReferral()
+                                            ?result.message().asReferral().uris().toString()
+                                            :result.message().asEntry().objectName()));
+                    return Lava.complete(results.stream()
+                            .map(ControlsMessage::message)
+                            .toList());
                 });
     }
 

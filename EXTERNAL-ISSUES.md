@@ -144,4 +144,6 @@ Transports:
 
 Broken auto close combined with auto read means that the channel may get closed any time without warning.
 
+Shut down output is not a pipeline event.
+
 Version 4.1.106.Final.

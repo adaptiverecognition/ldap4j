@@ -73,6 +73,11 @@ public record ExtendedRequest(
     }
 
     @Override
+    public <T> T visit(@NotNull Visitor<T> visitor) throws Throwable {
+        return visitor.extendedRequest(this);
+    }
+
+    @Override
     public @NotNull ByteBuffer write() {
         ByteBuffer byteBuffer=DER.writeTag(
                 Ldap.PROTOCOL_OP_EXTENDED_REQUEST_NAME,

@@ -22,6 +22,11 @@ public record DeleteRequest(
     }
 
     @Override
+    public <T> T visit(@NotNull Visitor<T> visitor) throws Throwable {
+        return visitor.deleteRequest(this);
+    }
+
+    @Override
     public @NotNull ByteBuffer write() {
         return DER.writeTag(
                 Ldap.PROTOCOL_OP_DELETE_REQUEST,

@@ -54,6 +54,11 @@ public record ModifyRequest(
     }
 
     @Override
+    public <T> T visit(@NotNull Visitor<T> visitor) throws Throwable {
+        return visitor.modifyRequest(this);
+    }
+
+    @Override
     public @NotNull ByteBuffer write() {
         ByteBuffer changesBuffer=ByteBuffer.EMPTY;
         for (Change change: changes) {

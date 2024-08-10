@@ -7,7 +7,8 @@ import org.jetbrains.annotations.NotNull;
 
 public record BindResponse(
         @NotNull LdapResult ldapResult,
-        byte[] serverSaslCredentials) {
+        byte[] serverSaslCredentials)
+        implements Response {
     public static abstract class Reader implements MessageReader<BindResponse> {
         public static class SASL extends BindResponse.Reader {
             @Override
@@ -54,5 +55,10 @@ public record BindResponse(
     public BindResponse(@NotNull LdapResult ldapResult, byte[] serverSaslCredentials) {
         this.ldapResult=Objects.requireNonNull(ldapResult, "ldapResult");
         this.serverSaslCredentials=serverSaslCredentials;
+    }
+
+    @Override
+    public <T> T visit(@NotNull Visitor<T> visitor) throws Throwable {
+        return visitor.bindResponse(this);
     }
 }

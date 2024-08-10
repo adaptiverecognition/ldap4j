@@ -6,7 +6,8 @@ import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
 public record ModifyResponse(
-        @NotNull LdapResult ldapResult) {
+        @NotNull LdapResult ldapResult)
+        implements Response {
     public static class Reader implements MessageReader<ModifyResponse> {
         @Override
         public void check(
@@ -29,5 +30,10 @@ public record ModifyResponse(
 
     public ModifyResponse(@NotNull LdapResult ldapResult) {
         this.ldapResult=Objects.requireNonNull(ldapResult, "ldapResult");
+    }
+
+    @Override
+    public <T> T visit(@NotNull Visitor<T> visitor) throws Throwable {
+        return visitor.modifyResponse(this);
     }
 }

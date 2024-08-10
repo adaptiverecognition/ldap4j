@@ -13,6 +13,7 @@ import hu.gds.ldap4j.ldap.MessageIdGenerator;
 import hu.gds.ldap4j.ldap.MessageReader;
 import hu.gds.ldap4j.ldap.ParallelMessageReader;
 import hu.gds.ldap4j.ldap.Request;
+import hu.gds.ldap4j.ldap.Response;
 import hu.gds.ldap4j.ldap.SearchRequest;
 import hu.gds.ldap4j.ldap.SearchResult;
 import hu.gds.ldap4j.net.TlsSettings;
@@ -83,7 +84,7 @@ public class ReactorLdapConnection {
         return lavaToMono(connection.restartTlsHandshake(consumer));
     }
 
-    public @NotNull Mono<@NotNull List<@NotNull SearchResult>> search(
+    public @NotNull Mono<@NotNull List<@NotNull ControlsMessage<SearchResult>>> search(
             @NotNull ControlsMessage<SearchRequest> request) {
         return lavaToMono(connection.search(request));
     }
@@ -137,7 +138,8 @@ public class ReactorLdapConnection {
         return lavaToMono(connection.writeMessage(message, messageIdGenerator));
     }
 
-    public <M extends Request<M, R>, R> @NotNull Mono<@NotNull ControlsMessage<R>> writeRequestReadResponseChecked(
+    public <M extends Request<M, R>, R extends Response>
+    @NotNull Mono<@NotNull ControlsMessage<R>> writeRequestReadResponseChecked(
             @NotNull ControlsMessage<M> request) {
         return lavaToMono(connection.writeRequestReadResponseChecked(request));
     }

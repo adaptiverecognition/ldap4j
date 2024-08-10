@@ -143,6 +143,7 @@ public class LdapConnectionTest {
                                             .compose((searchResults)->{
                                                 List<String> members=new ArrayList<>(
                                                         searchResults.stream()
+                                                                .map(ControlsMessage::message)
                                                                 .filter(SearchResult::isEntry)
                                                                 .map(SearchResult::asEntry)
                                                                 .flatMap((entry)->entry.attributes().stream())
@@ -374,11 +375,11 @@ public class LdapConnectionTest {
                                                             .controlsEmpty())
                                             .compose((results)->{
                                                 assertEquals(2, results.size());
-                                                assertTrue(results.get(0).isEntry());
+                                                assertTrue(results.get(0).message().isEntry());
                                                 assertEquals(
                                                         "cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
-                                                        results.get(0).asEntry().objectName());
-                                                assertTrue(results.get(1).isDone());
+                                                        results.get(0).message().asEntry().objectName());
+                                                assertTrue(results.get(1).message().isDone());
                                                 return loop(connection, iterator);
                                             });
                                 }
@@ -462,11 +463,11 @@ public class LdapConnectionTest {
                                                             .controlsEmpty())
                                             .compose((results)->{
                                                 assertEquals(2, results.size());
-                                                assertTrue(results.get(0).isEntry());
+                                                assertTrue(results.get(0).message().isEntry());
                                                 assertEquals(
                                                         "cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
-                                                        results.get(0).asEntry().objectName());
-                                                assertTrue(results.get(1).isDone());
+                                                        results.get(0).message().asEntry().objectName());
+                                                assertTrue(results.get(1).message().isDone());
                                                 return loop(connection, iterator);
                                             });
                                 }
@@ -542,6 +543,7 @@ public class LdapConnectionTest {
                                             .compose((searchResults)->{
                                                 List<String> members=new ArrayList<>(
                                                         searchResults.stream()
+                                                                .map(ControlsMessage::message)
                                                                 .filter(SearchResult::isEntry)
                                                                 .map(SearchResult::asEntry)
                                                                 .flatMap((entry)->entry.attributes().stream())
@@ -673,6 +675,7 @@ public class LdapConnectionTest {
                                             .compose((searchResults)->{
                                                 List<String> members=new ArrayList<>(
                                                         searchResults.stream()
+                                                                .map(ControlsMessage::message)
                                                                 .filter(SearchResult::isEntry)
                                                                 .map(SearchResult::asEntry)
                                                                 .flatMap((entry)->entry.attributes().stream())
@@ -870,9 +873,9 @@ public class LdapConnectionTest {
                                 .controlsEmpty())
                 .compose((searchResult)->{
                     assertEquals(2, searchResult.size());
-                    assertTrue(searchResult.get(0).isEntry());
-                    assertTrue(searchResult.get(1).isDone());
-                    SearchResult.Entry entry=searchResult.get(0).asEntry();
+                    assertTrue(searchResult.get(0).message().isEntry());
+                    assertTrue(searchResult.get(1).message().isDone());
+                    SearchResult.Entry entry=searchResult.get(0).message().asEntry();
                     assertEquals(
                             responseAttributes,
                             entry.attributes()
@@ -989,10 +992,10 @@ public class LdapConnectionTest {
                         expectedDns.add("uid=user1,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu");
                     }
                     Set<String> actualDns=new HashSet<>(3);
-                    for (SearchResult result: searchResult) {
-                        assertFalse(result.isReferral());
-                        if (result.isEntry()) {
-                            actualDns.add(result.asEntry().objectName());
+                    for (ControlsMessage<SearchResult> result: searchResult) {
+                        assertFalse(result.message().isReferral());
+                        if (result.message().isEntry()) {
+                            actualDns.add(result.message().asEntry().objectName());
                         }
                     }
                     assertEquals(expectedDns, actualDns);
@@ -1008,7 +1011,7 @@ public class LdapConnectionTest {
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
             for (boolean manageDsaIt: new boolean[]{false, true}) {
-                List<SearchResult> result;
+                List<ControlsMessage<SearchResult>> result;
                 @NotNull List<@NotNull String> referrals;
                 try {
                     result=context.get(
@@ -1029,10 +1032,10 @@ public class LdapConnectionTest {
                         fail("should have failed");
                     }
                     assertEquals(2, result.size());
-                    assertTrue(result.get(0).isEntry());
-                    SearchResult.Entry entry=result.get(0).asEntry();
+                    assertTrue(result.get(0).message().isEntry());
+                    SearchResult.Entry entry=result.get(0).message().asEntry();
                     assertEquals("cn=referral0,ou=test,dc=ldap4j,dc=gds,dc=hu", entry.objectName());
-                    assertTrue(result.get(1).isDone());
+                    assertTrue(result.get(1).message().isDone());
                     assertEquals(1, entry.attributes().size());
                     PartialAttribute attribute=entry.attributes().get(0);
                     assertEquals("ref", attribute.type());
@@ -1097,11 +1100,11 @@ public class LdapConnectionTest {
                                                             .controlsEmpty())
                                             .compose((results)->{
                                                 assertEquals(2, results.size());
-                                                assertTrue(results.get(0).isEntry());
+                                                assertTrue(results.get(0).message().isEntry());
                                                 assertEquals(
                                                         "cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
-                                                        results.get(0).asEntry().objectName());
-                                                assertTrue(results.get(1).isDone());
+                                                        results.get(0).message().asEntry().objectName());
+                                                assertTrue(results.get(1).message().isDone());
                                                 return loop(connection, iterator);
                                             });
                                 }
@@ -1117,7 +1120,7 @@ public class LdapConnectionTest {
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
             for (String user: LdapServer.USERS.keySet()) {
-                List<SearchResult> results=context.get(
+                List<ControlsMessage<SearchResult>> results=context.get(
                         Closeable.withCloseable(
                                 ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
                                 (connection)->connection.search(
@@ -1131,10 +1134,10 @@ public class LdapConnectionTest {
                                                 10,
                                                 false)
                                                 .controlsEmpty())));
-                assertTrue(results.get(results.size()-1).isDone());
+                assertTrue(results.get(results.size()-1).message().isDone());
                 results=new ArrayList<>(results);
                 results.remove(results.size()-1);
-                results.sort(Comparator.comparing((result)->result.asEntry().objectName()));
+                results.sort(Comparator.comparing((result)->result.message().asEntry().objectName()));
                 List<String> groups=new ArrayList<>();
                 LdapServer.GROUPS.forEach((group, users)->{
                     if (users.contains(user)) {
@@ -1147,11 +1150,15 @@ public class LdapConnectionTest {
                     String group=groups.get(ii);
                     String cn=group.substring(group.indexOf('=')+1, group.indexOf(','));
                     assertEquals(
-                            new SearchResult.Entry(
-                                    List.of(
-                                            new PartialAttribute("objectClass", List.of("top", "groupOfNames")),
-                                            new PartialAttribute("cn", List.of(cn))),
-                                    group),
+                            new ControlsMessage<>(
+                                    List.of(),
+                                    new SearchResult.Entry(
+                                            List.of(
+                                                    new PartialAttribute(
+                                                            "objectClass",
+                                                            List.of("top", "groupOfNames")),
+                                                    new PartialAttribute("cn", List.of(cn))),
+                                            group)),
                             results.get(ii));
                 }
             }

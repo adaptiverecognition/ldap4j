@@ -58,6 +58,7 @@ public class TestParameters {
         blockingIoContextHolderFactories.add(NewThreadContextHolder.factory(null));
         blockingIoContextHolderFactories.add(ThreadPoolContextHolder.factory(8, null));
         List<@NotNull Supplier<@NotNull NetworkConnectionFactory>> networkConnectionFactories=new ArrayList<>();
+        networkConnectionFactories.add(NetworkConnectionFactory.engineConnection());
         networkConnectionFactories.add(NetworkConnectionFactory.javaAsyncChannel());
         networkConnectionFactories.add(NetworkConnectionFactory.javaBlockingSocket());
         networkConnectionFactories.add(NetworkConnectionFactory.javaChannelPoll());

@@ -35,12 +35,17 @@ public class JoinCallback<T> implements Callback<T>, SingleRun {
     }
 
     private @Nullable Either<T, Throwable> either;
-    public final @NotNull Object lock=new Object();
+    public final @NotNull Object lock;
 
     private final @NotNull Clock clock;
 
     public JoinCallback(@NotNull Clock clock) {
+        this(clock, new Object());
+    }
+
+    public JoinCallback(@NotNull Clock clock, @NotNull Object lock) {
         this.clock=Objects.requireNonNull(clock, "clock");
+        this.lock=Objects.requireNonNull(lock, "lock");
     }
 
     public boolean completed() {
@@ -56,6 +61,15 @@ public class JoinCallback<T> implements Callback<T>, SingleRun {
                 either=Either.left(value);
                 lock.notifyAll();
             }
+        }
+    }
+
+    public @NotNull Either<T, @NotNull Throwable> either() {
+        synchronized (lock) {
+            if (null==either) {
+                throw new RuntimeException("not completed");
+            }
+            return either;
         }
     }
 
@@ -87,6 +101,14 @@ public class JoinCallback<T> implements Callback<T>, SingleRun {
                 clock.synchronizedWaitEndNanosTimeout(endNanos, lock);
             }
         }
+    }
+
+    public @NotNull Lava<T> lava() {
+        @NotNull Either<T, @NotNull Throwable> either=either();
+        if (either.isRight()) {
+            return Lava.fail(either.right());
+        }
+        return Lava.complete(either.left());
     }
 
     public T result() throws JoinFailedException, JoinNotCompletedException {

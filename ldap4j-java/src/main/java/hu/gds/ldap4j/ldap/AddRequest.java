@@ -25,6 +25,11 @@ public record AddRequest(
     }
 
     @Override
+    public <T> T visit(@NotNull Visitor<T> visitor) throws Throwable {
+        return visitor.addRequest(this);
+    }
+
+    @Override
     public @NotNull ByteBuffer write() {
         ByteBuffer attributesBuffer=ByteBuffer.EMPTY;
         for (PartialAttribute attribute: attributes) {

@@ -13,6 +13,7 @@ import hu.gds.ldap4j.ldap.MessageIdGenerator;
 import hu.gds.ldap4j.ldap.MessageReader;
 import hu.gds.ldap4j.ldap.ParallelMessageReader;
 import hu.gds.ldap4j.ldap.Request;
+import hu.gds.ldap4j.ldap.Response;
 import hu.gds.ldap4j.ldap.SearchRequest;
 import hu.gds.ldap4j.ldap.SearchResult;
 import hu.gds.ldap4j.net.DuplexConnection;
@@ -142,7 +143,7 @@ public record TrampolineLdapConnection(
                 .get(true, true, connection.restartTlsHandshake(consumer));
     }
 
-    public @NotNull List<@NotNull SearchResult> search(
+    public @NotNull List<@NotNull ControlsMessage<SearchResult>> search(
             long endNanos, @NotNull ControlsMessage<SearchRequest> request) throws Throwable {
         return trampoline.contextEndNanos(endNanos)
                 .get(true, true, connection.search(request));
@@ -171,7 +172,7 @@ public record TrampolineLdapConnection(
                 .get(true, true, connection.writeMessage(message, messageIdGenerator));
     }
 
-    public <M extends Request<M, R>, R> @NotNull ControlsMessage<R> writeRequestReadResponseChecked(
+    public <M extends Request<M, R>, R extends Response> @NotNull ControlsMessage<R> writeRequestReadResponseChecked(
             long endNanos, @NotNull ControlsMessage<M> request) throws Throwable {
         return trampoline.contextEndNanos(endNanos)
                 .get(true, true, connection.writeRequestReadResponseChecked(request));

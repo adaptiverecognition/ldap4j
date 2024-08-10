@@ -15,6 +15,7 @@ import hu.gds.ldap4j.ldap.MessageIdGenerator;
 import hu.gds.ldap4j.ldap.MessageReader;
 import hu.gds.ldap4j.ldap.ParallelMessageReader;
 import hu.gds.ldap4j.ldap.Request;
+import hu.gds.ldap4j.ldap.Response;
 import hu.gds.ldap4j.ldap.SearchRequest;
 import hu.gds.ldap4j.ldap.SearchResult;
 import hu.gds.ldap4j.net.DuplexConnection;
@@ -124,7 +125,7 @@ public class FutureLdapConnection {
         return startLava(connection.restartTlsHandshake(consumer));
     }
 
-    public @NotNull CompletableFuture<@NotNull List<@NotNull SearchResult>> search(
+    public @NotNull CompletableFuture<@NotNull List<@NotNull ControlsMessage<SearchResult>>> search(
             @NotNull ControlsMessage<SearchRequest> request) {
         return startLava(connection.search(request));
     }
@@ -153,7 +154,7 @@ public class FutureLdapConnection {
         return startLava(connection.writeMessage(message, messageIdGenerator));
     }
 
-    public <M extends Request<M, R>, R>
+    public <M extends Request<M, R>, R extends Response>
     @NotNull CompletableFuture<@NotNull ControlsMessage<R>> writeRequestReadResponseChecked(
             @NotNull ControlsMessage<M> request) {
         return startLava(connection.writeRequestReadResponseChecked(request));

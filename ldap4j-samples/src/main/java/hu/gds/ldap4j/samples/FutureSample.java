@@ -3,6 +3,7 @@ package hu.gds.ldap4j.samples;
 import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.future.FutureLdapConnection;
 import hu.gds.ldap4j.ldap.BindRequest;
+import hu.gds.ldap4j.ldap.ControlsMessage;
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.Filter;
 import hu.gds.ldap4j.ldap.Scope;
@@ -62,6 +63,7 @@ public class FutureSample {
                                 .thenCompose((searchResults)->{
                                     System.out.println("mathematicians:");
                                     searchResults.stream()
+                                            .map(ControlsMessage::message)
                                             .filter(SearchResult::isEntry)
                                             .map(SearchResult::asEntry)
                                             .flatMap((entry)->entry.attributes().stream())

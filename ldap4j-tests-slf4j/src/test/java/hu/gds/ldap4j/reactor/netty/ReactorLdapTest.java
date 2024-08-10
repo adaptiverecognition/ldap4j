@@ -127,15 +127,15 @@ public class ReactorLdapTest {
                                             .controlsEmpty()),
                             (searchResults)->{
                                 assertEquals(2, searchResults.size(), searchResults.toString());
-                                assertTrue(searchResults.get(0).isEntry());
-                                SearchResult.Entry entry=searchResults.get(0).asEntry();
+                                assertTrue(searchResults.get(0).message().isEntry());
+                                SearchResult.Entry entry=searchResults.get(0).message().asEntry();
                                 assertEquals(user.getKey(), entry.objectName());
                                 assertEquals(1, entry.attributes().size());
                                 PartialAttribute attribute2=entry.attributes().get(0);
                                 assertNotNull(attribute2);
                                 assertEquals(attribute, attribute2.type());
                                 assertEquals(List.of(value), attribute2.values());
-                                assertTrue(searchResults.get(1).isDone());
+                                assertTrue(searchResults.get(1).message().isDone());
                                 return Mono.empty();
                             });
                 });

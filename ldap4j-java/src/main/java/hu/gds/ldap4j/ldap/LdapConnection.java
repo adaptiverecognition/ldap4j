@@ -261,23 +261,23 @@ public class LdapConnection implements Connection {
         return Lava.supplier(()->connection().restartTlsHandshake(consumer));
     }
 
-    public @NotNull Lava<@NotNull List<@NotNull SearchResult>> search(
+    public @NotNull Lava<@NotNull List<@NotNull ControlsMessage<SearchResult>>> search(
             @NotNull ControlsMessage<SearchRequest> request) {
         return search(messageIdGenerator, request);
     }
 
-    public @NotNull Lava<@NotNull List<@NotNull SearchResult>> search(
+    public @NotNull Lava<@NotNull List<@NotNull ControlsMessage<SearchResult>>> search(
             @NotNull MessageIdGenerator messageIdGenerator,
             @NotNull ControlsMessage<SearchRequest> request) {
         return writeMessage(request, messageIdGenerator)
                 .compose((messageId)->search(messageId, new ArrayList<>()));
     }
 
-    private @NotNull Lava<@NotNull List<@NotNull SearchResult>> search(
-            int messageId, @NotNull List<@NotNull SearchResult> result) {
+    private @NotNull Lava<@NotNull List<@NotNull ControlsMessage<SearchResult>>> search(
+            int messageId, @NotNull List<@NotNull ControlsMessage<SearchResult>> result) {
         return readMessageChecked(messageId, SearchResult.READER)
                 .compose((searchResult)->{
-                    result.add(searchResult.message());
+                    result.add(new ControlsMessage<>(searchResult.controls(), searchResult.message()));
                     if (searchResult.message().isDone()) {
                         return Lava.complete(result);
                     }
@@ -350,7 +350,8 @@ public class LdapConnection implements Connection {
         });
     }
 
-    public <M extends Request<M, R>, R> @NotNull Lava<@NotNull ControlsMessage<R>> writeRequestReadResponseChecked(
+    public <M extends Request<M, R>, R extends Response>
+    @NotNull Lava<@NotNull ControlsMessage<R>> writeRequestReadResponseChecked(
             @NotNull ControlsMessage<M> request) {
         return writeMessage(request)
                 .compose((messageId)->readMessageChecked(messageId, request.message().responseReader()))

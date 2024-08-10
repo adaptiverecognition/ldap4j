@@ -24,6 +24,11 @@ public record CompareRequest(
     }
 
     @Override
+    public <T> T visit(@NotNull Visitor<T> visitor) throws Throwable {
+        return visitor.compareRequest(this);
+    }
+
+    @Override
     public @NotNull ByteBuffer write() throws Throwable {
         return DER.writeTag(
                 Ldap.PROTOCOL_OP_COMPARE_REQUEST,

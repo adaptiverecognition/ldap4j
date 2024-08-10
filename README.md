@@ -14,6 +14,7 @@ to help you choose an LDAP client implementation.
 - [How to use](#how-to-use)
   - [Future](#future)
   - [Lava](#lava)
+  - [Netty codec](#netty-codec)
   - [Reactor](#reactor)
   - [Trampoline](#trampoline)
   - [Parallel operations](#parallel-operations)
@@ -24,9 +25,11 @@ to help you choose an LDAP client implementation.
   - [I/O exceptions](#io-exceptions)
   - [Lava](#lava-1)
     - [Executor](#executor)
+    - [Lava engine](#lava-engine)
     - [Trampoline](#trampoline-1)
   - [Transports](#transports)
     - [Apache MINA](#apache-mina)
+    - [Engine connection](#engine-connection)
     - [Java NIO channel, asynchronous](#java-nio-channel-asynchronous)
     - [Java NIO channel, polling](#java-nio-channel-polling)
     - [Netty](#netty)
@@ -181,6 +184,7 @@ This requires a thread pool.
                         .thenCompose((searchResults)->{
                             System.out.println("mathematicians:");
                             searchResults.stream()
+                                    .map(ControlsMessage::message)
                                     .filter(SearchResult::isEntry)
                                     .map(SearchResult::asEntry)
                                     .flatMap((entry)->entry.attributes().stream())
@@ -246,6 +250,7 @@ Lava can be used reactive-style.
                                 .compose((searchResults)->{
                                     System.out.println("mathematicians:");
                                     searchResults.stream()
+                                            .map(ControlsMessage::message)
                                             .filter(SearchResult::isEntry)
                                             .map(SearchResult::asEntry)
                                             .flatMap((entry)->entry.attributes().stream())
@@ -281,6 +286,16 @@ Lava can be used reactive-style.
         }
     }
 ```
+
+### Netty codec
+
+Ldap4j can be used as a codec in a Netty pipeline, through the `NettyCodec` class.
+It handles Netty `ByteBuf`s on the channel side,
+and accepts `Request` objects from the application side, and returns `Response`s.
+
+Check out the
+[`NettyCodecSample`](https://github.com/adaptiverecognition/ldap4j/blob/master/ldap4j-samples/src/main/java/hu/gds/ldap4j/samples/NettyCodecSample.java)
+for details.
     
 ### Reactor
 
@@ -364,6 +379,7 @@ After starting the sample, the application can be reached [here](http://127.0.0.
                 .flatMap((searchResults)->{
                     output.append("mathematicians:<br>");
                     searchResults.stream()
+                              .map(ControlsMessage::message)
                               .filter(SearchResult::isEntry)
                               .map(SearchResult::asEntry)
                               .flatMap((entry)->entry.attributes().stream())
@@ -421,7 +437,7 @@ The transport is hardcoded to Java NIO polling.
                     .controlsEmpty());
 
     // look up mathematicians
-    List<SearchResult> searchResults=connection.search(
+    List<ControlsMessage<SearchResult>> searchResults=connection.search(
             endNanos,
             new SearchRequest(
                         List.of("uniqueMember"), // attributes
@@ -435,6 +451,7 @@ The transport is hardcoded to Java NIO polling.
                     .controlsEmpty());
     System.out.println("mathematicians:");
     searchResults.stream()
+            .map(ControlsMessage::message)
             .filter(SearchResult::isEntry)
             .map(SearchResult::asEntry)
             .flatMap((entry)->entry.attributes().stream())
@@ -693,11 +710,33 @@ is provided, it's called `ScheduledExecutorContext`.
 When the environment doesn't provide a scheduled executor, the `MinHeap` class can be used
 to implement `Context.awaitEndNanos()`.
 
+#### Lava engine
+
+A `LavaEngine` is and event-driven executor, which evaluates lava objects in a single thread, completely synchronously.
+It uses a queue to delay tasks, and consumes tasks in a loop until the result is produced,
+or there's no more tasks that can be run immediately.
+
+A new computation can be started by `JoinCallback<T> LdapEngine.get(Lava<T>)`.
+
+Then `LdapEngine.runAll()` must be called repeatedly,
+while the result is not yet produced, and sufficient time elapsed.
+
+External events have to be delivered explicitly through helper classes, like `EngineConnection`,
+or through starting new computations with `LdapEngine.get()`
+
 #### Trampoline
 
-A trampoline evaluates lava objects in a single thread, completely synchronously.
+A `Trampoline` evaluates lava objects in a single thread, completely synchronously.
 It uses a queue to delay tasks, and consumes tasks in a loop until the result is produced.
 It supports waits without busy-waiting, using Object.wait().
+
+A new computation can be started by `T Trampoline.contextEndNanos(long).get(boolean, boolean, Lava<T>)`.
+
+The main difference of an `LdapEngine` and a `Trampoline` is in how they handle waits.
+An `LdapEngine` is used for polling, and it won't block the current thread,
+only running tasks that are immediately available.
+A `Trampoline` will block the current thread
+when the result is not yet produced and there's no tasks that can be run immediately.
 
 ### Transports
 
@@ -707,7 +746,12 @@ Glue logic for multiple libraries are provided.
 #### Apache MINA
 
 A `MinaConnection` requires an
-[IoProcessor](https://nightlies.apache.org/mina/mina/2.2.0/apidocs/org/apache/mina/core/service/IoProcessor.html). 
+[IoProcessor](https://nightlies.apache.org/mina/mina/2.2.0/apidocs/org/apache/mina/core/service/IoProcessor.html).
+
+#### Engine connection
+
+`EngineConnection` is an event-driven connection.
+It's backed up by a read and a write buffer in memory, which can be queried and updated synchronously.
 
 #### Java NIO channel, asynchronous
 

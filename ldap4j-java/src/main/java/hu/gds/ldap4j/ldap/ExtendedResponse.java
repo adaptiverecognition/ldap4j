@@ -13,7 +13,7 @@ public record ExtendedResponse(
         @NotNull LdapResult ldapResult,
         @Nullable String responseName,
         @Nullable String responseValue)
-        implements Message<ExtendedResponse> {
+        implements Message<ExtendedResponse>, Response {
     public static abstract class Reader implements MessageReader<ExtendedResponse> {
         public static class Cancel extends ExtendedResponse.Reader {
             @Override
@@ -100,6 +100,11 @@ public record ExtendedResponse(
     @Override
     public @NotNull ExtendedResponse self() {
         return this;
+    }
+
+    @Override
+    public <T> T visit(Response.@NotNull Visitor<T> visitor) throws Throwable {
+        return visitor.extendedResponse(this);
     }
 
     @Override

@@ -6,7 +6,8 @@ import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
 public record DeleteResponse(
-        @NotNull LdapResult ldapResult) {
+        @NotNull LdapResult ldapResult)
+        implements Response {
     public static class Reader implements MessageReader<DeleteResponse> {
         @Override
         public void check(
@@ -29,5 +30,10 @@ public record DeleteResponse(
 
     public DeleteResponse(@NotNull LdapResult ldapResult) {
         this.ldapResult=Objects.requireNonNull(ldapResult, "ldapResult");
+    }
+
+    @Override
+    public <T> T visit(@NotNull Visitor<T> visitor) throws Throwable {
+        return visitor.deleteResponse(this);
     }
 }

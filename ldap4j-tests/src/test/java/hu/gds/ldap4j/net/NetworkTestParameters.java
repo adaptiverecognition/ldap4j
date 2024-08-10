@@ -125,6 +125,7 @@ public class NetworkTestParameters extends TestParameters {
         @NotNull Lava<@NotNull DuplexConnection> connectionFactory0
                 =context.networkConnectionFactory().factory(
                         context.blockingIoContextHolder().context(),
+                        context.log(),
                         socketOptions)
                 .apply(remoteAddress);
         @NotNull Lava<@NotNull DuplexConnection> connectionFactory1

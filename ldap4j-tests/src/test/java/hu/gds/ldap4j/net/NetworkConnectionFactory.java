@@ -1,6 +1,7 @@
 package hu.gds.ldap4j.net;
 
 import hu.gds.ldap4j.Function;
+import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.Supplier;
 import hu.gds.ldap4j.lava.Context;
 import hu.gds.ldap4j.lava.Lava;
@@ -29,8 +30,42 @@ public interface NetworkConnectionFactory extends AutoCloseable {
 
     @NotNull Function<@NotNull InetSocketAddress, Lava<@NotNull DuplexConnection>> factory(
             @NotNull Context blockingIoContext,
+            @NotNull Log log,
             @NotNull Map<@NotNull SocketOption<?>, @NotNull Object> socketOptions)
             throws Throwable;
+
+    static @NotNull Supplier<@NotNull NetworkConnectionFactory> engineConnection() {
+        return new Supplier<>() {
+            @Override
+            public NetworkConnectionFactory get() {
+                return new NetworkConnectionFactory() {
+                    @Override
+                    public void close() {
+                    }
+
+                    @Override
+                    public @NotNull Function<@NotNull InetSocketAddress, Lava<@NotNull DuplexConnection>> factory(
+                            @NotNull Context blockingIoContext,
+                            @NotNull Log log,
+                            @NotNull Map<@NotNull SocketOption<?>, @NotNull Object> socketOptions) {
+                        return TestEngineConnection.factory(
+                                JavaAsyncChannelConnection.factory(null, socketOptions),
+                                log);
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "NetworkConnectionFactory.engineConnection()()";
+                    }
+                };
+            }
+
+            @Override
+            public String toString() {
+                return "NetworkConnectionFactory.engineConnection()";
+            }
+        };
+    }
 
     static @NotNull Supplier<@NotNull NetworkConnectionFactory> javaAsyncChannel() {
         return new Supplier<>() {
@@ -44,6 +79,7 @@ public interface NetworkConnectionFactory extends AutoCloseable {
                     @Override
                     public @NotNull Function<@NotNull InetSocketAddress, Lava<@NotNull DuplexConnection>> factory(
                             @NotNull Context blockingIoContext,
+                            @NotNull Log log,
                             @NotNull Map<@NotNull SocketOption<?>, @NotNull Object> socketOptions) {
                         return JavaAsyncChannelConnection.factory(null, socketOptions);
                     }
@@ -74,6 +110,7 @@ public interface NetworkConnectionFactory extends AutoCloseable {
                     @Override
                     public @NotNull Function<@NotNull InetSocketAddress, Lava<@NotNull DuplexConnection>> factory(
                             @NotNull Context blockingIoContext,
+                            @NotNull Log log,
                             @NotNull Map<@NotNull SocketOption<?>, @NotNull Object> socketOptions) {
                         return JavaBlockingSocketConnection.factory(blockingIoContext, socketOptions);
                     }
@@ -104,6 +141,7 @@ public interface NetworkConnectionFactory extends AutoCloseable {
                     @Override
                     public @NotNull Function<@NotNull InetSocketAddress, Lava<@NotNull DuplexConnection>> factory(
                             @NotNull Context blockingIoContext,
+                            @NotNull Log log,
                             @NotNull Map<@NotNull SocketOption<?>, @NotNull Object> socketOptions) {
                         return JavaChannelPollConnection.factory(socketOptions);
                     }
@@ -157,6 +195,7 @@ public interface NetworkConnectionFactory extends AutoCloseable {
                     @Override
                     public @NotNull Function<@NotNull InetSocketAddress, Lava<@NotNull DuplexConnection>> factory(
                             @NotNull Context blockingIoContext,
+                            @NotNull Log log,
                             @NotNull Map<@NotNull SocketOption<?>, @NotNull Object> socketOptions) {
                         if (null==processor) {
                             if (null==executor) {
@@ -211,6 +250,7 @@ public interface NetworkConnectionFactory extends AutoCloseable {
                     @Override
                     public @NotNull Function<@NotNull InetSocketAddress, Lava<@NotNull DuplexConnection>> factory(
                             @NotNull Context blockingIoContext,
+                            @NotNull Log log,
                             @NotNull Map<@NotNull SocketOption<?>, @NotNull Object> socketOptions) throws Throwable {
                         if (null==eventLoopGroup) {
                             eventLoopGroup=eventLoopGroupFactory.apply(8);

@@ -3,6 +3,7 @@ package hu.gds.ldap4j;
 import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.CompareRequest;
 import hu.gds.ldap4j.ldap.CompareResponse;
+import hu.gds.ldap4j.ldap.ControlsMessage;
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.ExtendedRequest;
 import hu.gds.ldap4j.ldap.Filter;
@@ -282,10 +283,10 @@ public class Ldap4jCommand {
         System.out.printf("\tsize limit: %,d entries%n", searchRequest.sizeLimitEntries());
         System.out.printf("\ttime limit: %,d sec%n", searchRequest.timeLimitSeconds());
         System.out.printf("\ttypes only: %s%n", searchRequest.typesOnly());
-        @NotNull List<@NotNull SearchResult> searchResults
+        @NotNull List<@NotNull ControlsMessage<SearchResult>> searchResults
                 =connection.search(endNanos, searchRequest.controlsManageDsaIt(manageDsaIt));
-        for (SearchResult searchResult: searchResults) {
-            searchResult.visit(new SearchResult.Visitor<>() {
+        for (@NotNull ControlsMessage<SearchResult> searchResult: searchResults) {
+            searchResult.message().visit(new SearchResult.Visitor<>() {
                 @Override
                 public Void done(@NotNull SearchResult.Done done) {
                     System.out.printf("search done%n");

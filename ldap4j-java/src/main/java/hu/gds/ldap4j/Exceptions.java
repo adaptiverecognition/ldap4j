@@ -126,9 +126,29 @@ public class Exceptions {
     public static void addSuppressed(@NotNull Throwable suppressed, @NotNull Throwable throwable) {
         Objects.requireNonNull(suppressed, "suppressed");
         Objects.requireNonNull(throwable, "throwable");
-        if (!suppressed.equals(throwable)) {
+        if (!contains(suppressed, throwable)) {
             throwable.addSuppressed(suppressed);
         }
+    }
+
+    public static boolean contains(@NotNull Throwable suppressed, @Nullable Throwable throwable) {
+        Objects.requireNonNull(suppressed, "suppressed");
+        if (null==throwable) {
+            return false;
+        }
+        if (suppressed.equals(throwable)) {
+            return true;
+        }
+        if (contains(suppressed, throwable.getCause())) {
+            return true;
+        }
+        @NotNull Throwable[] throwable2=throwable.getSuppressed();
+        for (Throwable throwable3: throwable2) {
+            if (contains(suppressed, throwable3)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static @NotNull TimeoutException asTimeoutException(@NotNull Throwable throwable) {
@@ -181,6 +201,14 @@ public class Exceptions {
         }
         if (null==throwable1) {
             return throwable0;
+        }
+        addSuppressed(throwable1, throwable0);
+        return throwable0;
+    }
+
+    public static @NotNull Throwable joinNotNull(@Nullable Throwable throwable0, @NotNull Throwable throwable1) {
+        if (null==throwable0) {
+            return throwable1;
         }
         addSuppressed(throwable1, throwable0);
         return throwable0;

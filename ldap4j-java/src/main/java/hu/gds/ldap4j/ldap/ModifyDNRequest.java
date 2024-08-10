@@ -33,6 +33,11 @@ public record ModifyDNRequest(
     }
 
     @Override
+    public <T> T visit(@NotNull Visitor<T> visitor) throws Throwable {
+        return visitor.modifyDNRequest(this);
+    }
+
+    @Override
     public @NotNull ByteBuffer write() {
         ByteBuffer requestBuffer=DER.writeUtf8Tag(entry)
                 .append(DER.writeUtf8Tag(newRDN))

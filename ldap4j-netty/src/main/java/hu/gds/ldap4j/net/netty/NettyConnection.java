@@ -10,7 +10,6 @@ import hu.gds.ldap4j.net.ByteBuffer;
 import hu.gds.ldap4j.net.DuplexConnection;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -44,10 +43,7 @@ public class NettyConnection implements DuplexConnection {
         protected void channelRead0(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf) {
             try {
                 Objects.requireNonNull(byteBuf, "byteBuf");
-                byte[] array=new byte[byteBuf.readableBytes()];
-                byteBuf.readBytes(array);
-                ByteBuffer byteBuffer=ByteBuffer.create(array);
-                read.completed(byteBuffer);
+                read.completed(NettyBuffers.fromNetty(byteBuf));
             }
             catch (Throwable throwable) {
                 log.error(getClass(), throwable);
@@ -266,27 +262,23 @@ public class NettyConnection implements DuplexConnection {
     @Override
     public @NotNull Lava<Void> write(@NotNull ByteBuffer value) {
         return Write.writeStatic(
-                (context, work)->{
-                    ByteBuf byteBuf=Unpooled.buffer(value.size());
-                    value.write(byteBuf::writeBytes);
-                    channel.writeAndFlush(byteBuf)
-                            .addListener(new ErrorListener(log) {
-                                @Override
-                                protected void completed() {
-                                    work.completed(null);
-                                }
+                (context, work)->channel.writeAndFlush(NettyBuffers.toNetty(value))
+                        .addListener(new ErrorListener(log) {
+                            @Override
+                            protected void completed() {
+                                work.completed(null);
+                            }
 
-                                @Override
-                                protected void failed(@NotNull Throwable throwable) {
-                                    if ((throwable instanceof ChannelOutputShutdownException)
-                                            && (null!=throwable.getCause())
-                                            && Exceptions.isConnectionClosedException(throwable.getCause())) {
-                                        throwable=throwable.getCause();
-                                    }
-                                    work.failed(throwable);
+                            @Override
+                            protected void failed(@NotNull Throwable throwable) {
+                                if ((throwable instanceof ChannelOutputShutdownException)
+                                        && (null!=throwable.getCause())
+                                        && Exceptions.isConnectionClosedException(throwable.getCause())) {
+                                    throwable=throwable.getCause();
                                 }
-                            });
-                }
+                                work.failed(throwable);
+                            }
+                        })
         );
     }
 }

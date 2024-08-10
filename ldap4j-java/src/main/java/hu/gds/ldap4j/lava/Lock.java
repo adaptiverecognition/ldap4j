@@ -32,6 +32,10 @@ public class Lock {
             };
         }
 
+        public @NotNull Lock lock() {
+            return Lock.this;
+        }
+
         public @NotNull Lava<Void> signal() {
             return Lava.supplier(()->{
                 signalSync();

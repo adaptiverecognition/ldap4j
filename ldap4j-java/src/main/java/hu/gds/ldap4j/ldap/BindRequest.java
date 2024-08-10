@@ -95,6 +95,11 @@ public record BindRequest(
     }
 
     @Override
+    public <T> T visit(@NotNull Visitor<T> visitor) throws Throwable {
+        return visitor.bindRequest(this);
+    }
+
+    @Override
     public @NotNull ByteBuffer write() {
         return DER.writeTag(
                 Ldap.PROTOCOL_OP_BIND_REQUEST,
