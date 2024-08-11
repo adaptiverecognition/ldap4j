@@ -6,7 +6,7 @@ import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.Supplier;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
-import hu.gds.ldap4j.lava.ScheduledExecutorContext;
+import hu.gds.ldap4j.lava.ThreadLocalScheduledExecutorContext;
 import hu.gds.ldap4j.ldap.ControlsMessage;
 import hu.gds.ldap4j.ldap.LdapConnection;
 import hu.gds.ldap4j.ldap.LdapMessage;
@@ -36,17 +36,26 @@ import org.jetbrains.annotations.Nullable;
 public class FutureLdapConnection {
     private final @NotNull LdapConnection connection;
     private final @NotNull ScheduledExecutorService executor;
+    private final int localSize;
     private final @NotNull Log log;
+    private final int parallelism;
+    private final @NotNull ThreadLocal<ThreadLocalScheduledExecutorContext.@Nullable LocalData> threadLocal;
     private final long timeoutNanos;
 
     public FutureLdapConnection(
             @NotNull LdapConnection connection,
             @NotNull ScheduledExecutorService executor,
+            int localSize,
             @NotNull Log log,
+            int parallelism,
+            @NotNull ThreadLocal<ThreadLocalScheduledExecutorContext.@Nullable LocalData> threadLocal,
             long timeoutNanos) {
         this.connection=Objects.requireNonNull(connection, "connection");
         this.executor=Objects.requireNonNull(executor, "executor");
+        this.localSize=localSize;
         this.log=Objects.requireNonNull(log, "log");
+        this.parallelism=parallelism;
+        this.threadLocal=Objects.requireNonNull(threadLocal, "threadLocal");
         this.timeoutNanos=timeoutNanos;
     }
 
@@ -61,12 +70,21 @@ public class FutureLdapConnection {
     public static @NotNull Supplier<@NotNull CompletableFuture<@NotNull FutureLdapConnection>> factory(
             @NotNull ScheduledExecutorService executor,
             @NotNull Function<@NotNull InetSocketAddress, @NotNull Lava<@NotNull DuplexConnection>> factory,
+            int localSize,
             @NotNull Log log,
+            int parallelism,
             @NotNull InetSocketAddress remoteAddress,
+            @NotNull ThreadLocal<ThreadLocalScheduledExecutorContext.@Nullable LocalData> threadLocal,
             long timeoutNanos,
             @NotNull TlsSettings tlsSettings) {
         return ()->Futures.start(
-                ScheduledExecutorContext.createDelayNanos(timeoutNanos, executor, log),
+                ThreadLocalScheduledExecutorContext.createDelayNanos(
+                        timeoutNanos,
+                        executor,
+                        localSize,
+                        log,
+                        parallelism,
+                        threadLocal),
                 Closeable.wrapOrClose(
                         LdapConnection::close,
                         ()->LdapConnection.factory(
@@ -74,14 +92,24 @@ public class FutureLdapConnection {
                                 remoteAddress,
                                 tlsSettings),
                         (connection)->Lava.complete(
-                                new FutureLdapConnection(connection, executor, log, timeoutNanos))));
+                                new FutureLdapConnection(
+                                        connection,
+                                        executor,
+                                        localSize,
+                                        log,
+                                        parallelism,
+                                        threadLocal,
+                                        timeoutNanos))));
     }
 
     public static @NotNull Supplier<@NotNull CompletableFuture<@NotNull FutureLdapConnection>> factoryJavaAsync(
             @Nullable AsynchronousChannelGroup asynchronousChannelGroup,
             @NotNull ScheduledExecutorService executor,
+            int localSize,
             @NotNull Log log,
+            int parallelism,
             @NotNull InetSocketAddress remoteAddress,
+            @NotNull ThreadLocal<ThreadLocalScheduledExecutorContext.@Nullable LocalData> threadLocal,
             long timeoutNanos,
             @NotNull TlsSettings tlsSettings) {
         return factory(
@@ -89,8 +117,31 @@ public class FutureLdapConnection {
                 JavaAsyncChannelConnection.factory(
                         asynchronousChannelGroup,
                         Map.of()),
+                localSize,
                 log,
+                parallelism,
                 remoteAddress,
+                threadLocal,
+                timeoutNanos,
+                tlsSettings);
+    }
+
+    public static @NotNull Supplier<@NotNull CompletableFuture<@NotNull FutureLdapConnection>> factoryJavaAsync(
+            @Nullable AsynchronousChannelGroup asynchronousChannelGroup,
+            @NotNull ScheduledExecutorService executor,
+            @NotNull Log log,
+            int parallelism,
+            @NotNull InetSocketAddress remoteAddress,
+            long timeoutNanos,
+            @NotNull TlsSettings tlsSettings) {
+        return factoryJavaAsync(
+                asynchronousChannelGroup,
+                executor,
+                ThreadLocalScheduledExecutorContext.DEFAULT_LOCAL_SIZE,
+                log,
+                parallelism,
+                remoteAddress,
+                new ThreadLocal<>(),
                 timeoutNanos,
                 tlsSettings);
     }
@@ -132,7 +183,13 @@ public class FutureLdapConnection {
 
     private <T> @NotNull CompletableFuture<T> startLava(@NotNull Lava<T> lava) {
         return Futures.start(
-                ScheduledExecutorContext.createDelayNanos(timeoutNanos, executor, log),
+                ThreadLocalScheduledExecutorContext.createDelayNanos(
+                        timeoutNanos,
+                        executor,
+                        localSize,
+                        log,
+                        parallelism,
+                        threadLocal),
                 lava);
     }
 

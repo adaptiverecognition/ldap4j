@@ -18,7 +18,7 @@ public class Trampoline extends AbstractTrampoline<Trampoline.Context> {
         }
 
         @Override
-        protected hu.gds.ldap4j.lava.Context context(
+        protected @NotNull hu.gds.ldap4j.lava.Context context(
                 @NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) {
             return new Trampoline.Context(debugMagic, endNanos, log, trampoline);
         }

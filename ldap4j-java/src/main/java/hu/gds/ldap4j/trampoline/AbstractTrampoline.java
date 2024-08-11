@@ -23,7 +23,7 @@ public abstract class AbstractTrampoline<C extends AbstractTrampoline.AbstractCo
                 @Nullable Long endNanos,
                 @NotNull Log log,
                 @NotNull AbstractTrampoline<?> trampoline) {
-            super(trampoline.clock(), debugMagic, endNanos, log);
+            super(trampoline.clock(), debugMagic, endNanos, log, 1);
             this.trampoline=Objects.requireNonNull(trampoline, "trampoline");
         }
 

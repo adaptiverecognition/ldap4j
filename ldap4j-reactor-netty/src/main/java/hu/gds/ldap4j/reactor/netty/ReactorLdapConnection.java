@@ -4,6 +4,7 @@ import hu.gds.ldap4j.Consumer;
 import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.Supplier;
 import hu.gds.ldap4j.lava.Closeable;
+import hu.gds.ldap4j.lava.Context;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.ldap.ControlsMessage;
 import hu.gds.ldap4j.ldap.LdapConnection;
@@ -35,10 +36,12 @@ import reactor.core.publisher.Mono;
 
 public class ReactorLdapConnection {
     private final @NotNull LdapConnection connection;
+    private final int parallelism;
     private final long timeoutNanos;
 
-    public ReactorLdapConnection(@NotNull LdapConnection connection, long timeoutNanos) {
+    public ReactorLdapConnection(@NotNull LdapConnection connection, int parallelism, long timeoutNanos) {
         this.connection=Objects.requireNonNull(connection, "connection");
+        this.parallelism=parallelism;
         this.timeoutNanos=timeoutNanos;
     }
 
@@ -55,7 +58,7 @@ public class ReactorLdapConnection {
     }
 
     private <T> @NotNull Mono<T> lavaToMono(@NotNull Lava<T> lava) {
-        return LavaMono.create(ReactorContext.createTimeoutNanos(timeoutNanos), lava);
+        return LavaMono.create(ReactorContext.createTimeoutNanos(parallelism, timeoutNanos), lava);
     }
 
     public @NotNull Mono<@NotNull InetSocketAddress> localAddress() {
@@ -101,6 +104,7 @@ public class ReactorLdapConnection {
             @NotNull Function<@NotNull EventLoopGroup, @NotNull Mono<Void>> eventLoopGroupClose,
             @NotNull Supplier<@NotNull Mono<@NotNull EventLoopGroup>> eventLoopGroupFactory,
             @NotNull Function<ReactorLdapConnection, @NotNull Mono<T>> function,
+            int parallelism,
             @NotNull InetSocketAddress remoteAddress,
             long timeoutNanos,
             @NotNull TlsSettings tlsSettings) {
@@ -110,7 +114,7 @@ public class ReactorLdapConnection {
         Objects.requireNonNull(remoteAddress, "remoteAddress");
         Objects.requireNonNull(tlsSettings, "tlsSettings");
         return LavaMono.create(
-                ReactorContext.createTimeoutNanos(timeoutNanos),
+                ReactorContext.createTimeoutNanos(parallelism, timeoutNanos),
                 Closeable.withClose(
                         (eventLoopGroup)->MonoLava.create(eventLoopGroupClose.apply(eventLoopGroup)),
                         ()->MonoLava.create(eventLoopGroupFactory.get()),
@@ -125,8 +129,25 @@ public class ReactorLdapConnection {
                                                 remoteAddress,
                                                 tlsSettings),
                                         (connection)->Lava.complete(
-                                                new ReactorLdapConnection(connection, timeoutNanos))),
+                                                new ReactorLdapConnection(connection, parallelism, timeoutNanos))),
                                 (connection)->MonoLava.create(function.apply(connection)))));
+    }
+
+    public static <T> @NotNull Mono<T> withConnection(
+            @NotNull Function<@NotNull EventLoopGroup, @NotNull Mono<Void>> eventLoopGroupClose,
+            @NotNull Supplier<@NotNull Mono<@NotNull EventLoopGroup>> eventLoopGroupFactory,
+            @NotNull Function<ReactorLdapConnection, @NotNull Mono<T>> function,
+            @NotNull InetSocketAddress remoteAddress,
+            long timeoutNanos,
+            @NotNull TlsSettings tlsSettings) {
+        return withConnection(
+                eventLoopGroupClose,
+                eventLoopGroupFactory,
+                function,
+                Context.defaultParallelism(),
+                remoteAddress,
+                timeoutNanos,
+                tlsSettings);
     }
 
     public <M extends Message<M>> @NotNull Mono<@NotNull Integer> writeMessage(@NotNull ControlsMessage<M> message) {

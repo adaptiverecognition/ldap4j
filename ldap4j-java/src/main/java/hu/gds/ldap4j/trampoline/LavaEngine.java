@@ -2,6 +2,7 @@ package hu.gds.ldap4j.trampoline;
 
 import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.Log;
+import hu.gds.ldap4j.lava.Callback;
 import hu.gds.ldap4j.lava.JoinCallback;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.lava.Lock;
@@ -20,13 +21,13 @@ public class LavaEngine extends AbstractTrampoline<LavaEngine.Context> {
         }
 
         @Override
-        protected hu.gds.ldap4j.lava.Context context(
+        protected @NotNull hu.gds.ldap4j.lava.Context context(
                 @NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) {
             return new Context(debugMagic, endNanos, log, trampoline);
         }
 
         public <T> @NotNull JoinCallback<T> get(@NotNull Lava<T> lava) {
-            @NotNull JoinCallback<T> callback=new JoinCallback<>(clock());
+            @NotNull JoinCallback<T> callback=Callback.join(clock());
             execute(()->LavaEngine.Context.this.get(callback, lava));
             return callback;
         }

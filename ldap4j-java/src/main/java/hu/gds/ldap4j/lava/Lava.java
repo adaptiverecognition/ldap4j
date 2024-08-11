@@ -348,4 +348,13 @@ public interface Lava<T> {
     static <T> @NotNull Lava<T> supplier(@NotNull Supplier<@NotNull Lava<T>> supplier) {
         return new SupplierSupplier<>(supplier);
     }
+    
+    static <T> @NotNull Function<T, @NotNull Lava<T>> yCombinator(
+            @NotNull Function<
+                    @NotNull Function<T, @NotNull Lava<T>>,
+                    @NotNull Function<T, @NotNull Lava<T>>>
+                    function) {
+        Objects.requireNonNull(function, "function");
+        return (value)->function.apply((value2)->yCombinator(function).apply(value2)).apply(value);
+    }
 }

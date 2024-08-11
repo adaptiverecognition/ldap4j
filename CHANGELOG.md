@@ -1,6 +1,7 @@
 Version 1.1.1-SNAPSHOT:
 - add event-driven LDAP engine support classes
 - add Netty codec
+- add thread-local executor
 - receive and send TLS renegotiations
 - return TLS session
 

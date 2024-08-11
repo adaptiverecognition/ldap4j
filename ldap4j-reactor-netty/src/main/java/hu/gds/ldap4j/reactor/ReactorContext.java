@@ -11,8 +11,8 @@ import org.jetbrains.annotations.Nullable;
 import reactor.core.scheduler.Schedulers;
 
 public class ReactorContext extends ExecutorContext {
-    public ReactorContext(@NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) {
-        super(Clock.SYSTEM_NANO_TIME, debugMagic, endNanos, log);
+    public ReactorContext(@NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log, int parallelism) {
+        super(Clock.SYSTEM_NANO_TIME, debugMagic, endNanos, log, parallelism);
     }
 
     @Override
@@ -35,14 +35,15 @@ public class ReactorContext extends ExecutorContext {
     }
 
     @Override
-    protected Context context(@NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) {
-        return new ReactorContext(debugMagic, endNanos, log);
+    protected @NotNull Context context(@NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) {
+        return new ReactorContext(debugMagic, endNanos, log, parallelism());
     }
 
-    public static ReactorContext createTimeoutNanos(long timeoutNanos) {
+    public static ReactorContext createTimeoutNanos(int parallelism, long timeoutNanos) {
         return new ReactorContext(
                 ReactorContext.class.getSimpleName(),
                 Clock.SYSTEM_NANO_TIME.delayNanosToEndNanos(timeoutNanos),
-                ReactorLog.create());
+                ReactorLog.create(),
+                parallelism);
     }
 }

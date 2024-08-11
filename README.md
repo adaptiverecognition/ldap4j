@@ -140,13 +140,14 @@ This requires a thread pool.
 
 ```java
     // new thread pool
-    ScheduledExecutorService executor=Executors.newScheduledThreadPool(8);
+    ScheduledExecutorService executor=Executors.newScheduledThreadPool(Context.defaultParallelism());
 
     // connect
     CompletableFuture<Void> future=FutureLdapConnection.factoryJavaAsync(
                     null, // use the global asynchronous channel group
                     executor,
                     Log.systemErr(),
+                    Context.defaultParallelism(),
                     new InetSocketAddress("ldap.forumsys.com", 389),
                     10_000_000_000L, // timeout
                     TlsSettings.noTls()) // plain-text connection
@@ -265,12 +266,13 @@ Lava can be used reactive-style.
 
     public static void main(String[] args) throws Throwable {
         // new thread pool
-        ScheduledExecutorService executor=Executors.newScheduledThreadPool(8);
+        ScheduledExecutorService executor=Executors.newScheduledThreadPool(Context.defaultParallelism());
         try {
-            ScheduledExecutorContext context=ScheduledExecutorContext.createDelayNanos(
+            Context context=ThreadLocalScheduledExecutorContext.createDelayNanos(
                     10_000_000_000L, // timeout
                     executor,
-                    Log.systemErr());
+                    Log.systemErr(),
+                    Context.defaultParallelism());
 
             // going to wait for the result in this thread
             JoinCallback<Void> join=Callback.join(context);
@@ -289,12 +291,12 @@ Lava can be used reactive-style.
 
 ### Netty codec
 
-Ldap4j can be used as a codec in a Netty pipeline, through the `NettyCodec` class.
+Ldap4j can be used as a codec in a Netty pipeline, through the `NettyLdapCodec` class.
 It handles Netty `ByteBuf`s on the channel side,
 and accepts `Request` objects from the application side, and returns `Response`s.
 
 Check out the
-[`NettyCodecSample`](https://github.com/adaptiverecognition/ldap4j/blob/master/ldap4j-samples/src/main/java/hu/gds/ldap4j/samples/NettyCodecSample.java)
+[`NettyLdapCodecSample`](https://github.com/adaptiverecognition/ldap4j/blob/master/ldap4j-samples/src/main/java/hu/gds/ldap4j/samples/NettyLdapCodecSample.java)
 for details.
     
 ### Reactor
@@ -706,6 +708,9 @@ Computing a lava monad requires a `Context`, which is mostly an
 A `Context` implementation for
 [ScheduledExecutorServices](https://docs.oracle.com/en/java/javase/17/docs//api/java.base/java/util/concurrent/ScheduledExecutorService.html)
 is provided, it's called `ScheduledExecutorContext`.
+
+`ThreadLocalScheduledExecutorContext` provides the same functionality as a `ScheduledExecutorContext`
+and tries to exploit locality of reference and avoid context switches.
 
 When the environment doesn't provide a scheduled executor, the `MinHeap` class can be used
 to implement `Context.awaitEndNanos()`.

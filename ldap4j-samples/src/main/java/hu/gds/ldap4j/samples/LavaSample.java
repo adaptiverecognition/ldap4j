@@ -3,9 +3,10 @@ package hu.gds.ldap4j.samples;
 import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.lava.Callback;
 import hu.gds.ldap4j.lava.Closeable;
+import hu.gds.ldap4j.lava.Context;
 import hu.gds.ldap4j.lava.JoinCallback;
 import hu.gds.ldap4j.lava.Lava;
-import hu.gds.ldap4j.lava.ScheduledExecutorContext;
+import hu.gds.ldap4j.lava.ThreadLocalScheduledExecutorContext;
 import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.ControlsMessage;
 import hu.gds.ldap4j.ldap.DerefAliases;
@@ -75,12 +76,13 @@ public class LavaSample {
 
     public static void main(String[] args) throws Throwable {
         // new thread pool
-        ScheduledExecutorService executor=Executors.newScheduledThreadPool(8);
+        ScheduledExecutorService executor=Executors.newScheduledThreadPool(Context.defaultParallelism());
         try {
-            ScheduledExecutorContext context=ScheduledExecutorContext.createDelayNanos(
+            Context context=ThreadLocalScheduledExecutorContext.createDelayNanos(
                     10_000_000_000L, // timeout
                     executor,
-                    Log.systemErr());
+                    Log.systemErr(),
+                    Context.defaultParallelism());
             // going to wait for the result in this thread
             JoinCallback<Void> join=Callback.join(context);
             // compute the result

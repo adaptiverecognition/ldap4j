@@ -1,6 +1,7 @@
 package hu.gds.ldap4j.samples;
 
 import hu.gds.ldap4j.Log;
+import hu.gds.ldap4j.lava.Callback;
 import hu.gds.ldap4j.lava.Clock;
 import hu.gds.ldap4j.lava.JoinCallback;
 import hu.gds.ldap4j.ldap.ControlsMessage;
@@ -9,7 +10,7 @@ import hu.gds.ldap4j.ldap.Filter;
 import hu.gds.ldap4j.ldap.Scope;
 import hu.gds.ldap4j.ldap.SearchResult;
 import hu.gds.ldap4j.net.TlsSettings;
-import hu.gds.ldap4j.net.netty.codec.NettyCodec;
+import hu.gds.ldap4j.net.netty.codec.NettyLdapCodec;
 import hu.gds.ldap4j.net.netty.codec.RequestResponse;
 import hu.gds.ldap4j.net.netty.codec.Response;
 import hu.gds.ldap4j.net.netty.codec.ResponseRequest;
@@ -29,9 +30,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.NotNull;
 
-public class NettyCodecSample {
+public class NettyLdapCodecSample {
     private static class ChannelHandler extends SimpleChannelInboundHandler<Response> {
-        public final @NotNull JoinCallback<Void> join=new JoinCallback<>(Clock.SYSTEM_NANO_TIME);
+        public final @NotNull JoinCallback<Void> join=Callback.join(Clock.SYSTEM_NANO_TIME);
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
@@ -98,7 +99,7 @@ public class NettyCodecSample {
         @Override
         public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
             try {
-                ctx.channel().pipeline().addFirst(new NettyCodec(
+                ctx.channel().pipeline().addFirst(new NettyLdapCodec(
                         10_000_000_000L, // connect timeout nanos
                         Log.systemErr(),
                         10_000_000_000L, // request timeout nanos

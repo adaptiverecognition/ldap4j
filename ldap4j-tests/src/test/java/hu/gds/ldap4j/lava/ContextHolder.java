@@ -28,8 +28,8 @@ public abstract class ContextHolder implements AutoCloseable {
     /**
      * This is for junit tests.
      */
-    public void getOrTimeoutDelayNanos(long delayNanos, Lava<Void> supplier) throws Throwable {
-        getOrTimeoutEndNanos(clock().delayNanosToEndNanos(delayNanos), supplier);
+    public <T> T getOrTimeoutDelayNanos(long delayNanos, Lava<T> supplier) throws Throwable {
+        return getOrTimeoutEndNanos(clock().delayNanosToEndNanos(delayNanos), supplier);
     }
 
     /**

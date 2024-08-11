@@ -21,7 +21,7 @@ public class RandomTrampolineContextHolder extends ContextHolder {
 
         public ContextImpl(
                 @NotNull AtomicBoolean closed, @NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) {
-            super(Clock.SYSTEM_NANO_TIME, debugMagic, endNanos, log);
+            super(Clock.SYSTEM_NANO_TIME, debugMagic, endNanos, log, 1);
             this.closed=Objects.requireNonNull(closed, "closed");
         }
 
@@ -67,7 +67,7 @@ public class RandomTrampolineContextHolder extends ContextHolder {
         }
 
         @Override
-        protected Context context(@NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) {
+        protected @NotNull Context context(@NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) {
             return new ContextImpl(closed, debugMagic, endNanos, log);
         }
 

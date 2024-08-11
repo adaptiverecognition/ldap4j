@@ -6,9 +6,10 @@ import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.lava.Callback;
 import hu.gds.ldap4j.lava.Closeable;
+import hu.gds.ldap4j.lava.Context;
 import hu.gds.ldap4j.lava.JoinCallback;
 import hu.gds.ldap4j.lava.Lava;
-import hu.gds.ldap4j.lava.ScheduledExecutorContext;
+import hu.gds.ldap4j.lava.ThreadLocalScheduledExecutorContext;
 import hu.gds.ldap4j.net.JavaAsyncChannelConnection;
 import hu.gds.ldap4j.net.TlsSettings;
 import java.net.InetSocketAddress;
@@ -71,12 +72,13 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                     =(InetSocketAddress)ldapServer.getTransports()[0].getAcceptor().getLocalAddress();
             assertNotNull(serverAddress);
 
-            ScheduledExecutorService executor=Executors.newScheduledThreadPool(4);
+            ScheduledExecutorService executor=Executors.newScheduledThreadPool(AbstractTest.PARALLELISM);
             try {
-                ScheduledExecutorContext context=ScheduledExecutorContext.createDelayNanos(
+                Context context=ThreadLocalScheduledExecutorContext.createDelayNanos(
                         AbstractTest.TIMEOUT_NANOS,
                         executor,
-                        Log.systemErr());
+                        Log.systemErr(),
+                        AbstractTest.PARALLELISM);
                 JoinCallback<Void> join=Callback.join(context);
                 context.get(
                         join,

@@ -1,5 +1,6 @@
 package hu.gds.ldap4j.net;
 
+import hu.gds.ldap4j.AbstractTest;
 import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.Supplier;
@@ -199,7 +200,7 @@ public interface NetworkConnectionFactory extends AutoCloseable {
                             @NotNull Map<@NotNull SocketOption<?>, @NotNull Object> socketOptions) {
                         if (null==processor) {
                             if (null==executor) {
-                                executor=Executors.newScheduledThreadPool(8);
+                                executor=Executors.newScheduledThreadPool(AbstractTest.PARALLELISM);
                             }
                             processor=new NioProcessor(executor);
                         }

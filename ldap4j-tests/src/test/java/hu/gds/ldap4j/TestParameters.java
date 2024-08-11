@@ -38,11 +38,12 @@ public class TestParameters {
 
     public static @NotNull Stream<@NotNull Function<@NotNull Log, @NotNull ContextHolder>> contextHolderFactories() {
         List<@NotNull Function<@NotNull Log, @NotNull ContextHolder>> contextHolderFactories=new ArrayList<>();
-        contextHolderFactories.add(NewThreadContextHolder.factory(null));
+        contextHolderFactories.add(NewThreadContextHolder.factory(AbstractTest.PARALLELISM, null));
         contextHolderFactories.add(RandomTrampolineContextHolder.factory(null));
         contextHolderFactories.add(RandomTrampolineContextHolder.factory(System.nanoTime()));
-        contextHolderFactories.add(ThreadPoolContextHolder.factory(1, null));
-        contextHolderFactories.add(ThreadPoolContextHolder.factory(8, null));
+        contextHolderFactories.add(ThreadPoolContextHolder.factory(1, AbstractTest.PARALLELISM, null, false));
+        contextHolderFactories.add(ThreadPoolContextHolder.factory(8, AbstractTest.PARALLELISM, null, false));
+        contextHolderFactories.add(ThreadPoolContextHolder.factory(8, AbstractTest.PARALLELISM, null, true));
         contextHolderFactories.add(TrampolineContextHolder.factory());
         return contextHolderFactories.stream();
     }
@@ -55,8 +56,9 @@ public class TestParameters {
         List<@NotNull TestParameters> parameters=new ArrayList<>();
         List<@NotNull Function<@NotNull Log, @NotNull ContextHolder>> blockingIoContextHolderFactories
                 =new ArrayList<>();
-        blockingIoContextHolderFactories.add(NewThreadContextHolder.factory(null));
-        blockingIoContextHolderFactories.add(ThreadPoolContextHolder.factory(8, null));
+        blockingIoContextHolderFactories.add(NewThreadContextHolder.factory(AbstractTest.PARALLELISM, null));
+        blockingIoContextHolderFactories.add(
+                ThreadPoolContextHolder.factory(AbstractTest.PARALLELISM, 8, null, false));
         List<@NotNull Supplier<@NotNull NetworkConnectionFactory>> networkConnectionFactories=new ArrayList<>();
         networkConnectionFactories.add(NetworkConnectionFactory.engineConnection());
         networkConnectionFactories.add(NetworkConnectionFactory.javaAsyncChannel());

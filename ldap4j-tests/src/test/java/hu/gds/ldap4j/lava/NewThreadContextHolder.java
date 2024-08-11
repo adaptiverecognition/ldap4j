@@ -10,8 +10,12 @@ import org.jetbrains.annotations.Nullable;
 
 public class NewThreadContextHolder extends ContextHolder {
     private class ContextImpl extends Context.Abstract {
-        public ContextImpl(@NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) {
-            super(Clock.SYSTEM_NANO_TIME, debugMagic, endNanos, log);
+        public ContextImpl(
+                @NotNull String debugMagic,
+                @Nullable Long endNanos,
+                @NotNull Log log,
+                int parallelism) {
+            super(Clock.SYSTEM_NANO_TIME, debugMagic, endNanos, log, parallelism);
         }
 
         @Override
@@ -60,9 +64,9 @@ public class NewThreadContextHolder extends ContextHolder {
         }
 
         @Override
-        protected Context context(@NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) {
+        protected @NotNull Context context(@NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) {
             checkClosed();
-            return new ContextImpl(debugMagic, endNanos, log);
+            return new ContextImpl(debugMagic, endNanos, log, parallelism());
         }
 
         @Override
@@ -73,10 +77,12 @@ public class NewThreadContextHolder extends ContextHolder {
 
     private boolean closed;
     private final Object lock=new Object();
+    private final int parallelism;
     private final @Nullable ThreadFactory threadFactory;
 
-    public NewThreadContextHolder(@NotNull Log log, @Nullable ThreadFactory threadFactory) {
+    public NewThreadContextHolder(@NotNull Log log, int parallelism, @Nullable ThreadFactory threadFactory) {
         super(log);
+        this.parallelism=parallelism;
         this.threadFactory=threadFactory;
     }
 
@@ -104,16 +110,17 @@ public class NewThreadContextHolder extends ContextHolder {
     @Override
     public @NotNull Context context() {
         checkClosed();
-        return new ContextImpl("", null, log);
+        return new ContextImpl("", null, log, parallelism);
     }
 
     public static @NotNull Function<@NotNull Log, @NotNull ContextHolder> factory(
+            int parallelism,
             @Nullable ThreadFactory threadFactory) {
         return new Function<>() {
             @Override
             public @NotNull ContextHolder apply(@NotNull Log value) {
                 Objects.requireNonNull(value, "value");
-                return new NewThreadContextHolder(value, threadFactory);
+                return new NewThreadContextHolder(value, parallelism, threadFactory);
             }
 
             @Override
@@ -127,7 +134,7 @@ public class NewThreadContextHolder extends ContextHolder {
     public <T> T getOrTimeoutEndNanos(long endNanos, Lava<T> supplier) throws Throwable {
         checkClosed();
         JoinCallback<T> callback=Callback.join(clock());
-        new ContextImpl("", endNanos, log)
+        new ContextImpl("", endNanos, log, parallelism)
                 .get(callback, supplier);
         return callback.joinEndNanos(endNanos);
     }

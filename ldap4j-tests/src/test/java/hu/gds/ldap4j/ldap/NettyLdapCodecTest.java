@@ -4,10 +4,11 @@ import hu.gds.ldap4j.AbstractTest;
 import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.Pair;
 import hu.gds.ldap4j.TestParameters;
+import hu.gds.ldap4j.lava.Callback;
 import hu.gds.ldap4j.lava.Clock;
 import hu.gds.ldap4j.lava.JoinCallback;
 import hu.gds.ldap4j.net.TlsSettings;
-import hu.gds.ldap4j.net.netty.codec.NettyCodec;
+import hu.gds.ldap4j.net.netty.codec.NettyLdapCodec;
 import hu.gds.ldap4j.net.netty.codec.RequestResponse;
 import hu.gds.ldap4j.net.netty.codec.Response;
 import hu.gds.ldap4j.net.netty.codec.ResponseRequest;
@@ -39,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class NettyCodecTest {
+public class NettyLdapCodecTest {
     public interface ChannelFactory {
         class Epoll implements ChannelFactory {
             @Override
@@ -85,7 +86,7 @@ public class NettyCodecTest {
     private static class ChannelHandler extends SimpleChannelInboundHandler<Response> {
         public volatile boolean boundCompleted;
         public volatile boolean inactivated;
-        public final @NotNull JoinCallback<Void> join=new JoinCallback<>(Clock.SYSTEM_NANO_TIME);
+        public final @NotNull JoinCallback<Void> join=Callback.join(Clock.SYSTEM_NANO_TIME);
         public volatile boolean searchCompleted;
         private final @NotNull TlsSettings tlsSettings;
 
@@ -173,7 +174,7 @@ public class NettyCodecTest {
         @Override
         public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
             try {
-                ctx.channel().pipeline().addFirst(new NettyCodec(
+                ctx.channel().pipeline().addFirst(new NettyLdapCodec(
                         10_000_000_000L, // connect timeout nanos
                         Log.systemErr(),
                         10_000_000_000L, // request timeout nanos
@@ -216,12 +217,12 @@ public class NettyCodecTest {
     }
 
     @ParameterizedTest
-    @MethodSource("hu.gds.ldap4j.ldap.NettyCodecTest#parameters")
+    @MethodSource("hu.gds.ldap4j.ldap.NettyLdapCodecTest#parameters")
     public void test(@NotNull Parameters parameters) throws Throwable {
         try (LdapServer ldapServer=new LdapServer(
                 false, AbstractTest.SERVER_PORT_CLEAR_TEXT, AbstractTest.SERVER_PORT_TLS)) {
             ldapServer.start();
-            EventLoopGroup eventLoopGroup=parameters.channelFactory().createEventLoopGroup(8);
+            EventLoopGroup eventLoopGroup=parameters.channelFactory().createEventLoopGroup(AbstractTest.PARALLELISM);
             try {
                 @NotNull Pair<@NotNull InetSocketAddress, @NotNull TlsSettings> addressTlsSettings
                         =LdapTestParameters.addressTlsSettings(

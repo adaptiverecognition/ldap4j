@@ -37,7 +37,7 @@ import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class NettyCodec extends ChannelDuplexHandler {
+public class NettyLdapCodec extends ChannelDuplexHandler {
     private static abstract class CallbackState<T> extends Connected {
         protected final @NotNull JoinCallback<T> callback;
 
@@ -533,7 +533,7 @@ public class NettyCodec extends ChannelDuplexHandler {
     private @NotNull State state=new Unactivated();
     private final @NotNull TlsSettings tlsSettings;
 
-    public NettyCodec(
+    public NettyLdapCodec(
             long connectTimeoutNanos,
             @NotNull Log log,
             long requestTimeoutNanos,

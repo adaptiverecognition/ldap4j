@@ -14,12 +14,22 @@ public interface Context extends Executor {
         private final @NotNull String debugMagic;
         private final @Nullable Long endNanos;
         private final @NotNull Log log;
+        private final int parallelism;
 
-        public Abstract(@NotNull Clock clock, @NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) {
+        public Abstract(
+                @NotNull Clock clock,
+                @NotNull String debugMagic,
+                @Nullable Long endNanos,
+                @NotNull Log log,
+                int parallelism) {
             this.clock=Objects.requireNonNull(clock, "clock");
             this.debugMagic=Objects.requireNonNull(debugMagic, "debugMagic");
             this.endNanos=endNanos;
             this.log=Objects.requireNonNull(log, "log");
+            this.parallelism=parallelism;
+            if (0>=parallelism) {
+                throw new IllegalArgumentException("0 >= parallelism %,d".formatted(parallelism));
+            }
         }
 
         @Override
@@ -27,7 +37,7 @@ public interface Context extends Executor {
             return clock;
         }
 
-        protected abstract Context context(
+        protected abstract @NotNull Context context(
                 @NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) throws Throwable;
 
         @Override
@@ -63,6 +73,11 @@ public interface Context extends Executor {
         @Override
         public @NotNull Log log() {
             return log;
+        }
+
+        @Override
+        public int parallelism() {
+            return parallelism;
         }
 
         @Override
@@ -230,6 +245,10 @@ public interface Context extends Executor {
 
     @NotNull Context debugMagic(@NotNull String debugMagic) throws Throwable;
 
+    static int defaultParallelism() {
+        return Runtime.getRuntime().availableProcessors();
+    }
+
     /**
      * This is advisory. Computations shouldn't be terminated willy-nilly.
      */
@@ -257,4 +276,6 @@ public interface Context extends Executor {
     }
 
     @NotNull Log log();
+
+    int parallelism();
 }

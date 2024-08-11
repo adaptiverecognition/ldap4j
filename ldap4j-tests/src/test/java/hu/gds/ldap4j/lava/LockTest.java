@@ -21,7 +21,7 @@ public class LockTest {
         TestLog log=new TestLog();
         try (ContextHolder context=contextHolderFactory.apply(log)) {
             context.start();
-            context.getOrTimeoutDelayNanos(
+            context.<Void>getOrTimeoutDelayNanos(
                     AbstractTest.TIMEOUT_NANOS,
                     Lava.supplier(new Supplier<>() {
                         private final Lock lock=new Lock();
@@ -69,7 +69,7 @@ public class LockTest {
         TestLog log=new TestLog();
         try (ContextHolder context=contextHolderFactory.apply(log)) {
             context.start();
-            context.getOrTimeoutDelayNanos(
+            context.<Void>getOrTimeoutDelayNanos(
                     AbstractTest.TIMEOUT_NANOS,
                     Lava.supplier(new Supplier<>() {
                         private final Lock lock=new Lock();
@@ -129,7 +129,7 @@ public class LockTest {
         TestLog log=new TestLog();
         try (ContextHolder context=contextHolderFactory.apply(log)) {
             context.start();
-            context.getOrTimeoutDelayNanos(
+            context.<Void>getOrTimeoutDelayNanos(
                     AbstractTest.TIMEOUT_NANOS,
                     Lava.supplier(new Supplier<>() {
                         private final Lock lock=new Lock();
@@ -190,7 +190,7 @@ public class LockTest {
         TestLog log=new TestLog();
         try (ContextHolder context=contextHolderFactory.apply(log)) {
             context.start();
-            context.getOrTimeoutDelayNanos(
+            context.<Void>getOrTimeoutDelayNanos(
                     AbstractTest.TIMEOUT_NANOS,
                     Lava.supplier(new Supplier<>() {
                         private final Lock lock=new Lock();
@@ -243,7 +243,7 @@ public class LockTest {
         TestLog log=new TestLog();
         try (ContextHolder context=contextHolderFactory.apply(log)) {
             context.start();
-            context.getOrTimeoutDelayNanos(
+            context.<Void>getOrTimeoutDelayNanos(
                     AbstractTest.TIMEOUT_NANOS,
                     Lava.supplier(new Supplier<>() {
                         private final Lock lock=new Lock();
@@ -299,7 +299,7 @@ public class LockTest {
         TestLog log=new TestLog();
         try (ContextHolder context=contextHolderFactory.apply(log)) {
             context.start();
-            context.getOrTimeoutDelayNanos(
+            context.<Void>getOrTimeoutDelayNanos(
                     AbstractTest.TIMEOUT_NANOS,
                     Lava.supplier(new Supplier<>() {
                         private final Lock lock=new Lock();

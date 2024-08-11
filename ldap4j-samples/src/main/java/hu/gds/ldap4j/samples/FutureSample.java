@@ -2,6 +2,7 @@ package hu.gds.ldap4j.samples;
 
 import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.future.FutureLdapConnection;
+import hu.gds.ldap4j.lava.Context;
 import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.ControlsMessage;
 import hu.gds.ldap4j.ldap.DerefAliases;
@@ -21,13 +22,14 @@ public class FutureSample {
     public static void main(String[] args) throws Throwable {
         System.out.println("ldap4j future sample");
         // new thread pool
-        ScheduledExecutorService executor=Executors.newScheduledThreadPool(8);
+        ScheduledExecutorService executor=Executors.newScheduledThreadPool(Context.defaultParallelism());
         try {
             // connect
             CompletableFuture<Void> future=FutureLdapConnection.factoryJavaAsync(
                             null, // use the global asynchronous channel group
                             executor,
                             Log.systemErr(),
+                            Context.defaultParallelism(),
                             new InetSocketAddress("ldap.forumsys.com", 389),
                             10_000_000_000L, // timeout
                             TlsSettings.noTls()) // plain-text connection

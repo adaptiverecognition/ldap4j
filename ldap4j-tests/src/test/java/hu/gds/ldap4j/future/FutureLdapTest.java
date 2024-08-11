@@ -5,7 +5,7 @@ import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.lava.Callback;
 import hu.gds.ldap4j.lava.Context;
 import hu.gds.ldap4j.lava.JoinCallback;
-import hu.gds.ldap4j.lava.ScheduledExecutorContext;
+import hu.gds.ldap4j.lava.ThreadLocalScheduledExecutorContext;
 import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.Filter;
@@ -29,11 +29,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class FutureLdapTest {
     @Test
     public void test() throws Throwable {
-        ScheduledExecutorService executor=Executors.newScheduledThreadPool(4);
+        ScheduledExecutorService executor=Executors.newScheduledThreadPool(AbstractTest.PARALLELISM);
         try (LdapServer ldapServer=new LdapServer(false, 0, 0)) {
             ldapServer.start();
             Log log=Log.systemErr();
-            Context context=ScheduledExecutorContext.createDelayNanos(AbstractTest.TIMEOUT_NANOS, executor, log);
+            Context context=ThreadLocalScheduledExecutorContext.createDelayNanos(
+                    AbstractTest.TIMEOUT_NANOS, executor, log, AbstractTest.PARALLELISM);
             CompletableFuture<Void> stage=Futures.compose(
                     (ignore)->testPool(executor, ldapServer.localAddressClearText(), log),
                     ()->testDirect(executor, ldapServer.localAddressClearText(), log));
@@ -101,6 +102,7 @@ public class FutureLdapTest {
                         null,
                         executor,
                         log,
+                        AbstractTest.PARALLELISM,
                         ldapClearTextAddress,
                         AbstractTest.TIMEOUT_NANOS,
                         LdapServer.clientTls(false, true, true)),
@@ -117,9 +119,12 @@ public class FutureLdapTest {
                         (loopGroup)->CompletableFuture.completedFuture(null),
                         ()->CompletableFuture.completedFuture(null),
                         executor,
+                        ThreadLocalScheduledExecutorContext.DEFAULT_LOCAL_SIZE,
                         log,
+                        AbstractTest.PARALLELISM,
                         4,
                         ldapClearTextAddress,
+                        new ThreadLocal<>(),
                         AbstractTest.TIMEOUT_NANOS,
                         LdapServer.clientTls(false, true, true)),
                 (pool)->pool.lease(this::testConnection));

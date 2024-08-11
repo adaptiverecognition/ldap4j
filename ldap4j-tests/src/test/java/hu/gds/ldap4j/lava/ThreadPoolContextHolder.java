@@ -11,9 +11,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ThreadPoolContextHolder extends ContextHolder {
-    private class ContextImpl extends ExecutorContext.Scheduled {
-        public ContextImpl(@NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) {
-            super(Clock.SYSTEM_NANO_TIME, debugMagic, endNanos, log);
+    private class ScheduledContextImpl extends AbstractScheduledExecutorContext {
+        public ScheduledContextImpl(
+                @NotNull String debugMagic,
+                @Nullable Long endNanos,
+                @NotNull Log log,
+                int parallelism) {
+            super(Clock.SYSTEM_NANO_TIME, debugMagic, endNanos, log, parallelism);
         }
 
         @Override
@@ -26,25 +30,63 @@ public class ThreadPoolContextHolder extends ContextHolder {
         }
 
         @Override
-        protected Context context(@NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) {
-            return new ContextImpl(debugMagic, endNanos, log);
+        protected @NotNull Context context(@NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) {
+            return new ScheduledContextImpl(debugMagic, endNanos, log, poolSize);
         }
     }
 
-    private final Context context;
-    private final AtomicReference<ScheduledExecutorService> executor=new AtomicReference<>();
+    private class ThreadLocalScheduledContextImpl extends AbstractThreadLocalScheduledExecutorContext {
+        public ThreadLocalScheduledContextImpl(
+                @NotNull String debugMagic,
+                @Nullable Long endNanos,
+                @NotNull Log log,
+                int parallelism) {
+            super(
+                    debugMagic,
+                    endNanos,
+                    AbstractThreadLocalScheduledExecutorContext.DEFAULT_LOCAL_SIZE,
+                    log,
+                    parallelism,
+                    ThreadPoolContextHolder.this.threadLocal2);
+        }
+
+        @Override
+        protected @NotNull ScheduledExecutorService checkClosedAndGetExecutor() {
+            ScheduledExecutorService executor2=executor.get();
+            if (null==executor2) {
+                throw new RuntimeException("executor not running");
+            }
+            return executor2;
+        }
+
+        @Override
+        protected @NotNull Context context(@NotNull String debugMagic, @Nullable Long endNanos, @NotNull Log log) {
+            return new ThreadLocalScheduledContextImpl(debugMagic, endNanos, log, poolSize);
+        }
+    }
+
+    private final @NotNull AtomicReference<ScheduledExecutorService> executor=new AtomicReference<>();
+    private final int parallelism;
     private final int poolSize;
     private final @Nullable ThreadFactory threadFactory;
+    private final boolean threadLocal;
+    private final @NotNull ThreadLocal<AbstractThreadLocalScheduledExecutorContext.@Nullable LocalData> threadLocal2
+            =new ThreadLocal<>();
 
     public ThreadPoolContextHolder(
-            @NotNull Log log, int poolSize, @Nullable ThreadFactory threadFactory) {
+            @NotNull Log log,
+            int parallelism,
+            int poolSize,
+            @Nullable ThreadFactory threadFactory,
+            boolean threadLocal) {
         super(log);
         if (0>=poolSize) {
             throw new IllegalArgumentException("0 >= poolSize %,d".formatted(poolSize));
         }
+        this.parallelism=parallelism;
         this.poolSize=poolSize;
         this.threadFactory=threadFactory;
-        context=new ContextImpl("", null, log);
+        this.threadLocal=threadLocal;
     }
 
     @Override
@@ -62,11 +104,16 @@ public class ThreadPoolContextHolder extends ContextHolder {
 
     @Override
     public @NotNull Context context() {
-        return new ContextImpl("", null, log);
+        return threadLocal
+                ?new ThreadLocalScheduledContextImpl("", null, log, parallelism)
+                :new ScheduledContextImpl("", null, log, parallelism);
     }
 
     public static @NotNull Function<@NotNull Log, @NotNull ContextHolder> factory(
-            int poolSize, @Nullable ThreadFactory threadFactory) {
+            int parallelism,
+            int poolSize,
+            @Nullable ThreadFactory threadFactory,
+            boolean threadLocal) {
         if (0>=poolSize) {
             throw new IllegalArgumentException("0 >= poolSize %,d".formatted(poolSize));
         }
@@ -74,13 +121,16 @@ public class ThreadPoolContextHolder extends ContextHolder {
             @Override
             public ContextHolder apply(@NotNull Log value) {
                 Objects.requireNonNull(value, "value");
-                return new ThreadPoolContextHolder(value, poolSize, threadFactory);
+                return new ThreadPoolContextHolder(value, parallelism, poolSize, threadFactory, threadLocal);
             }
 
             @Override
             public String toString() {
-                return "ThreadPoolContextHolder.factory(poolSize: "+poolSize
-                        +", threadFactory: "+threadFactory+")";
+                return "ThreadPoolContextHolder.factory(poolSize: %,d, threadFactory: %s, threadLocal: %s)"
+                        .formatted(
+                                poolSize,
+                                threadFactory,
+                                threadLocal);
             }
         };
     }
@@ -88,7 +138,7 @@ public class ThreadPoolContextHolder extends ContextHolder {
     @Override
     public <T> T getOrTimeoutEndNanos(long endNanos, Lava<T> supplier) throws Throwable {
         JoinCallback<T> callback=Callback.join(clock());
-        context.endNanos(endNanos).get(callback, supplier);
+        context().endNanos(endNanos).get(callback, supplier);
         return callback.joinEndNanos(endNanos);
     }
 
@@ -113,6 +163,11 @@ public class ThreadPoolContextHolder extends ContextHolder {
 
     @Override
     public String toString() {
-        return "ThreadPoolContextHolder(log: "+log+", poolSize: "+poolSize+", threadFactory: "+threadFactory+")";
+        return "ThreadPoolContextHolder(log: %s, poolSize: %,d, threadFactory: %s, threadLocal: %s)"
+                .formatted(
+                        log,
+                        poolSize,
+                        threadFactory,
+                        threadLocal);
     }
 }
