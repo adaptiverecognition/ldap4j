@@ -16,6 +16,7 @@ import java.nio.channels.AsynchronousChannelGroup;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -67,6 +68,7 @@ public class FutureLdapPool {
             @NotNull Supplier<@NotNull CompletableFuture<Void>> closeLoopGroup,
             @NotNull ScheduledExecutorService executor,
             @NotNull Function<@NotNull InetSocketAddress, @NotNull Lava<@NotNull DuplexConnection>> factory,
+            @Nullable Executor handshakeExecutor,
             int localSize,
             @NotNull Log log,
             int parallelism,
@@ -94,6 +96,7 @@ public class FutureLdapPool {
                                         LdapConnection::close,
                                         ()->LdapConnection.factory(
                                                 factory,
+                                                handshakeExecutor,
                                                 remoteAddress,
                                                 tlsSettings),
                                         Connection::checkOpenAndNotFailed,
@@ -119,6 +122,7 @@ public class FutureLdapPool {
             @NotNull Function<@Nullable AsynchronousChannelGroup, @NotNull CompletableFuture<Void>> closeLoopGroup,
             @NotNull Supplier<@NotNull CompletableFuture<@Nullable AsynchronousChannelGroup>> createLoopGroup,
             @NotNull ScheduledExecutorService executor,
+            @Nullable Executor handshakeExecutor,
             int localSize,
             @NotNull Log log,
             int parallelism,
@@ -136,6 +140,7 @@ public class FutureLdapPool {
                         JavaAsyncChannelConnection.factory(
                                 loopGroup,
                                 Map.of()),
+                        handshakeExecutor,
                         localSize,
                         log,
                         parallelism,

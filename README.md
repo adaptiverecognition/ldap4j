@@ -50,6 +50,8 @@ Ldap4j supports TLS, through the standard StartTLS operation, and it also suppor
 It supports an optional host name verification in both cases.
 Ldap4j supports TLS renegotiations.
 
+Ldap4j supports separate executors for TLS handshake tasks.
+
 A connection pool is provided to support traditional parallelism, and amortize the cost of TCP and TLS handshakes.
 
 Ldap4j supports parallel operations using a single connection.

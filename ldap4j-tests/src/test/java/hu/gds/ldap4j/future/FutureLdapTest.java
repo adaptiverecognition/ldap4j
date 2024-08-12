@@ -22,6 +22,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -119,6 +120,7 @@ public class FutureLdapTest {
                         (loopGroup)->CompletableFuture.completedFuture(null),
                         ()->CompletableFuture.completedFuture(null),
                         executor,
+                        null,
                         ThreadLocalScheduledExecutorContext.DEFAULT_LOCAL_SIZE,
                         log,
                         AbstractTest.PARALLELISM,

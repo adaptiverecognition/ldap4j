@@ -10,6 +10,7 @@ import hu.gds.ldap4j.lava.Lock;
 import java.io.EOFException;
 import java.net.InetSocketAddress;
 import java.util.Objects;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeoutException;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -71,6 +72,7 @@ public class TlsConnection implements DuplexConnection {
         @Override
         @NotNull Lava<Void> startTlsHandshakeLocked(
                 @NotNull Function<@NotNull InetSocketAddress, @NotNull SSLEngine> function,
+                @Nullable Executor handshakeExecutor,
                 @NotNull InetSocketAddress remoteAddress) {
             throw new ClosedException();
         }
@@ -156,6 +158,7 @@ public class TlsConnection implements DuplexConnection {
         @Override
         @NotNull Lava<Void> startTlsHandshakeLocked(
                 @NotNull Function<@NotNull InetSocketAddress, @NotNull SSLEngine> function,
+                @Nullable Executor handshakeExecutor,
                 @NotNull InetSocketAddress remoteAddress) {
             throw new RuntimeException("connection already failed", throwable);
         }
@@ -302,6 +305,7 @@ public class TlsConnection implements DuplexConnection {
         @Override
         @NotNull Lava<Void> startTlsHandshakeLocked(
                 @NotNull Function<@NotNull InetSocketAddress, @NotNull SSLEngine> function,
+                @Nullable Executor handshakeExecutor,
                 @NotNull InetSocketAddress remoteAddress) throws Throwable {
             checkStartTlsHandShake(gettingOpenAndNotFailed, outputShutDown, reading, shuttingDownOutput, writing);
             if (endOfStream) {
@@ -312,7 +316,7 @@ public class TlsConnection implements DuplexConnection {
             }
             SSLEngine sslEngine=Objects.requireNonNull(function.apply(remoteAddress), "sslEngine");
             sslEngine.beginHandshake();
-            TlsHandshake tlsHandshake=new TlsHandshake(endOfStream, ByteBuffer.EMPTY, sslEngine);
+            TlsHandshake tlsHandshake=new TlsHandshake(endOfStream, ByteBuffer.EMPTY, handshakeExecutor, sslEngine);
             state=tlsHandshake;
             return tlsHandshake.handshakeLoopLocked();
         }
@@ -385,7 +389,9 @@ public class TlsConnection implements DuplexConnection {
 
         abstract @NotNull Lava<Void> startTlsHandshakeLocked(
                 @NotNull Function<@NotNull InetSocketAddress, @NotNull SSLEngine> function,
-                @NotNull InetSocketAddress remoteAddress) throws Throwable;
+                @Nullable Executor handshakeExecutor,
+                @NotNull InetSocketAddress remoteAddress)
+                throws Throwable;
 
         abstract @NotNull Lava<@NotNull Boolean> supportsShutDownOutputLocked();
 
@@ -401,11 +407,17 @@ public class TlsConnection implements DuplexConnection {
     private abstract class Tls extends NotFailed {
         protected boolean cipherEndOfStream;
         protected @NotNull ByteBuffer cipherReadBuffer;
+        protected final @Nullable Executor handshakeExecutor;
         protected final @NotNull SSLEngine sslEngine;
 
-        public Tls(boolean cipherEndOfStream, @NotNull ByteBuffer cipherReadBuffer, @NotNull SSLEngine sslEngine) {
+        public Tls(
+                boolean cipherEndOfStream,
+                @NotNull ByteBuffer cipherReadBuffer,
+                @Nullable Executor handshakeExecutor,
+                @NotNull SSLEngine sslEngine) {
             this.cipherEndOfStream=cipherEndOfStream;
             this.cipherReadBuffer=Objects.requireNonNull(cipherReadBuffer, "cipherReadBuffer");
+            this.handshakeExecutor=handshakeExecutor;
             this.sslEngine=Objects.requireNonNull(sslEngine, "sslEngine");
         }
 
@@ -518,8 +530,11 @@ public class TlsConnection implements DuplexConnection {
         private boolean writing;
 
         public TlsConnected(
-                boolean cipherEndOfStream, @NotNull ByteBuffer cipherReadBuffer, @NotNull SSLEngine sslEngine) {
-            super(cipherEndOfStream, cipherReadBuffer, sslEngine);
+                boolean cipherEndOfStream,
+                @NotNull ByteBuffer cipherReadBuffer,
+                @Nullable Executor handshakeExecutor,
+                @NotNull SSLEngine sslEngine) {
+            super(cipherEndOfStream, cipherReadBuffer, handshakeExecutor, sslEngine);
         }
 
         private void checkHandshakeLocked() {
@@ -574,7 +589,11 @@ public class TlsConnection implements DuplexConnection {
             switch (sslEngine.getHandshakeStatus()) {
                 case FINISHED, NOT_HANDSHAKING -> sslEngine.beginHandshake();
             }
-            TlsHandshake tlsHandshake=new TlsHandshake(cipherEndOfStream, cipherReadBuffer, sslEngine);
+            TlsHandshake tlsHandshake=new TlsHandshake(
+                    cipherEndOfStream,
+                    cipherReadBuffer,
+                    handshakeExecutor,
+                    sslEngine);
             state=tlsHandshake;
             return tlsHandshake.handshakeLoopLocked();
         }
@@ -616,6 +635,7 @@ public class TlsConnection implements DuplexConnection {
         @Override
         @NotNull Lava<Void> startTlsHandshakeLocked(
                 @NotNull Function<@NotNull InetSocketAddress, @NotNull SSLEngine> function,
+                @Nullable Executor handshakeExecutor,
                 @NotNull InetSocketAddress remoteAddress) {
             throw new RuntimeException("already using tls");
         }
@@ -655,8 +675,11 @@ public class TlsConnection implements DuplexConnection {
         private boolean task;
 
         public TlsHandshake(
-                boolean cipherEndOfStream, @NotNull ByteBuffer cipherReadBuffer, @NotNull SSLEngine sslEngine) {
-            super(cipherEndOfStream, cipherReadBuffer, sslEngine);
+                boolean cipherEndOfStream,
+                @NotNull ByteBuffer cipherReadBuffer,
+                @Nullable Executor handshakeExecutor,
+                @NotNull SSLEngine sslEngine) {
+            super(cipherEndOfStream, cipherReadBuffer, handshakeExecutor, sslEngine);
         }
 
         @NotNull Lava<Void> handshakeLoopLocked() {
@@ -665,9 +688,22 @@ public class TlsConnection implements DuplexConnection {
                         if (task) {
                             Runnable runnable=sslEngine.getDelegatedTask();
                             if (null!=runnable) {
-                                return lock.leave(()->{
-                                            runnable.run();
-                                            return Lava.VOID;
+                                return lock.<Void>leave(()->{
+                                            if (null==handshakeExecutor) {
+                                                runnable.run();
+                                                return Lava.VOID;
+                                            }
+                                            else {
+                                                return (callback, context)->handshakeExecutor.execute(()->{
+                                                    try {
+                                                        runnable.run();
+                                                        context.complete(callback, null);
+                                                    }
+                                                    catch (Throwable throwable) {
+                                                        context.fail(callback, throwable);
+                                                    }
+                                                });
+                                            }
                                         })
                                         .composeIgnoreResult(()->state.handshakeLoopLocked());
                             }
@@ -675,7 +711,11 @@ public class TlsConnection implements DuplexConnection {
                         }
                         return switch (sslEngine.getHandshakeStatus()) {
                             case FINISHED, NOT_HANDSHAKING -> {
-                                state=new TlsConnected(cipherEndOfStream, cipherReadBuffer, sslEngine);
+                                state=new TlsConnected(
+                                        cipherEndOfStream,
+                                        cipherReadBuffer,
+                                        handshakeExecutor,
+                                        sslEngine);
                                 yield Lava.VOID;
                             }
                             case NEED_TASK -> {
@@ -731,6 +771,7 @@ public class TlsConnection implements DuplexConnection {
         @Override
         @NotNull Lava<Void> startTlsHandshakeLocked(
                 @NotNull Function<@NotNull InetSocketAddress, @NotNull SSLEngine> function,
+                @Nullable Executor handshakeExecutor,
                 @NotNull InetSocketAddress remoteAddress) {
             throw new RuntimeException("tls handshaking");
         }
@@ -855,15 +896,18 @@ public class TlsConnection implements DuplexConnection {
     }
 
     public @NotNull Lava<Void> startTlsHandshake(
-            @NotNull Function<@Nullable InetSocketAddress, @NotNull SSLEngine> function) {
+            @NotNull Function<@Nullable InetSocketAddress, @NotNull SSLEngine> function,
+            @Nullable Executor handshakeExecutor) {
         Objects.requireNonNull(function, "function");
         return connection.remoteAddress()
                 .compose((remoteAddress)->getGuardedLock(
-                        ()->state.startTlsHandshakeLocked(function, remoteAddress)));
+                        ()->state.startTlsHandshakeLocked(function, handshakeExecutor, remoteAddress)));
     }
 
-    public @NotNull Lava<Void> startTlsHandshake(@NotNull TlsSettings.Tls tlsSettings) {
-        return startTlsHandshake(tlsSettings::createSSLEngine);
+    public @NotNull Lava<Void> startTlsHandshake(
+            @Nullable Executor handshakeExecutor,
+            @NotNull TlsSettings.Tls tlsSettings) {
+        return startTlsHandshake(tlsSettings::createSSLEngine, handshakeExecutor);
     }
 
     @Override

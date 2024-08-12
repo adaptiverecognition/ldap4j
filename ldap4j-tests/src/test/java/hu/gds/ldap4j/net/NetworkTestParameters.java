@@ -14,8 +14,10 @@ import java.net.InetSocketAddress;
 import java.net.SocketOption;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Executor;
 import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class NetworkTestParameters extends TestParameters {
     public enum Tls {
@@ -51,14 +53,35 @@ public class NetworkTestParameters extends TestParameters {
 
     public @NotNull Lava<@NotNull DuplexConnection> connectionFactory(
             @NotNull TestContext<NetworkTestParameters> context,
+            @Nullable Executor handshakeExecutor,
             @NotNull InetSocketAddress remoteAddress,
             @NotNull Map<@NotNull SocketOption<?>, @NotNull Object> socketOptions)
             throws Throwable {
         return connectionFactory(
+                false,
                 context,
                 TlsConnection.DEFAULT_EXPLICIT_TLS_RENEGOTIATION,
+                handshakeExecutor,
                 remoteAddress,
-                socketOptions);
+                socketOptions,
+                true,
+                Lava::complete);
+    }
+
+    public @NotNull Lava<@NotNull DuplexConnection> connectionFactory(
+            @NotNull TestContext<NetworkTestParameters> context,
+            @NotNull InetSocketAddress remoteAddress,
+            @NotNull Map<@NotNull SocketOption<?>, @NotNull Object> socketOptions)
+            throws Throwable {
+        return connectionFactory(
+                false,
+                context,
+                TlsConnection.DEFAULT_EXPLICIT_TLS_RENEGOTIATION,
+                null,
+                remoteAddress,
+                socketOptions,
+                true,
+                Lava::complete);
     }
 
     public @NotNull Lava<@NotNull DuplexConnection> connectionFactory(
@@ -68,10 +91,13 @@ public class NetworkTestParameters extends TestParameters {
             @NotNull Function<@NotNull DuplexConnection, @NotNull Lava<@NotNull DuplexConnection>> wrapNetwork)
             throws Throwable {
         return connectionFactory(
+                false,
                 context,
                 TlsConnection.DEFAULT_EXPLICIT_TLS_RENEGOTIATION,
+                null,
                 remoteAddress,
                 socketOptions,
+                true,
                 wrapNetwork);
     }
 
@@ -81,18 +107,15 @@ public class NetworkTestParameters extends TestParameters {
             @NotNull InetSocketAddress remoteAddress,
             @NotNull Map<@NotNull SocketOption<?>, @NotNull Object> socketOptions)
             throws Throwable {
-        return connectionFactory(context, explicitTlsRenegotiation, remoteAddress, socketOptions, Lava::complete);
-    }
-
-    public @NotNull Lava<@NotNull DuplexConnection> connectionFactory(
-            @NotNull TestContext<NetworkTestParameters> context,
-            boolean explicitTlsRenegotiation,
-            @NotNull InetSocketAddress remoteAddress,
-            @NotNull Map<@NotNull SocketOption<?>, @NotNull Object> socketOptions,
-            @NotNull Function<@NotNull DuplexConnection, @NotNull Lava<@NotNull DuplexConnection>> wrapNetwork)
-            throws Throwable {
         return connectionFactory(
-                false, context, explicitTlsRenegotiation, remoteAddress, socketOptions, true, wrapNetwork);
+                false,
+                context,
+                explicitTlsRenegotiation,
+                null,
+                remoteAddress,
+                socketOptions,
+                true,
+                Lava::complete);
     }
 
     public @NotNull Lava<@NotNull DuplexConnection> connectionFactory(
@@ -107,6 +130,7 @@ public class NetworkTestParameters extends TestParameters {
                 badCertificate,
                 context,
                 TlsConnection.DEFAULT_EXPLICIT_TLS_RENEGOTIATION,
+                null,
                 remoteAddress,
                 socketOptions,
                 verifyHostname,
@@ -117,6 +141,7 @@ public class NetworkTestParameters extends TestParameters {
             boolean badCertificate,
             @NotNull TestContext<NetworkTestParameters> context,
             boolean explicitTlsRenegotiation,
+            @Nullable Executor handshakeExecutor,
             @NotNull InetSocketAddress remoteAddress,
             @NotNull Map<@NotNull SocketOption<?>, @NotNull Object> socketOptions,
             boolean verifyHostname,
@@ -142,6 +167,7 @@ public class NetworkTestParameters extends TestParameters {
                 connectionFactory2=Closeable.wrapOrClose(
                         ()->tlsConnectionFactory,
                         (connection)->connection.startTlsHandshake(
+                                        handshakeExecutor,
                                         LdapServer.clientTls(badCertificate, false, verifyHostname))
                                 .composeIgnoreResult(()->Lava.complete(connection)));
             }

@@ -33,6 +33,7 @@ import javax.net.ssl.SSLSession;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 public class ReactorLdapConnection {
     private final @NotNull LdapConnection connection;
@@ -93,7 +94,7 @@ public class ReactorLdapConnection {
     }
 
     public @NotNull Mono<Void> startTls(@NotNull TlsSettings.Tls tls) {
-        return lavaToMono(connection.startTls(tls));
+        return lavaToMono(connection.startTls(Schedulers.boundedElastic()::schedule, tls));
     }
 
     public @NotNull Mono<@Nullable SSLSession> tlsSession() {
@@ -126,6 +127,7 @@ public class ReactorLdapConnection {
                                                         NioSocketChannel.class,
                                                         eventLoopGroup,
                                                         Map.of()),
+                                                Schedulers.boundedElastic()::schedule,
                                                 remoteAddress,
                                                 tlsSettings),
                                         (connection)->Lava.complete(

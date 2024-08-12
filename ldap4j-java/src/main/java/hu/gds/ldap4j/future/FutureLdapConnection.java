@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
@@ -70,6 +71,7 @@ public class FutureLdapConnection {
     public static @NotNull Supplier<@NotNull CompletableFuture<@NotNull FutureLdapConnection>> factory(
             @NotNull ScheduledExecutorService executor,
             @NotNull Function<@NotNull InetSocketAddress, @NotNull Lava<@NotNull DuplexConnection>> factory,
+            @Nullable Executor handshakeExecutor,
             int localSize,
             @NotNull Log log,
             int parallelism,
@@ -89,6 +91,7 @@ public class FutureLdapConnection {
                         LdapConnection::close,
                         ()->LdapConnection.factory(
                                 factory,
+                                handshakeExecutor,
                                 remoteAddress,
                                 tlsSettings),
                         (connection)->Lava.complete(
@@ -105,6 +108,7 @@ public class FutureLdapConnection {
     public static @NotNull Supplier<@NotNull CompletableFuture<@NotNull FutureLdapConnection>> factoryJavaAsync(
             @Nullable AsynchronousChannelGroup asynchronousChannelGroup,
             @NotNull ScheduledExecutorService executor,
+            @Nullable Executor handshakeExecutor,
             int localSize,
             @NotNull Log log,
             int parallelism,
@@ -117,11 +121,34 @@ public class FutureLdapConnection {
                 JavaAsyncChannelConnection.factory(
                         asynchronousChannelGroup,
                         Map.of()),
+                handshakeExecutor,
                 localSize,
                 log,
                 parallelism,
                 remoteAddress,
                 threadLocal,
+                timeoutNanos,
+                tlsSettings);
+    }
+
+    public static @NotNull Supplier<@NotNull CompletableFuture<@NotNull FutureLdapConnection>> factoryJavaAsync(
+            @Nullable AsynchronousChannelGroup asynchronousChannelGroup,
+            @NotNull ScheduledExecutorService executor,
+            @Nullable Executor handshakeExecutor,
+            @NotNull Log log,
+            int parallelism,
+            @NotNull InetSocketAddress remoteAddress,
+            long timeoutNanos,
+            @NotNull TlsSettings tlsSettings) {
+        return factoryJavaAsync(
+                asynchronousChannelGroup,
+                executor,
+                handshakeExecutor,
+                ThreadLocalScheduledExecutorContext.DEFAULT_LOCAL_SIZE,
+                log,
+                parallelism,
+                remoteAddress,
+                new ThreadLocal<>(),
                 timeoutNanos,
                 tlsSettings);
     }
@@ -137,6 +164,7 @@ public class FutureLdapConnection {
         return factoryJavaAsync(
                 asynchronousChannelGroup,
                 executor,
+                null,
                 ThreadLocalScheduledExecutorContext.DEFAULT_LOCAL_SIZE,
                 log,
                 parallelism,
@@ -193,8 +221,10 @@ public class FutureLdapConnection {
                 lava);
     }
 
-    public @NotNull CompletableFuture<Void> startTls(TlsSettings.@NotNull Tls tls) {
-        return startLava(connection.startTls(tls));
+    public @NotNull CompletableFuture<Void> startTls(
+            @Nullable Executor handshakeExecutor,
+            TlsSettings.@NotNull Tls tls) {
+        return startLava(connection.startTls(handshakeExecutor, tls));
     }
 
     public @NotNull CompletableFuture<@Nullable SSLSession> tlsSession() {

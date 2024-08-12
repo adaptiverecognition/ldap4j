@@ -24,6 +24,8 @@ import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -585,6 +587,50 @@ public class DuplexConnectionTest {
         }
     }
 
+    @ParameterizedTest
+    @MethodSource("hu.gds.ldap4j.net.NetworkTestParameters#streamNetwork")
+    public void testTlsHandshakeExecutor(NetworkTestParameters parameters) throws Throwable {
+        AtomicInteger handshakeCount=new AtomicInteger();
+        ScheduledExecutorService handshakeExecutor=Executors.newScheduledThreadPool(AbstractTest.PARALLELISM);
+        try (TestContext<NetworkTestParameters> context=TestContext.create(parameters);
+             NetworkServer<Void, Void> testServer=new NetworkServer<>(
+                     context,
+                     (context2, input, output, socket, state)->{
+                         input.readByte();
+                         output.write(0);
+                         output.flush();
+                     })) {
+            testServer.start();
+            context.get(Closeable.withCloseable(
+                    ()->context.parameters().connectionFactory(
+                            context,
+                            (runnable)->{
+                                handshakeCount.incrementAndGet();
+                                runnable.run();
+                            },
+                            testServer.localAddress(),
+                            Map.of()),
+                    new Function<DuplexConnection, Lava<Void>>() {
+                        @Override
+                        public @NotNull Lava<Void> apply(@NotNull DuplexConnection connection) {
+                            return connection.write(ByteBuffer.create((byte)0))
+                                    .composeIgnoreResult(()->new ReadBuffer().read(connection, (reader)->{
+                                        reader.readByte();
+                                        return Lava.VOID;
+                                    }));
+                        }
+                    }));
+        }
+        finally {
+            handshakeExecutor.shutdown();
+        }
+        int handshakeCount2=handshakeCount.get();
+        assertEquals(
+                NetworkTestParameters.Tls.USE_TLS.equals(parameters.tls),
+                0<handshakeCount2,
+                "handshake count %,d".formatted(handshakeCount2));
+    }
+
     private void testTlsRenegotiation(
             boolean explicitTlsRenegotiation, NetworkTestParameters parameters) throws Throwable {
         try (TestContext<NetworkTestParameters> context=TestContext.create(parameters)) {
@@ -637,7 +683,7 @@ public class DuplexConnectionTest {
 
                 public @NotNull Lava<Void> server(@NotNull TlsConnection connection) throws Throwable {
                     @NotNull TlsConnection tlsConnection=new TlsConnection(connection);
-                    return tlsConnection.startTlsHandshake(LdapServer.serverTls(false))
+                    return tlsConnection.startTlsHandshake(null, LdapServer.serverTls(false))
                             .composeIgnoreResult(tlsConnection::readNonEmpty)
                             .compose((readResult)->{
                                 assertNotNull(readResult);

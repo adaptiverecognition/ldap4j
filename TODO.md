@@ -2,7 +2,6 @@
 
 - java docs / manual / guides
 - netty kqueue
-- separate executor for tls handshake tasks
 - tls closure, rfc4511 4.14.3, allow, disallow, initiate
 - unit tests
   - abandon

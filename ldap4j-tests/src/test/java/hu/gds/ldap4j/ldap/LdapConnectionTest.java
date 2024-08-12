@@ -1220,7 +1220,7 @@ public class LdapConnectionTest {
 
                 public @NotNull Lava<Void> run() {
                     return readStartTls()
-                            .composeIgnoreResult(()->tlsConnection.startTlsHandshake(LdapServer.serverTls(false)))
+                            .composeIgnoreResult(()->tlsConnection.startTlsHandshake(null, LdapServer.serverTls(false)))
                             .composeIgnoreResult(()->ldapConnection.readMessageCheckedParallel((messageId)->{
                                 if (0>=messageId) {
                                     return null;

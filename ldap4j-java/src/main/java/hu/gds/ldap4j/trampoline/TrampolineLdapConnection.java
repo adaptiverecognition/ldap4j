@@ -61,6 +61,7 @@ public record TrampolineLdapConnection(
                                     LdapConnection::close,
                                     ()->LdapConnection.factory(
                                             factory,
+                                            null,
                                             remoteAddress,
                                             tlsSettings),
                                     (LdapConnection connection2)->Lava.complete(
@@ -151,7 +152,7 @@ public record TrampolineLdapConnection(
 
     public void startTls(long endNanos, @NotNull TlsSettings.Tls tls) throws Throwable {
         trampoline.contextEndNanos(endNanos)
-                .get(true, true, connection.startTls(tls));
+                .get(true, true, connection.startTls(null, tls));
     }
 
     public @Nullable SSLSession tlsSession(long endNanos) throws Throwable {

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeoutException;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
@@ -102,11 +103,13 @@ public class LdapConnection implements Connection {
     public static @NotNull Lava<@NotNull LdapConnection> factory(
             boolean explicitTlsRenegotiation,
             @NotNull Function<@NotNull InetSocketAddress, @NotNull Lava<@NotNull DuplexConnection>> factory,
+            @Nullable Executor handshakeExecutor,
             @NotNull InetSocketAddress remoteAddress,
             @NotNull TlsSettings tlsSettings) {
         return factory(
                 explicitTlsRenegotiation,
                 factory,
+                handshakeExecutor,
                 MessageIdGenerator.smallValues(),
                 remoteAddress,
                 tlsSettings);
@@ -115,6 +118,7 @@ public class LdapConnection implements Connection {
     public static @NotNull Lava<@NotNull LdapConnection> factory(
             boolean explicitTlsRenegotiation,
             @NotNull Function<@NotNull InetSocketAddress, @NotNull Lava<@NotNull DuplexConnection>> factory,
+            @Nullable Executor handshakeExecutor,
             @NotNull MessageIdGenerator messageIdGenerator,
             @NotNull InetSocketAddress remoteAddress,
             @NotNull TlsSettings tlsSettings) {
@@ -128,11 +132,11 @@ public class LdapConnection implements Connection {
                         if (tlsSettings.isStarttls()) {
                             return Closeable.wrapOrClose(
                                     ()->Lava.complete(new LdapConnection(connection, false, messageIdGenerator)),
-                                    (connection2)->connection2.startTls(tlsSettings.asTls())
+                                    (connection2)->connection2.startTls(handshakeExecutor, tlsSettings.asTls())
                                             .composeIgnoreResult(()->Lava.complete(connection2)));
                         }
                         else {
-                            return connection.startTlsHandshake(tlsSettings.asTls())
+                            return connection.startTlsHandshake(handshakeExecutor, tlsSettings.asTls())
                                     .composeIgnoreResult(()->Lava.complete(
                                             new LdapConnection(connection, true, messageIdGenerator)));
                         }
@@ -145,11 +149,24 @@ public class LdapConnection implements Connection {
 
     public static @NotNull Lava<@NotNull LdapConnection> factory(
             @NotNull Function<@NotNull InetSocketAddress, @NotNull Lava<@NotNull DuplexConnection>> factory,
+            @Nullable Executor handshakeExecutor,
             @NotNull InetSocketAddress remoteAddress,
             @NotNull TlsSettings tlsSettings) {
         return factory(
                 TlsConnection.DEFAULT_EXPLICIT_TLS_RENEGOTIATION,
                 factory,
+                handshakeExecutor,
+                remoteAddress,
+                tlsSettings);
+    }
+
+    public static @NotNull Lava<@NotNull LdapConnection> factory(
+            @NotNull Function<@NotNull InetSocketAddress, @NotNull Lava<@NotNull DuplexConnection>> factory,
+            @NotNull InetSocketAddress remoteAddress,
+            @NotNull TlsSettings tlsSettings) {
+        return factory(
+                factory,
+                null,
                 remoteAddress,
                 tlsSettings);
     }
@@ -287,8 +304,10 @@ public class LdapConnection implements Connection {
                 });
     }
 
-    public @NotNull Lava<Void> startTls(@NotNull TlsSettings.Tls tls) {
-        Objects.requireNonNull(tls, "tls");
+    public @NotNull Lava<Void> startTls(
+            @NotNull Function<@Nullable InetSocketAddress, @NotNull SSLEngine> function,
+            @Nullable Executor handshakeExecutor) {
+        Objects.requireNonNull(function, "function");
         return Lava.supplier(()->{
             if (ldaps) {
                 throw new RuntimeException("cannot start tls on ldaps");
@@ -298,8 +317,12 @@ public class LdapConnection implements Connection {
             }
             usingTls=true;
             return writeRequestReadResponseChecked(ExtendedRequest.START_TLS.controlsEmpty())
-                    .composeIgnoreResult(()->connection().startTlsHandshake(tls));
+                    .composeIgnoreResult(()->connection().startTlsHandshake(function, handshakeExecutor));
         });
+    }
+
+    public @NotNull Lava<Void> startTls(@Nullable Executor handshakeExecutor, @NotNull TlsSettings.Tls tls) {
+        return startTls(tls::createSSLEngine, handshakeExecutor);
     }
 
     public @NotNull Lava<@Nullable SSLSession> tlsSession() {

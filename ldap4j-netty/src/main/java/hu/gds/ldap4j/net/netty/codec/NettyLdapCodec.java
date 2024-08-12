@@ -375,6 +375,7 @@ public class NettyLdapCodec extends ChannelDuplexHandler {
                     =lavaEngine.contextEndNanos(lavaEngine.clock().delayNanosToEndNanos(connectTimeoutNanos))
                     .get(LdapConnection.factory(
                             (remoteAddress2)->Lava.complete(engineConnection),
+                            null,
                             remoteAddress,
                             tlsSettings));
             return new Connecting(callback, engineConnection, lavaEngine, requests);

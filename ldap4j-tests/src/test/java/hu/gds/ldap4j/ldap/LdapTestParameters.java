@@ -97,6 +97,7 @@ public class LdapTestParameters extends TestParameters {
                         context.blockingIoContextHolder().context(),
                         context.log(),
                         Map.of()),
+                null,
                 addressTlsSettings.first(),
                 addressTlsSettings.second());
         @NotNull Lava<@NotNull LdapConnection> connectionFactory1;

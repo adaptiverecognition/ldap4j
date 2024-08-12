@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 public class ReactorLdapPool {
     private final @NotNull EventLoopGroup eventLoopGroup;
@@ -70,6 +71,7 @@ public class ReactorLdapPool {
                                         NioSocketChannel.class,
                                         eventLoopGroup,
                                         Map.of()),
+                                Schedulers.boundedElastic()::schedule,
                                 remoteAddress,
                                 tlsSettings),
                         Connection::checkOpenAndNotFailed,
