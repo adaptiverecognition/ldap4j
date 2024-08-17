@@ -18,6 +18,9 @@ import javax.net.ssl.SSLSession;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * This will buffer reads during handshake.
+ */
 public class TlsConnection implements DuplexConnection {
     private static class Closed extends State {
         @Override
@@ -40,17 +43,7 @@ public class TlsConnection implements DuplexConnection {
         }
 
         @Override
-        @NotNull Lava<@NotNull Boolean> isOpenAndNotFailedResultLocked(boolean openAndNotFailed) {
-            return Lava.complete(false);
-        }
-
-        @Override
         @NotNull Lava<@Nullable ByteBuffer> readLocked() {
-            throw new ClosedException();
-        }
-
-        @Override
-        @NotNull Lava<@Nullable ByteBuffer> readResultLocked(@Nullable ByteBuffer result) {
             throw new ClosedException();
         }
 
@@ -61,11 +54,6 @@ public class TlsConnection implements DuplexConnection {
 
         @Override
         @NotNull Lava<Void> shutDownOutputLocked() {
-            throw new ClosedException();
-        }
-
-        @Override
-        @NotNull Lava<Void> shutDownOutputResultLocked() {
             throw new ClosedException();
         }
 
@@ -83,22 +71,12 @@ public class TlsConnection implements DuplexConnection {
         }
 
         @Override
-        @NotNull Lava<@NotNull Boolean> supportsShutDownOutputResultLocked(boolean supportsShutdownOutput) {
-            throw new ClosedException();
-        }
-
-        @Override
         @NotNull Lava<@NotNull SSLSession> tlsSession() {
             throw new ClosedException();
         }
 
         @Override
         @NotNull Lava<Void> writeLocked(@NotNull ByteBuffer value) {
-            throw new ClosedException();
-        }
-
-        @Override
-        @NotNull Lava<Void> writeResultLocked() {
             throw new ClosedException();
         }
     }
@@ -126,17 +104,7 @@ public class TlsConnection implements DuplexConnection {
         }
 
         @Override
-        @NotNull Lava<@NotNull Boolean> isOpenAndNotFailedResultLocked(boolean openAndNotFailed) {
-            return Lava.complete(false);
-        }
-
-        @Override
         @NotNull Lava<@Nullable ByteBuffer> readLocked() {
-            throw new RuntimeException("connection already failed", throwable);
-        }
-
-        @Override
-        @NotNull Lava<@Nullable ByteBuffer> readResultLocked(@Nullable ByteBuffer result) {
             throw new RuntimeException("connection already failed", throwable);
         }
 
@@ -147,11 +115,6 @@ public class TlsConnection implements DuplexConnection {
 
         @Override
         @NotNull Lava<Void> shutDownOutputLocked() {
-            throw new RuntimeException("connection already failed", throwable);
-        }
-
-        @Override
-        @NotNull Lava<Void> shutDownOutputResultLocked() {
             throw new RuntimeException("connection already failed", throwable);
         }
 
@@ -169,22 +132,12 @@ public class TlsConnection implements DuplexConnection {
         }
 
         @Override
-        @NotNull Lava<@NotNull Boolean> supportsShutDownOutputResultLocked(boolean supportsShutdownOutput) {
-            throw new RuntimeException("connection already failed", throwable);
-        }
-
-        @Override
         @NotNull Lava<@Nullable SSLSession> tlsSession() {
             throw new RuntimeException("connection already failed", throwable);
         }
 
         @Override
         @NotNull Lava<Void> writeLocked(@NotNull ByteBuffer value) {
-            throw new RuntimeException("connection already failed", throwable);
-        }
-
-        @Override
-        @NotNull Lava<Void> writeResultLocked() {
             throw new RuntimeException("connection already failed", throwable);
         }
     }
@@ -198,9 +151,46 @@ public class TlsConnection implements DuplexConnection {
     }
 
     private abstract class NotFailed extends NotClosed {
+        protected boolean gettingOpenAndNotFailed;
+        protected boolean netEndOfStream;
+        protected boolean netOutputShutDown;
+        protected boolean reading;
+        protected boolean shuttingDownNetOutput;
+        protected boolean writing;
+
+        public NotFailed(
+                boolean gettingOpenAndNotFailed,
+                boolean netEndOfStream,
+                boolean netOutputShutDown,
+                boolean reading,
+                boolean shuttingDownNetOutput,
+                boolean writing) {
+            this.gettingOpenAndNotFailed=gettingOpenAndNotFailed;
+            this.netEndOfStream=netEndOfStream;
+            this.netOutputShutDown=netOutputShutDown;
+            this.reading=reading;
+            this.shuttingDownNetOutput=shuttingDownNetOutput;
+            this.writing=writing;
+            if (gettingOpenAndNotFailed) {
+                throw new IllegalStateException("should not be getting open and not failed while changing state");
+            }
+            if (reading) {
+                throw new IllegalStateException("should not be reading while changing state");
+            }
+            if (shuttingDownNetOutput) {
+                throw new IllegalStateException("should not be shutting down net output while changing state");
+            }
+            if (writing) {
+                throw new IllegalStateException("should not be writing while changing state");
+            }
+        }
+
         protected static void checkStartTlsHandShake(
-                boolean gettingOpenAndNotFailed, boolean outputShutDown, boolean reading,
-                boolean shuttingDownOutput, boolean writing) {
+                boolean gettingOpenAndNotFailed,
+                boolean outputShutDown,
+                boolean reading,
+                boolean shuttingDownOutput,
+                boolean writing) {
             if (gettingOpenAndNotFailed) {
                 throw new RuntimeException("already getting whether connection is open and not failed");
             }
@@ -222,16 +212,49 @@ public class TlsConnection implements DuplexConnection {
         void failedLocked(@NotNull Throwable throwable) {
             state=new Failed(throwable);
         }
+
+        protected @NotNull Lava<@NotNull Boolean> isConnectionOpenAndNotFailedLocked() {
+            if (gettingOpenAndNotFailed) {
+                throw new RuntimeException("already getting whether connection is open and not failed");
+            }
+            gettingOpenAndNotFailed=true;
+            return Lava.finallyGet(
+                    ()->{
+                        gettingOpenAndNotFailed=false;
+                        return Lava.VOID;
+                    },
+                    ()->lock.leave(connection::isOpenAndNotFailed));
+        }
+
+        protected @NotNull Lava<@Nullable ByteBuffer> readConnectionLocked() {
+            reading=true;
+            return Lava.finallyGet(
+                    ()->{
+                        reading=false;
+                        return Lava.VOID;
+                    },
+                    ()->lock.leave(connection::read));
+        }
     }
 
     private class Plaintext extends NotFailed {
-        private boolean endOfStream;
-        private boolean gettingOpenAndNotFailed;
         private boolean gettingSupportsShutdownOutput;
-        private boolean outputShutDown;
-        private boolean reading;
-        private boolean shuttingDownOutput;
-        private boolean writing;
+
+        public Plaintext(
+                boolean gettingOpenAndNotFailed,
+                boolean netEndOfStream,
+                boolean netOutputShutDown,
+                boolean reading,
+                boolean shuttingDownNetOutput,
+                boolean writing) {
+            super(
+                    gettingOpenAndNotFailed,
+                    netEndOfStream,
+                    netOutputShutDown,
+                    reading,
+                    shuttingDownNetOutput,
+                    writing);
+        }
 
         @Override
         @NotNull Lava<Void> handshakeLoopLocked() {
@@ -240,18 +263,7 @@ public class TlsConnection implements DuplexConnection {
 
         @Override
         @NotNull Lava<@NotNull Boolean> isOpenAndNotFailedLocked() {
-            if (gettingOpenAndNotFailed) {
-                throw new RuntimeException("already getting whether connection is open and not failed");
-            }
-            gettingOpenAndNotFailed=true;
-            return lock.leave(connection::isOpenAndNotFailed)
-                    .compose((openAndNotFailed)->state.isOpenAndNotFailedResultLocked(openAndNotFailed));
-        }
-
-        @Override
-        @NotNull Lava<@NotNull Boolean> isOpenAndNotFailedResultLocked(boolean openAndNotFailed) {
-            gettingOpenAndNotFailed=false;
-            return Lava.complete(openAndNotFailed);
+            return isConnectionOpenAndNotFailedLocked();
         }
 
         @Override
@@ -259,20 +271,17 @@ public class TlsConnection implements DuplexConnection {
             if (reading) {
                 throw new RuntimeException("already reading");
             }
-            if (endOfStream) {
+            if (netEndOfStream) {
                 return Lava.complete(null);
             }
             reading=true;
-            return readConnectionLocked();
-        }
-
-        @Override
-        @NotNull Lava<@Nullable ByteBuffer> readResultLocked(@Nullable ByteBuffer result) {
-            reading=false;
-            if (null==result) {
-                endOfStream=true;
-            }
-            return Lava.complete(result);
+            return readConnectionLocked()
+                    .compose((result)->{
+                        if (null==result) {
+                            netEndOfStream=true;
+                        }
+                        return Lava.complete(result);
+                    });
         }
 
         @Override
@@ -282,24 +291,23 @@ public class TlsConnection implements DuplexConnection {
 
         @Override
         @NotNull Lava<Void> shutDownOutputLocked() {
-            if (shuttingDownOutput) {
+            if (shuttingDownNetOutput) {
                 throw new RuntimeException("already shutting down output");
             }
             if (writing) {
                 throw new RuntimeException("already writing");
             }
-            if (outputShutDown) {
+            if (netOutputShutDown) {
                 return Lava.VOID;
             }
-            shuttingDownOutput=true;
-            return shutDownOutputConnectionLocked(false);
-        }
-
-        @Override
-        @NotNull Lava<Void> shutDownOutputResultLocked() {
-            outputShutDown=true;
-            shuttingDownOutput=false;
-            return Lava.VOID;
+            shuttingDownNetOutput=true;
+            return Lava.finallyGet(
+                    ()->{
+                        netOutputShutDown=true;
+                        shuttingDownNetOutput=false;
+                        return Lava.VOID;
+                    },
+                    ()->lock.leave(connection::shutDownOutput));
         }
 
         @Override
@@ -307,8 +315,13 @@ public class TlsConnection implements DuplexConnection {
                 @NotNull Function<@NotNull InetSocketAddress, @NotNull SSLEngine> function,
                 @Nullable Executor handshakeExecutor,
                 @NotNull InetSocketAddress remoteAddress) throws Throwable {
-            checkStartTlsHandShake(gettingOpenAndNotFailed, outputShutDown, reading, shuttingDownOutput, writing);
-            if (endOfStream) {
+            checkStartTlsHandShake(
+                    gettingOpenAndNotFailed,
+                    netOutputShutDown,
+                    reading,
+                    shuttingDownNetOutput,
+                    writing);
+            if (netEndOfStream) {
                 throw new EOFException();
             }
             if (gettingSupportsShutdownOutput) {
@@ -316,7 +329,17 @@ public class TlsConnection implements DuplexConnection {
             }
             SSLEngine sslEngine=Objects.requireNonNull(function.apply(remoteAddress), "sslEngine");
             sslEngine.beginHandshake();
-            TlsHandshake tlsHandshake=new TlsHandshake(endOfStream, ByteBuffer.EMPTY, handshakeExecutor, sslEngine);
+            TlsHandshake tlsHandshake=new TlsHandshake(
+                    ByteBuffer.EMPTY,
+                    gettingOpenAndNotFailed,
+                    handshakeExecutor,
+                    netEndOfStream,
+                    netOutputShutDown,
+                    ByteBuffer.EMPTY,
+                    reading,
+                    shuttingDownNetOutput,
+                    sslEngine,
+                    writing);
             state=tlsHandshake;
             return tlsHandshake.handshakeLoopLocked();
         }
@@ -327,15 +350,12 @@ public class TlsConnection implements DuplexConnection {
                 throw new RuntimeException("already getting whether connection supports shutting down output");
             }
             gettingSupportsShutdownOutput=true;
-            return lock.leave(connection::supportsShutDownOutput)
-                    .compose((supportsShutDownOutput)->
-                            state.supportsShutDownOutputResultLocked(supportsShutDownOutput));
-        }
-
-        @Override
-        @NotNull Lava<@NotNull Boolean> supportsShutDownOutputResultLocked(boolean supportsShutdownOutput) {
-            gettingSupportsShutdownOutput=false;
-            return Lava.complete(supportsShutdownOutput);
+            return Lava.finallyGet(
+                    ()->{
+                        gettingSupportsShutdownOutput=false;
+                        return Lava.VOID;
+                    },
+                    ()->lock.leave(connection::supportsShutDownOutput));
         }
 
         @Override
@@ -345,23 +365,23 @@ public class TlsConnection implements DuplexConnection {
 
         @Override
         @NotNull Lava<Void> writeLocked(@NotNull ByteBuffer value) {
-            if (outputShutDown) {
+            if (netOutputShutDown) {
                 throw new RuntimeException("output already shut down");
             }
-            if (shuttingDownOutput) {
+            if (shuttingDownNetOutput) {
                 throw new RuntimeException("already shutting down output");
             }
             if (writing) {
                 throw new RuntimeException("already writing");
             }
             writing=true;
-            return writeConnectionLocked(value);
-        }
+            return Lava.finallyGet(
+                    ()->{
+                        writing=false;
+                        return Lava.VOID;
+                    },
+                    ()->lock.leave(()->connection.write(value)));
 
-        @Override
-        @NotNull Lava<Void> writeResultLocked() {
-            writing=false;
-            return Lava.VOID;
         }
     }
 
@@ -374,18 +394,12 @@ public class TlsConnection implements DuplexConnection {
 
         abstract @NotNull Lava<@NotNull Boolean> isOpenAndNotFailedLocked();
 
-        abstract @NotNull Lava<@NotNull Boolean> isOpenAndNotFailedResultLocked(boolean openAndNotFailed);
-
         abstract @NotNull Lava<@Nullable ByteBuffer> readLocked();
-
-        abstract @NotNull Lava<@Nullable ByteBuffer> readResultLocked(@Nullable ByteBuffer result);
 
         abstract @NotNull Lava<Void> restartTlsHandshakeLocked(
                 @NotNull Consumer<@NotNull SSLEngine> consumer) throws Throwable;
 
         abstract @NotNull Lava<Void> shutDownOutputLocked();
-
-        abstract @NotNull Lava<Void> shutDownOutputResultLocked();
 
         abstract @NotNull Lava<Void> startTlsHandshakeLocked(
                 @NotNull Function<@NotNull InetSocketAddress, @NotNull SSLEngine> function,
@@ -395,46 +409,39 @@ public class TlsConnection implements DuplexConnection {
 
         abstract @NotNull Lava<@NotNull Boolean> supportsShutDownOutputLocked();
 
-        abstract @NotNull Lava<@NotNull Boolean> supportsShutDownOutputResultLocked(boolean supportsShutdownOutput);
-
         abstract @NotNull Lava<@Nullable SSLSession> tlsSession();
 
         abstract @NotNull Lava<Void> writeLocked(@NotNull ByteBuffer value);
-
-        abstract @NotNull Lava<Void> writeResultLocked();
     }
 
     private abstract class Tls extends NotFailed {
-        protected boolean cipherEndOfStream;
-        protected @NotNull ByteBuffer cipherReadBuffer;
+        protected @NotNull ByteBuffer appReadBuffer;
         protected final @Nullable Executor handshakeExecutor;
+        protected @NotNull ByteBuffer netReadBuffer;
         protected final @NotNull SSLEngine sslEngine;
 
         public Tls(
-                boolean cipherEndOfStream,
-                @NotNull ByteBuffer cipherReadBuffer,
+                @NotNull ByteBuffer appReadBuffer,
+                boolean gettingOpenAndNotFailed,
                 @Nullable Executor handshakeExecutor,
-                @NotNull SSLEngine sslEngine) {
-            this.cipherEndOfStream=cipherEndOfStream;
-            this.cipherReadBuffer=Objects.requireNonNull(cipherReadBuffer, "cipherReadBuffer");
+                boolean netEndOfStream,
+                boolean netOutputShutDown,
+                @NotNull ByteBuffer netReadBuffer,
+                boolean reading,
+                boolean shuttingDownNetOutput,
+                @NotNull SSLEngine sslEngine,
+                boolean writing) {
+            super(
+                    gettingOpenAndNotFailed,
+                    netEndOfStream,
+                    netOutputShutDown,
+                    reading,
+                    shuttingDownNetOutput,
+                    writing);
+            this.appReadBuffer=Objects.requireNonNull(appReadBuffer, "appReadBuffer");
             this.handshakeExecutor=handshakeExecutor;
+            this.netReadBuffer=Objects.requireNonNull(netReadBuffer, "netReadBuffer");
             this.sslEngine=Objects.requireNonNull(sslEngine, "sslEngine");
-        }
-
-        @Override
-        @NotNull Lava<@Nullable ByteBuffer> readResultLocked(@Nullable ByteBuffer result) {
-            if (null==result) {
-                cipherEndOfStream=true;
-            }
-            else {
-                cipherReadBuffer=cipherReadBuffer.append(result);
-            }
-            return Lava.complete(result);
-        }
-
-        @Override
-        @NotNull Lava<@NotNull Boolean> supportsShutDownOutputResultLocked(boolean supportsShutdownOutput) {
-            return Lava.complete(supportsShutdownOutput);
         }
 
         protected @NotNull Lava<@Nullable ByteBuffer> unwrap(boolean handshake) {
@@ -446,95 +453,111 @@ public class TlsConnection implements DuplexConnection {
                             }
                             return Lava.complete(ByteBuffer.EMPTY);
                         }
-                        java.nio.ByteBuffer plainBuffer
+                        java.nio.ByteBuffer appBuffer
                                 =java.nio.ByteBuffer.allocate(sslEngine.getSession().getApplicationBufferSize());
-                        java.nio.ByteBuffer cipherBuffer=cipherReadBuffer.nioByteBufferCopy();
-                        return lock.leave(()->Lava.complete(sslEngine.unwrap(cipherBuffer, plainBuffer)))
+                        java.nio.ByteBuffer netBuffer=netReadBuffer.nioByteBufferCopy();
+                        return lock.leave(()->Lava.complete(sslEngine.unwrap(netBuffer, appBuffer)))
                                 .compose((result)->{
                                     SSLEngineResult.Status status=result.getStatus();
                                     return switch (status) {
                                         case BUFFER_OVERFLOW -> throw new IllegalStateException();
                                         case BUFFER_UNDERFLOW -> {
-                                            if (cipherEndOfStream) {
-                                                cipherReadBuffer=ByteBuffer.EMPTY;
+                                            if (netEndOfStream) {
+                                                netReadBuffer=ByteBuffer.EMPTY;
                                                 sslEngine.closeInbound();
                                                 yield Lava.complete(null);
                                             }
-                                            yield readConnectionLocked()
-                                                    .composeIgnoreResult(()->unwrap(handshake));
+                                            yield unwrapRead(handshake);
                                         }
                                         case CLOSED, OK -> {
                                             boolean closed=SSLEngineResult.Status.CLOSED.equals(status);
-                                            cipherReadBuffer=cipherReadBuffer.subBuffer(
-                                                    cipherReadBuffer.size()-cipherBuffer.remaining(),
-                                                    cipherReadBuffer.size());
-                                            if (closed && (!cipherReadBuffer.isEmpty())) {
+                                            netReadBuffer=netReadBuffer.subBuffer(
+                                                    netReadBuffer.size()-netBuffer.remaining(),
+                                                    netReadBuffer.size());
+                                            if (closed && (!netReadBuffer.isEmpty())) {
                                                 throw new RuntimeException(
                                                         "unexpected data after tls engine close %s"
-                                                                .formatted(cipherReadBuffer));
+                                                                .formatted(netReadBuffer));
                                             }
-                                            ByteBuffer plain=ByteBuffer.create(plainBuffer.flip());
-                                            if ((!closed) || (!plain.isEmpty())) {
-                                                yield Lava.complete(plain);
+                                            ByteBuffer app=ByteBuffer.create(appBuffer.flip());
+                                            if ((!closed) || (!app.isEmpty())) {
+                                                yield Lava.complete(app);
                                             }
-                                            if (cipherEndOfStream) {
+                                            if (netEndOfStream) {
                                                 yield Lava.complete(null);
                                             }
-                                            yield readConnectionLocked()
-                                                    .composeIgnoreResult(()->unwrap(handshake));
+                                            yield unwrapRead(handshake);
                                         }
                                     };
                                 });
                     });
         }
 
-        protected @NotNull Lava<Void> wrap(boolean force, @NotNull ByteBuffer plain) {
-            Objects.requireNonNull(plain, "plain");
+        private @NotNull Lava<@Nullable ByteBuffer> unwrapRead(boolean handshake) {
+            return readConnectionLocked()
+                    .compose((result)->{
+                        if (null==result) {
+                            netEndOfStream=true;
+                        }
+                        else {
+                            netReadBuffer=netReadBuffer.append(result);
+                        }
+                        return unwrap(handshake);
+                    });
+        }
+
+        protected @NotNull Lava<Void> wrap(boolean force, @NotNull ByteBuffer app) {
+            Objects.requireNonNull(app, "app");
             return Lava.checkEndNanos("wrap timeout")
                     .composeIgnoreResult(()->{
-                        if ((!force) && plain.isEmpty()) {
+                        if ((!force) && app.isEmpty()) {
                             return Lava.VOID;
                         }
-                        java.nio.ByteBuffer plainBuffer=plain.nioByteBufferCopy();
-                        java.nio.ByteBuffer cipherBuffer
+                        java.nio.ByteBuffer appBuffer=app.nioByteBufferCopy();
+                        java.nio.ByteBuffer netBuffer
                                 =java.nio.ByteBuffer.allocate(sslEngine.getSession().getPacketBufferSize());
-                        return lock.leave(()->Lava.complete(sslEngine.wrap(plainBuffer, cipherBuffer)))
+                        return lock.leave(()->Lava.complete(sslEngine.wrap(appBuffer, netBuffer)))
                                 .compose((result)->{
                                     SSLEngineResult.Status status=result.getStatus();
                                     return switch (status) {
                                         case BUFFER_OVERFLOW, BUFFER_UNDERFLOW -> throw new IllegalStateException();
                                         case CLOSED, OK -> {
-                                            ByteBuffer cipher=ByteBuffer.create(cipherBuffer.flip());
-                                            ByteBuffer plain2=plain.subBuffer(
-                                                    plain.size()-plainBuffer.remaining(),
-                                                    plain.size());
-                                            yield writeConnectionLocked(cipher)
-                                                    .composeIgnoreResult(()->wrap(false, plain2));
+                                            ByteBuffer net=ByteBuffer.create(netBuffer.flip());
+                                            ByteBuffer app2=app.subBuffer(
+                                                    app.size()-appBuffer.remaining(),
+                                                    app.size());
+                                            yield lock.leave(()->connection.write(net))
+                                                    .composeIgnoreResult(()->wrap(false, app2));
                                         }
                                     };
                                 });
                     });
         }
-
-        @Override
-        @NotNull Lava<Void> writeResultLocked() {
-            return Lava.VOID;
-        }
     }
 
     private class TlsConnected extends Tls {
-        private boolean gettingOpenAndNotFailed;
-        private boolean outputShutDown;
-        private boolean reading;
-        private boolean shuttingDownOutput;
-        private boolean writing;
-
         public TlsConnected(
-                boolean cipherEndOfStream,
-                @NotNull ByteBuffer cipherReadBuffer,
+                @NotNull ByteBuffer appReadBuffer,
+                boolean gettingOpenAndNotFailed,
                 @Nullable Executor handshakeExecutor,
-                @NotNull SSLEngine sslEngine) {
-            super(cipherEndOfStream, cipherReadBuffer, handshakeExecutor, sslEngine);
+                boolean netEndOfStream,
+                boolean netOutputShutDown,
+                @NotNull ByteBuffer netReadBuffer,
+                boolean reading,
+                boolean shuttingDownNetOutput,
+                @NotNull SSLEngine sslEngine,
+                boolean writing) {
+            super(
+                    appReadBuffer,
+                    gettingOpenAndNotFailed,
+                    handshakeExecutor,
+                    netEndOfStream,
+                    netOutputShutDown,
+                    netReadBuffer,
+                    reading,
+                    shuttingDownNetOutput,
+                    sslEngine,
+                    writing);
         }
 
         private void checkHandshakeLocked() {
@@ -553,18 +576,7 @@ public class TlsConnection implements DuplexConnection {
 
         @Override
         @NotNull Lava<@NotNull Boolean> isOpenAndNotFailedLocked() {
-            if (gettingOpenAndNotFailed) {
-                throw new RuntimeException("already getting whether connection is open and not failed");
-            }
-            gettingOpenAndNotFailed=true;
-            return lock.leave(connection::isOpenAndNotFailed)
-                    .compose((openAndNotFailed)->state.isOpenAndNotFailedResultLocked(openAndNotFailed));
-        }
-
-        @Override
-        @NotNull Lava<@NotNull Boolean> isOpenAndNotFailedResultLocked(boolean openAndNotFailed) {
-            gettingOpenAndNotFailed=false;
-            return Lava.complete(openAndNotFailed);
+            return isConnectionOpenAndNotFailedLocked();
         }
 
         @Override
@@ -573,63 +585,79 @@ public class TlsConnection implements DuplexConnection {
                 throw new RuntimeException("already reading");
             }
             checkHandshakeLocked();
+            if (!appReadBuffer.isEmpty()) {
+                @NotNull ByteBuffer result=appReadBuffer;
+                appReadBuffer=ByteBuffer.EMPTY;
+                return Lava.complete(result);
+            }
             reading=true;
-            return unwrap(false)
-                    .compose((result)->{
+            return Lava.finallyGet(
+                    ()->{
                         reading=false;
-                        return Lava.complete(result);
-                    });
+                        return Lava.VOID;
+                    },
+                    ()->unwrap(false));
         }
 
         @Override
         @NotNull Lava<Void> restartTlsHandshakeLocked(
                 @NotNull Consumer<@NotNull SSLEngine> consumer) throws Throwable {
-            checkStartTlsHandShake(gettingOpenAndNotFailed, outputShutDown, reading, shuttingDownOutput, writing);
+            checkStartTlsHandShake(
+                    gettingOpenAndNotFailed,
+                    netOutputShutDown,
+                    reading,
+                    shuttingDownNetOutput,
+                    writing);
             consumer.accept(sslEngine);
             switch (sslEngine.getHandshakeStatus()) {
                 case FINISHED, NOT_HANDSHAKING -> sslEngine.beginHandshake();
             }
             TlsHandshake tlsHandshake=new TlsHandshake(
-                    cipherEndOfStream,
-                    cipherReadBuffer,
+                    appReadBuffer,
+                    gettingOpenAndNotFailed,
                     handshakeExecutor,
-                    sslEngine);
+                    netEndOfStream,
+                    netOutputShutDown,
+                    netReadBuffer,
+                    reading,
+                    shuttingDownNetOutput,
+                    sslEngine,
+                    writing);
             state=tlsHandshake;
             return tlsHandshake.handshakeLoopLocked();
         }
 
         @Override
         @NotNull Lava<Void> shutDownOutputLocked() {
-            if (shuttingDownOutput) {
+            if (shuttingDownNetOutput) {
                 throw new RuntimeException("already shutting down output");
             }
             if (writing) {
                 throw new RuntimeException("already writing");
             }
-            if (outputShutDown) {
+            if (netOutputShutDown) {
                 return Lava.VOID;
             }
-            shuttingDownOutput=true;
+            shuttingDownNetOutput=true;
             sslEngine.closeOutbound();
-            return shutDownOutputLoopLocked();
+            return Lava.finallyGet(
+                    ()->{
+                        netOutputShutDown=true;
+                        shuttingDownNetOutput=false;
+                        return Lava.VOID;
+                    },
+                    this::shutDownOutputLoopLocked);
         }
 
         private @NotNull Lava<Void> shutDownOutputLoopLocked() {
             return Lava.checkEndNanos("shut down output timeout")
                     .composeIgnoreResult(()->{
                         if (sslEngine.isOutboundDone()) {
-                            return shutDownOutputConnectionLocked(true);
+                            return lock.leave(connection::shutDownOutputSafe);
                         }
                         return wrap(true, ByteBuffer.EMPTY)
                                 .composeIgnoreResult(this::shutDownOutputLoopLocked);
                     });
-        }
-
-        @Override
-        @NotNull Lava<Void> shutDownOutputResultLocked() {
-            outputShutDown=true;
-            shuttingDownOutput=false;
-            return Lava.VOID;
         }
 
         @Override
@@ -652,10 +680,10 @@ public class TlsConnection implements DuplexConnection {
 
         @Override
         @NotNull Lava<Void> writeLocked(@NotNull ByteBuffer value) {
-            if (outputShutDown) {
+            if (netOutputShutDown) {
                 throw new RuntimeException("output already shut down");
             }
-            if (shuttingDownOutput) {
+            if (shuttingDownNetOutput) {
                 throw new RuntimeException("already shutting down output");
             }
             if (writing) {
@@ -663,11 +691,12 @@ public class TlsConnection implements DuplexConnection {
             }
             checkHandshakeLocked();
             writing=true;
-            return wrap(false, value)
-                    .compose((result)->{
+            return Lava.finallyGet(
+                    ()->{
                         writing=false;
-                        return Lava.complete(result);
-                    });
+                        return Lava.VOID;
+                    },
+                    ()->wrap(false, value));
         }
     }
 
@@ -675,11 +704,30 @@ public class TlsConnection implements DuplexConnection {
         private boolean task;
 
         public TlsHandshake(
-                boolean cipherEndOfStream,
-                @NotNull ByteBuffer cipherReadBuffer,
+                @NotNull ByteBuffer appReadBuffer,
+                boolean gettingOpenAndNotFailed,
                 @Nullable Executor handshakeExecutor,
-                @NotNull SSLEngine sslEngine) {
-            super(cipherEndOfStream, cipherReadBuffer, handshakeExecutor, sslEngine);
+                boolean netEndOfStream,
+                boolean netOutputShutDown,
+                @NotNull ByteBuffer netReadBuffer,
+                boolean reading,
+                boolean shuttingDownNetOutput,
+                @NotNull SSLEngine sslEngine,
+                boolean writing) {
+            super(
+                    appReadBuffer,
+                    gettingOpenAndNotFailed,
+                    handshakeExecutor,
+                    netEndOfStream,
+                    netOutputShutDown,
+                    netReadBuffer,
+                    reading,
+                    shuttingDownNetOutput,
+                    sslEngine,
+                    writing);
+            if (netOutputShutDown) {
+                throw new IllegalStateException("handshaking while output is shut down");
+            }
         }
 
         @NotNull Lava<Void> handshakeLoopLocked() {
@@ -712,10 +760,16 @@ public class TlsConnection implements DuplexConnection {
                         return switch (sslEngine.getHandshakeStatus()) {
                             case FINISHED, NOT_HANDSHAKING -> {
                                 state=new TlsConnected(
-                                        cipherEndOfStream,
-                                        cipherReadBuffer,
+                                        appReadBuffer,
+                                        gettingOpenAndNotFailed,
                                         handshakeExecutor,
-                                        sslEngine);
+                                        netEndOfStream,
+                                        netOutputShutDown,
+                                        netReadBuffer,
+                                        reading,
+                                        shuttingDownNetOutput,
+                                        sslEngine,
+                                        writing);
                                 yield Lava.VOID;
                             }
                             case NEED_TASK -> {
@@ -727,9 +781,7 @@ public class TlsConnection implements DuplexConnection {
                                         if (null==result) {
                                             throw new EOFException();
                                         }
-                                        if (!result.isEmpty()) {
-                                            throw new RuntimeException("unexpected unwrap result");
-                                        }
+                                        appReadBuffer=appReadBuffer.append(result);
                                         return state.handshakeLoopLocked();
                                     });
                             case NEED_WRAP -> wrap(true, ByteBuffer.EMPTY)
@@ -740,11 +792,6 @@ public class TlsConnection implements DuplexConnection {
 
         @Override
         @NotNull Lava<@NotNull Boolean> isOpenAndNotFailedLocked() {
-            throw new RuntimeException("tls handshaking");
-        }
-
-        @Override
-        @NotNull Lava<@NotNull Boolean> isOpenAndNotFailedResultLocked(boolean openAndNotFailed) {
             throw new RuntimeException("tls handshaking");
         }
 
@@ -760,11 +807,6 @@ public class TlsConnection implements DuplexConnection {
 
         @Override
         @NotNull Lava<Void> shutDownOutputLocked() {
-            throw new RuntimeException("tls handshaking");
-        }
-
-        @Override
-        @NotNull Lava<Void> shutDownOutputResultLocked() {
             throw new RuntimeException("tls handshaking");
         }
 
@@ -797,7 +839,7 @@ public class TlsConnection implements DuplexConnection {
     private final @NotNull DuplexConnection connection;
     private final boolean explicitTlsRenegotiation;
     private final Lock lock=new Lock();
-    private @NotNull State state=new Plaintext();
+    private @NotNull State state=new Plaintext(false, false, false, false, false, false);
 
     public TlsConnection(@NotNull DuplexConnection connection) {
         this(connection, DEFAULT_EXPLICIT_TLS_RENEGOTIATION);
@@ -864,11 +906,6 @@ public class TlsConnection implements DuplexConnection {
         return getGuardedLock(()->state.readLocked());
     }
 
-    private @NotNull Lava<@Nullable ByteBuffer> readConnectionLocked() {
-        return lock.leave(connection::read)
-                .compose((result)->state.readResultLocked(result));
-    }
-
     @Override
     public @NotNull Lava<@NotNull InetSocketAddress> remoteAddress() {
         return connection.remoteAddress();
@@ -886,13 +923,6 @@ public class TlsConnection implements DuplexConnection {
 
     public @NotNull Lava<Void> shutDownOutput() {
         return getGuardedLock(()->state.shutDownOutputLocked());
-    }
-
-    private @NotNull Lava<Void> shutDownOutputConnectionLocked(boolean safe) {
-        return lock.leave(()->safe
-                        ?connection.shutDownOutputSafe()
-                        :connection.shutDownOutput())
-                .composeIgnoreResult(()->state.shutDownOutputResultLocked());
     }
 
     public @NotNull Lava<Void> startTlsHandshake(
@@ -923,10 +953,5 @@ public class TlsConnection implements DuplexConnection {
     public @NotNull Lava<Void> write(@NotNull ByteBuffer value) {
         Objects.requireNonNull(value, "value");
         return getGuardedLock(()->state.writeLocked(value));
-    }
-
-    private @NotNull Lava<Void> writeConnectionLocked(@NotNull ByteBuffer value) {
-        return lock.leave(()->connection.write(value))
-                .composeIgnoreResult(()->state.writeResultLocked());
     }
 }
