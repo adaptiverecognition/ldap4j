@@ -1244,7 +1244,7 @@ public class LdapConnectionTest {
                                                                 List.of(),
                                                                 LdapResultCode.SUCCESS.code,
                                                                 LdapResultCode.SUCCESS),
-                                                        Ldap.FAST_BIND_OID,
+                                                        Ldap.EXTENDED_REQUEST_FAST_BIND_OID,
                                                         null)
                                                         .controlsEmpty(),
                                                 MessageIdGenerator.constant(request.messageId())));
@@ -1294,7 +1294,9 @@ public class LdapConnectionTest {
                                                 messageId,
                                                 ExtendedResponse.READER_SUCCESS)
                                         .compose((response)->{
-                                            assertEquals(Ldap.FAST_BIND_OID, response.message().responseName());
+                                            assertEquals(
+                                                    Ldap.EXTENDED_REQUEST_FAST_BIND_OID,
+                                                    response.message().responseName());
                                             return Lava.VOID;
                                         }));
                             });
@@ -1356,6 +1358,34 @@ public class LdapConnectionTest {
                                             assertEquals(
                                                     LdapTestParameters.Tls.CLEAR_TEXT.equals(testParameters.tls),
                                                     null==tlsSession);
+                                            return Lava.VOID;
+                                        })));
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
+    public void testWhoAmI(LdapTestParameters testParameters) throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
+             LdapServer ldapServer=new LdapServer(
+                     false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
+            ldapServer.start();
+            for (Pair<String, String> bind: LdapServer.allBinds()) {
+                context.<Void>get(
+                        Closeable.withCloseable(
+                                ()->context.parameters().connectionFactory(context, ldapServer, bind),
+                                (connection)->connection.writeRequestReadResponseChecked(
+                                                ExtendedRequest.WHO_AM_I.controlsEmpty())
+                                        .compose((response)->{
+                                            assertEquals(
+                                                    LdapResultCode.SUCCESS,
+                                                    response.message().ldapResult().resultCode2());
+                                            assertNotNull(response.message().responseValue());
+                                            String response2=new String(
+                                                    response.message().responseValue(),
+                                                    StandardCharsets.UTF_8);
+                                            assertEquals("dn:"+bind.first(), response2);
                                             return Lava.VOID;
                                         })));
             }

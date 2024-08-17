@@ -43,9 +43,11 @@ public record ExtendedRequest(
     }
     
     public static final @NotNull ExtendedRequest FAST_BIND=new ExtendedRequest(
-            Ldap.FAST_BIND_OID, null, ExtendedResponse.READER_SUCCESS);
+            Ldap.EXTENDED_REQUEST_FAST_BIND_OID, null, ExtendedResponse.READER_SUCCESS);
     public static final @NotNull ExtendedRequest START_TLS=new ExtendedRequest(
             Ldap.EXTENDED_REQUEST_START_TLS_OID, null, ExtendedResponse.READER_SUCCESS);
+    public static final @NotNull ExtendedRequest WHO_AM_I=new ExtendedRequest(
+            Ldap.EXTENDED_REQUEST_WHO_AM_I, null, ExtendedResponse.READER_SUCCESS);
 
     public ExtendedRequest(
             @NotNull String requestName,

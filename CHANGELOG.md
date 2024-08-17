@@ -3,6 +3,7 @@ Version 1.1.1-SNAPSHOT:
 - add Netty codec
 - add optional TLS handshake executor
 - add thread-local executor
+- add "Who am I?" operation
 - receive and send TLS renegotiations
 - return TLS session
 

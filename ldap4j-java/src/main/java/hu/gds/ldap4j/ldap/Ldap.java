@@ -8,8 +8,9 @@ public abstract class Ldap {
     public static final byte BIND_RESPONSE_CREDENTIALS=(byte)0x87;
     public static final String CONTROL_MANAGE_DSA_IT_OID="2.16.840.1.113730.3.4.2";
     public static final String EXTENDED_REQUEST_CANCEL_OP_OID="1.3.6.1.1.8";
+    public static final String EXTENDED_REQUEST_FAST_BIND_OID="1.2.840.113556.1.4.1781";
     public static final String EXTENDED_REQUEST_START_TLS_OID="1.3.6.1.4.1.1466.20037";
-    public static final String FAST_BIND_OID="1.2.840.113556.1.4.1781";
+    public static final String EXTENDED_REQUEST_WHO_AM_I="1.3.6.1.4.1.4203.1.11.3";
     public static final byte FILTER_AND=(byte)0xa0;
     public static final byte FILTER_APPROX_MATCH=(byte)0xa8;
     public static final byte FILTER_EQUALITY_MATCH=(byte)0xa3;
