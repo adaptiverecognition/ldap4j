@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -1135,6 +1136,7 @@ public class LdapConnectionTest {
                                                 false)
                                                 .controlsEmpty())));
                 assertTrue(results.get(results.size()-1).message().isDone());
+                assertSame(results.get(results.size()-1).message(), results.get(results.size()-1).message().asDone());
                 results=new ArrayList<>(results);
                 results.remove(results.size()-1);
                 results.sort(Comparator.comparing((result)->result.message().asEntry().objectName()));

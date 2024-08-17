@@ -4,10 +4,11 @@ import hu.gds.ldap4j.net.ByteBuffer;
 import java.util.List;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public record ExtendedRequest(
         @NotNull String requestName,
-        byte[] requestValue,
+        byte@Nullable[] requestValue,
         @NotNull MessageReader<ExtendedResponse> responseReader)
         implements Request<ExtendedRequest, ExtendedResponse> {
     public static class Reader implements MessageReader<ExtendedRequest> {
@@ -29,14 +30,11 @@ public record ExtendedRequest(
                                 DER::readUtf8NoTag,
                                 reader2,
                                 Ldap.PROTOCOL_OP_EXTENDED_REQUEST_NAME);
-                        byte[] requestValue=null;
-                        if (reader2.hasRemainingBytes()) {
-                            requestValue=DER.readTag(
-                                    (reader3)->reader3.readReaminingByteBuffer().arrayCopy(),
-                                    reader2,
-                                    Ldap.PROTOCOL_OP_EXTENDED_REQUEST_VALUE);
-                        }
-                        reader2.assertNoRemainingBytes();
+                        byte@Nullable[] requestValue=DER.readOptionalTag(
+                                DER::readOctetStringNoTag,
+                                reader2,
+                                ()->null,
+                                Ldap.PROTOCOL_OP_EXTENDED_REQUEST_VALUE);
                         return new ExtendedRequest(requestName, requestValue, responseReader);
                     },
                     reader,
@@ -51,7 +49,7 @@ public record ExtendedRequest(
 
     public ExtendedRequest(
             @NotNull String requestName,
-            byte[] requestValue,
+            byte@Nullable[] requestValue,
             @NotNull MessageReader<ExtendedResponse> responseReader) {
         this.requestName=Objects.requireNonNull(requestName, "requestName");
         this.requestValue=requestValue;

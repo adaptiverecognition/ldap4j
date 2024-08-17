@@ -41,10 +41,10 @@ Ldap4j is an [LDAP v3](https://www.ietf.org/rfc/rfc4511.txt) client.
 It's fully non-blocking, and supports timeouts on all operations.
 
 Ldap4j currently supports:
-- all operations defined in [RFC4511](https://www.ietf.org/rfc/rfc4511.txt),
-- [cancel](https://www.ietf.org/rfc/rfc3909.txt),
-- [fast bind](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/58bbd5c4-b5c4-41e2-b12c-cdaad1223d6a),
-- [manage DSA IT](http://oidref.com/2.16.840.1.113730.3.4.2) control.
+- all operations defined in [LDAP v3](https://www.ietf.org/rfc/rfc4511.txt), except removal of the TLS Layer,
+- [cancel operation](https://www.ietf.org/rfc/rfc3909.txt),
+- [fast bind operation](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/58bbd5c4-b5c4-41e2-b12c-cdaad1223d6a),
+- [manage DSA IT control](https://www.ietf.org/rfc/rfc3296.txt).
 
 Ldap4j supports TLS, through the standard StartTLS operation, and it also supports the non-standard LDAPS protocol.
 It supports an optional host name verification in both cases.

@@ -1,10 +1,7 @@
 package hu.gds.ldap4j.ldap;
 
-import hu.gds.ldap4j.Either;
-import hu.gds.ldap4j.Pair;
 import hu.gds.ldap4j.net.ByteBuffer;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -12,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 public record ExtendedResponse(
         @NotNull LdapResult ldapResult,
         @Nullable String responseName,
-        @Nullable String responseValue)
+        byte@Nullable[] responseValue)
         implements Message<ExtendedResponse>, Response {
     public static abstract class Reader implements MessageReader<ExtendedResponse> {
         public static class Cancel extends ExtendedResponse.Reader {
@@ -37,51 +34,21 @@ public record ExtendedResponse(
         public @NotNull ExtendedResponse read(@NotNull ByteBuffer.Reader reader) throws Throwable {
             return DER.readTag(
                     (reader2)->{
-                        LdapResult ldapResult=LdapResult.read(reader2);
-                        Pair<String, String> nameValue=readOptionalNameValues(
-                                Ldap.PROTOCOL_OP_EXTENDED_RESPONSE_NAME,
+                        @NotNull LdapResult ldapResult=LdapResult.read(reader2);
+                        @Nullable String responseName=DER.readOptionalTag(
+                                DER::readUtf8NoTag,
                                 reader2,
+                                ()->null,
+                                Ldap.PROTOCOL_OP_EXTENDED_RESPONSE_NAME);
+                        byte@Nullable[] responseValue=DER.readOptionalTag(
+                                DER::readOctetStringNoTag,
+                                reader2,
+                                ()->null,
                                 Ldap.PROTOCOL_OP_EXTENDED_RESPONSE_VALUE);
-                        return new ExtendedResponse(ldapResult, nameValue.first(), nameValue.second());
+                        return new ExtendedResponse(ldapResult, responseName, responseValue);
                     },
                     reader,
                     Ldap.PROTOCOL_OP_EXTENDED_RESPONSE);
-        }
-
-        private static @Nullable Either<@NotNull String, @NotNull String> readOptionalNameValue(
-                byte nameTag, @NotNull ByteBuffer.Reader reader, byte valueTag) throws Throwable {
-            if (reader.hasRemainingBytes()) {
-                return DER.readTags(
-                        Map.of(
-                                nameTag, (reader2)->Either.left(DER.readUtf8NoTag(reader2)),
-                                valueTag, (reader2)->Either.right(DER.readUtf8NoTag(reader2))),
-                        reader);
-            }
-            else {
-                return null;
-            }
-        }
-
-        private static @NotNull Pair<@Nullable String, @Nullable String> readOptionalNameValues(
-                byte nameTag, @NotNull ByteBuffer.Reader reader, byte valueTag) throws Throwable {
-            String name=null;
-            String value=null;
-            for (@Nullable Either<@NotNull String, @NotNull String> either;
-                 null!=(either=readOptionalNameValue(nameTag, reader, valueTag)); ) {
-                if (either.isLeft()) {
-                    if (null!=name) {
-                        throw new RuntimeException("multiple names %s, %s".formatted(name, either.left()));
-                    }
-                    name=either.left();
-                }
-                else {
-                    if (null!=value) {
-                        throw new RuntimeException("multiple values %s, %s".formatted(value, either.right()));
-                    }
-                    value=either.right();
-                }
-            }
-            return Pair.of(name, value);
         }
     }
 
@@ -91,7 +58,7 @@ public record ExtendedResponse(
     public ExtendedResponse(
             @NotNull LdapResult ldapResult,
             @Nullable String responseName,
-            @Nullable String responseValue) {
+            byte@Nullable[] responseValue) {
         this.ldapResult=Objects.requireNonNull(ldapResult, "ldapResult");
         this.responseName=responseName;
         this.responseValue=responseValue;
@@ -118,7 +85,7 @@ public record ExtendedResponse(
         if (null!=responseValue) {
             contentBuffer=contentBuffer.append(DER.writeTag(
                     Ldap.PROTOCOL_OP_EXTENDED_RESPONSE_VALUE,
-                    DER.writeUtf8NoTag(responseValue)));
+                    ByteBuffer.create(responseValue)));
         }
         return DER.writeTag(
                 Ldap.PROTOCOL_OP_EXTENDED_RESPONSE,

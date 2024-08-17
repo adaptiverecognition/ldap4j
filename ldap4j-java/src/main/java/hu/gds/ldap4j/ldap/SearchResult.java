@@ -1,9 +1,9 @@
 package hu.gds.ldap4j.ldap;
 
+import hu.gds.ldap4j.Either;
 import hu.gds.ldap4j.net.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
@@ -93,11 +93,18 @@ public sealed interface SearchResult {
 
         @Override
         public @NotNull SearchResult read(@NotNull ByteBuffer.Reader reader) throws Throwable {
-            return DER.readTags(
-                    Map.of(
-                            Ldap.PROTOCOL_OP_SEARCH_RESULT_DONE, Done::read,
-                            Ldap.PROTOCOL_OP_SEARCH_RESULT_ENTRY, Entry::read,
-                            Ldap.PROTOCOL_OP_SEARCH_RESULT_REFERRAL, Referral::read),
+            return DER.readTag(
+                    (tag)->switch (tag) {
+                        case Ldap.PROTOCOL_OP_SEARCH_RESULT_DONE -> Either.left(Done::read);
+                        case Ldap.PROTOCOL_OP_SEARCH_RESULT_ENTRY -> Either.left(Entry::read);
+                        case Ldap.PROTOCOL_OP_SEARCH_RESULT_REFERRAL -> Either.left(Referral::read);
+                        default -> throw new RuntimeException(
+                                "unexpected tag 0x%x, expected 0x%x, 0x%x, or 0x%x".formatted(
+                                        tag,
+                                        Ldap.PROTOCOL_OP_SEARCH_RESULT_DONE,
+                                        Ldap.PROTOCOL_OP_SEARCH_RESULT_ENTRY,
+                                        Ldap.PROTOCOL_OP_SEARCH_RESULT_REFERRAL));
+                    },
                     reader);
         }
     }

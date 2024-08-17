@@ -239,10 +239,10 @@ public sealed interface ByteBuffer {
 
     interface Writer {
         class Array implements Writer {
-            public final byte[] array;
+            public final byte@NotNull[] array;
             public int arrayOffset;
 
-            public Array(byte[] array, int arrayOffset) {
+            public Array(byte@NotNull[] array, int arrayOffset) {
                 this.array=Objects.requireNonNull(array, "array");
                 this.arrayOffset=arrayOffset;
             }
@@ -290,7 +290,7 @@ public sealed interface ByteBuffer {
         return append(createLong(value));
     }
 
-    default byte[] arrayCopy() {
+    default byte@NotNull[] arrayCopy() {
         Writer.Array array=new Writer.Array(size());
         write(array);
         if (size()!=array.arrayOffset) {

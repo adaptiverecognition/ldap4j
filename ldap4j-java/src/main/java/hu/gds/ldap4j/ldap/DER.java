@@ -1,10 +1,12 @@
 package hu.gds.ldap4j.ldap;
 
+import hu.gds.ldap4j.Either;
 import hu.gds.ldap4j.Function;
+import hu.gds.ldap4j.Supplier;
 import hu.gds.ldap4j.net.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
+import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class DER {
@@ -83,7 +85,7 @@ public abstract class DER {
         return readTag((reader2)->DER.readIntegerNoTag(nonNegative, reader2), reader, INTEGER);
     }
 
-    public static int readLength(ByteBuffer.Reader reader) throws Throwable {
+    public static int readLength(@NotNull ByteBuffer.Reader reader) throws Throwable {
         byte bb=reader.readByte();
         if (0==(bb&128)) {
             return bb&127;
@@ -105,39 +107,85 @@ public abstract class DER {
         return result;
     }
 
+    public static byte@NotNull[] readOctetStringNoTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
+        return reader.readReaminingByteBuffer().arrayCopy();
+    }
+
+    public static <T> T readOptionalTag(
+            @NotNull Function<ByteBuffer.@NotNull Reader, T> function,
+            @NotNull ByteBuffer.Reader reader,
+            @NotNull Supplier<T> supplier,
+            byte tag) throws Throwable {
+        Objects.requireNonNull(function, "function");
+        Objects.requireNonNull(supplier, "supplier");
+        if (reader.hasRemainingBytes()) {
+            return readTag(
+                    (Byte tag2)->{
+                        if (tag==tag2) {
+                            return Either.left(function);
+                        }
+                        else {
+                            return Either.right(supplier.get());
+                        }
+                    },
+                    reader);
+        }
+        else {
+            return supplier.get();
+        }
+    }
+
     public static <T> T readSequence(
-            @NotNull Function<ByteBuffer.Reader, T> function, ByteBuffer.Reader reader) throws Throwable {
+            @NotNull Function<ByteBuffer.@NotNull Reader, T> function, ByteBuffer.Reader reader) throws Throwable {
         return readTag(function, reader, SEQUENCE);
     }
 
-    public static byte readTag(ByteBuffer.Reader reader) throws Throwable {
-        byte tag=reader.readByte();
+    public static byte readTag(boolean peek, @NotNull ByteBuffer.Reader reader) throws Throwable {
+        byte tag=peek
+                ?reader.peekByte()
+                :reader.readByte();
         if (31==(tag&31)) {
             throw new RuntimeException("long form tags are not supported yet, first byte: 0x%x".formatted(tag));
         }
         return tag;
     }
 
-    public static <T> T readTag(
-            @NotNull Function<ByteBuffer.Reader, T> function, ByteBuffer.Reader reader, byte tag) throws Throwable {
-        byte tag2=readTag(reader);
-        if (tag!=tag2) {
-            throw new RuntimeException("expected tag 0x%x, got 0x%x".formatted(tag, tag2));
-        }
-        int length=readLength(reader);
-        return reader.readBytes(length, function);
+    public static byte readTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
+        return readTag(false, reader);
     }
 
-    public static <T> T readTags(
-            @NotNull Map<@NotNull Byte, @NotNull Function<ByteBuffer.Reader, ? extends T>> map,
+    public static <T> T readTag(
+            @NotNull Function<
+                    @NotNull Byte,
+                    @NotNull Either<@NotNull Function<ByteBuffer.@NotNull Reader, T>, T>> function,
             @NotNull ByteBuffer.Reader reader) throws Throwable {
-        byte tag=readTag(reader);
-        Function<ByteBuffer.Reader, ? extends T> function=map.get(tag);
-        if (null==function) {
-            throw new RuntimeException("unexpected tag 0x%x, expected tags %s".formatted(tag, map.keySet()));
+        Objects.requireNonNull(function, "function");
+        byte tag=readTag(true, reader);
+        @NotNull Either<@NotNull Function<ByteBuffer.@NotNull Reader, T>, T> either
+                =Objects.requireNonNull(function.apply(tag), "function.apply(tag)");
+        if (either.isRight()) {
+            return either.right();
         }
+        @NotNull Function<ByteBuffer.@NotNull Reader, T> function2
+                =Objects.requireNonNull(either.left(), "either.left()");
+        readTag(false, reader);
         int length=readLength(reader);
-        return reader.readBytes(length, function);
+        return reader.readBytes(length, function2);
+    }
+
+    public static <T> T readTag(
+            @NotNull Function<ByteBuffer.@NotNull Reader, T> function,
+            @NotNull ByteBuffer.Reader reader,
+            byte tag) throws Throwable {
+        Objects.requireNonNull(function, "function");
+        return readTag(
+                (tag2)->{
+                    if (tag!=tag2) {
+                        throw new RuntimeException("expected tag 0x%x, got 0x%x".formatted(tag, tag2));
+                    }
+                    return Either.left(function);
+                },
+                reader);
     }
 
     public static @NotNull String readUtf8NoTag(@NotNull ByteBuffer.Reader reader) throws Throwable {

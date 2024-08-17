@@ -4,10 +4,11 @@ import hu.gds.ldap4j.net.ByteBuffer;
 import java.util.List;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public record BindResponse(
         @NotNull LdapResult ldapResult,
-        byte[] serverSaslCredentials)
+        byte@Nullable[] serverSaslCredentials)
         implements Response {
     public static abstract class Reader implements MessageReader<BindResponse> {
         public static class SASL extends BindResponse.Reader {
@@ -32,16 +33,12 @@ public record BindResponse(
         public @NotNull BindResponse read(ByteBuffer.@NotNull Reader reader) throws Throwable {
             return DER.readTag(
                     (reader2)->{
-                        LdapResult ldapResult=LdapResult.read(reader2);
-                        byte[] serverSaslCredentials=null;
-                        if (reader2.hasRemainingBytes()) {
-                            serverSaslCredentials=DER.readTag(
-                                    (reader3)->reader3.readReaminingByteBuffer()
-                                            .arrayCopy(),
-                                    reader2,
-                                    Ldap.BIND_RESPONSE_CREDENTIALS);
-                        }
-                        reader2.assertNoRemainingBytes();
+                        @NotNull LdapResult ldapResult=LdapResult.read(reader2);
+                        byte@Nullable[] serverSaslCredentials=DER.readOptionalTag(
+                                DER::readOctetStringNoTag,
+                                reader2,
+                                ()->null,
+                                Ldap.BIND_RESPONSE_CREDENTIALS);
                         return new BindResponse(ldapResult, serverSaslCredentials);
                     },
                     reader,
@@ -52,7 +49,7 @@ public record BindResponse(
     public static final @NotNull MessageReader<BindResponse> READER_SASL=new Reader.SASL();
     public static final @NotNull MessageReader<BindResponse> READER_SUCCESS=new Reader.Success();
 
-    public BindResponse(@NotNull LdapResult ldapResult, byte[] serverSaslCredentials) {
+    public BindResponse(@NotNull LdapResult ldapResult, byte@Nullable [] serverSaslCredentials) {
         this.ldapResult=Objects.requireNonNull(ldapResult, "ldapResult");
         this.serverSaslCredentials=serverSaslCredentials;
     }
