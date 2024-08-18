@@ -1,6 +1,8 @@
 package hu.gds.ldap4j.ldap;
 
+import java.math.BigInteger;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import org.jetbrains.annotations.NotNull;
@@ -10,10 +12,35 @@ import org.jetbrains.annotations.Nullable;
  * <a href="https://ldap.com/ldap-oid-reference-guide/">ldap.com oid reference</a>
  */
 public class OID {
+    public static final @NotNull Comparator<@Nullable String> COMPARATOR=(value0, value1)->{
+        if (null==value0) {
+            if (null==value1) {
+                return 0;
+            }
+            else {
+                return -1;
+            }
+        }
+        if (null==value1) {
+            return 1;
+        }
+        String[] parts0=value0.split("\\.");
+        String[] parts1=value1.split("\\.");
+        for (int ii=0, ss=Math.min(parts0.length, parts1.length); ss>ii; ++ii) {
+            int cc=compareParts(parts0[ii], parts1[ii]);
+            if (0!=cc) {
+                return cc;
+            }
+        }
+        return Integer.compare(parts0.length, parts1.length);
+    };
     private static final @NotNull Map<@NotNull String, @NotNull String> NAMES;
 
     static {
         @NotNull Map<@NotNull String, @NotNull String> names=new HashMap<>();
+        names.put(
+                "1.2.826.0.1.3344810.2.3",
+                "Returning Matched Values Control, RFC 3876");
         names.put(
                 "1.2.840.113556.1.4.319",
                 "Simple Paged Results Control, RFC 2696");
@@ -81,6 +108,9 @@ public class OID {
                 "1.2.840.113556.1.4.2239",
                 "Policy Control, MS AD");
         names.put(
+                Ldap.EXTENDED_REQUEST_CANCEL_OP_OID, // "1.3.6.1.1.8",
+                "Cancel Operation, RFC 3909");
+        names.put(
                 "1.3.6.1.1.12",
                 "Assertion Control, RFC 4528");
         names.put(
@@ -122,6 +152,12 @@ public class OID {
         names.put(
                 "1.3.6.1.4.1.4203.1.5.3",
                 "Absolute True and False Filters, RFC 4526");
+        names.put(
+                "1.3.6.1.4.1.4203.1.5.4",
+                "Language Tag Options, RFC 3866");
+        names.put(
+                "1.3.6.1.4.1.4203.1.5.5",
+                "Language Range Options, RFC 3866");
         names.put(
                 "1.3.6.1.4.1.4203.1.9.1.1",
                 "Content Synchronization Request Control, RFC 4533");
@@ -193,5 +229,30 @@ public class OID {
 
     public static @Nullable String name(@NotNull String oid) {
         return NAMES.get(oid);
+    }
+
+    private static int compareParts(@NotNull String part0, @NotNull String part1) {
+        @Nullable BigInteger value0=null;
+        @Nullable BigInteger value1=null;
+        try {
+            value0=new BigInteger(part0);
+        }
+        catch (NumberFormatException ignore) {
+        }
+        try {
+            value1=new BigInteger(part1);
+        }
+        catch (NumberFormatException ignore) {
+        }
+        if (null==value0) {
+            if (null==value1) {
+                return part0.compareTo(part1);
+            }
+            return 1;
+        }
+        if (null==value1) {
+            return -1;
+        }
+        return value0.compareTo(value1);
     }
 }

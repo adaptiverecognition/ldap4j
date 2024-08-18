@@ -22,10 +22,10 @@ public class FeatureDiscovery {
 
     public final @NotNull Set<@NotNull String> namingContexts=new TreeSet<>();
     public final @NotNull List<@NotNull String> referralUris=new ArrayList<>();
-    public final @NotNull Set<@NotNull String> supportedCapabilities=new TreeSet<>();
-    public final @NotNull Set<@NotNull String> supportedControls=new TreeSet<>();
-    public final @NotNull Set<@NotNull String> supportedExtensions=new TreeSet<>();
-    public final @NotNull Set<@NotNull String> supportedFeatures=new TreeSet<>();
+    public final @NotNull Set<@NotNull String> supportedCapabilities=new TreeSet<>(OID.COMPARATOR);
+    public final @NotNull Set<@NotNull String> supportedControls=new TreeSet<>(OID.COMPARATOR);
+    public final @NotNull Set<@NotNull String> supportedExtensions=new TreeSet<>(OID.COMPARATOR);
+    public final @NotNull Set<@NotNull String> supportedFeatures=new TreeSet<>(OID.COMPARATOR);
     public final @NotNull Set<@NotNull String> supportedLdapVersions=new TreeSet<>();
     public final @NotNull Set<@NotNull String> supportedSaslMechanisms=new TreeSet<>();
     public final @NotNull List<@NotNull PartialAttribute> unrecognizedAttributes=new ArrayList<>();
@@ -88,8 +88,8 @@ public class FeatureDiscovery {
         if (0>=length) {
             return "";
         }
-        if (1==length) {
-            return " ";
+        if (4>=length) {
+            return " ".repeat(length);
         }
         return ' '+String.valueOf(padding).repeat(length-2)+' ';
     }
