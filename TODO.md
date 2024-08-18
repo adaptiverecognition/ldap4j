@@ -9,6 +9,5 @@
     - compare
     - search filter
   - cancel
-  - extensible match
   - fast bind
   - ms domain controller

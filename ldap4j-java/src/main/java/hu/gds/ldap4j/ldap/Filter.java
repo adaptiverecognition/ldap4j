@@ -11,8 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public sealed abstract class Filter {
-    public static final class And extends ListFilter {
+public abstract class Filter {
+    public static class And extends ListFilter {
         public And(List<Filter> filters) {
             super(filters);
         }
@@ -28,7 +28,7 @@ public sealed abstract class Filter {
         }
     }
 
-    public static final class ApproxMatch extends AttributeValueAssertion {
+    public static class ApproxMatch extends AttributeValueAssertion {
         public static final String RELATION_STRING="~";
 
         public ApproxMatch(@NotNull String assertionValue, @NotNull String attributeDescription) {
@@ -46,7 +46,7 @@ public sealed abstract class Filter {
         }
     }
 
-    public static final class Or extends ListFilter {
+    public static class Or extends ListFilter {
         public Or(List<Filter> filters) {
             super(filters);
         }
@@ -62,7 +62,7 @@ public sealed abstract class Filter {
         }
     }
 
-    public static sealed abstract class AttributeValueAssertion extends Filter {
+    public static abstract class AttributeValueAssertion extends Filter {
         public final @NotNull String assertionValue;
         public final @NotNull String attributeDescription;
 
@@ -86,7 +86,7 @@ public sealed abstract class Filter {
         }
     }
 
-    public static final class EqualityMatch extends AttributeValueAssertion {
+    public static class EqualityMatch extends AttributeValueAssertion {
         public static final String RELATION_STRING="=";
 
         public EqualityMatch(@NotNull String assertionValue, @NotNull String attributeDescription) {
@@ -104,7 +104,7 @@ public sealed abstract class Filter {
         }
     }
 
-    public static final class ExtensibleMatch extends Filter {
+    public static class ExtensibleMatch extends Filter {
         public final boolean dnAttributes;
         public final @Nullable String matchingRule;
         public final @NotNull String matchValue;
@@ -169,7 +169,7 @@ public sealed abstract class Filter {
         }
     }
 
-    public static final class GreaterOrEqual extends AttributeValueAssertion {
+    public static class GreaterOrEqual extends AttributeValueAssertion {
         public static final String RELATION_STRING=">=";
 
         public GreaterOrEqual(@NotNull String assertionValue, @NotNull String attributeDescription) {
@@ -187,7 +187,7 @@ public sealed abstract class Filter {
         }
     }
 
-    public static final class LessOrEqual extends AttributeValueAssertion {
+    public static class LessOrEqual extends AttributeValueAssertion {
         public static final String RELATION_STRING="<=";
 
         public LessOrEqual(@NotNull String assertionValue, @NotNull String attributeDescription) {
@@ -205,7 +205,7 @@ public sealed abstract class Filter {
         }
     }
 
-    private static sealed abstract class ListFilter extends Filter {
+    public static abstract class ListFilter extends Filter {
         public final @NotNull List<@NotNull Filter> filters;
 
         public ListFilter(List<Filter> filters) {
@@ -236,7 +236,7 @@ public sealed abstract class Filter {
         }
     }
 
-    public static final class Not extends Filter {
+    public static class Not extends Filter {
         public final @NotNull Filter filter;
 
         public Not(@NotNull Filter filter) {
@@ -259,7 +259,7 @@ public sealed abstract class Filter {
         }
     }
 
-    public static final class Present extends Filter {
+    public static class Present extends Filter {
         public final @NotNull String attribute;
 
         public Present(@NotNull String attribute) {
@@ -282,7 +282,7 @@ public sealed abstract class Filter {
         }
     }
 
-    public static final class Substrings extends Filter {
+    public static class Substrings extends Filter {
         public final @Nullable List<@NotNull String> any;
         public final @Nullable String final2;
         public final @Nullable String initial;

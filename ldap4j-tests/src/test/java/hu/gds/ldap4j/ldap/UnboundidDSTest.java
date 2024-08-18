@@ -37,7 +37,7 @@ public class UnboundidDSTest {
         }
     }
 
-    private final @NotNull LdapTestParameters TEST_PARAMETERS=new LdapTestParameters(
+    private static final @NotNull LdapTestParameters TEST_PARAMETERS=new LdapTestParameters(
             ThreadPoolContextHolder.factory(AbstractTest.PARALLELISM, null, true),
             ThreadPoolContextHolder.factory(AbstractTest.PARALLELISM, null, true),
             NetworkConnectionFactory.javaAsyncChannel(),

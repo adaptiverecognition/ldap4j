@@ -37,6 +37,13 @@ public abstract class Ldap {
     public static final byte FILTER_SUBSTRINGS_FINAL=(byte)0x82;
     public static final byte FILTER_SUBSTRINGS_INITIAL=(byte)0x80;
     public static final byte LDAP_RESULT_REFERRALS=(byte)0xa3;
+    public static final @NotNull String MATCHING_RULE_BOOLEAN_MATCH="2.5.13.13";
+    public static final @NotNull String MATCHING_RULE_CASE_EXACT_MATCH="2.5.13.5";
+    public static final @NotNull String MATCHING_RULE_CASE_IGNORE_MATCH="2.5.13.2";
+    public static final @NotNull String MATCHING_RULE_DISTINGUISHED_NAME_MATCH="2.5.13.1";
+    public static final @NotNull String MATCHING_RULE_INTEGER_MATCH="2.5.13.14";
+    public static final @NotNull String MATCHING_RULE_OCTET_STRING_MATCH="2.5.13.17";
+    public static final @NotNull String MATCHING_RULE_UNIQUE_MEMBER_MATCH="2.5.13.23";
     public static final byte MESSAGE_CONTROLS=(byte)0xa0;
     public static final byte MODIFY_DN_REQUEST_NEW_SUPERIOR=(byte)0x80;
     public static final @NotNull String NO_ATTRIBUTES="1.1";

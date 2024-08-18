@@ -30,7 +30,6 @@
             <groupId>com.adaptiverecognition</groupId>
             <artifactId>ldap4j-mina</artifactId>
             <version>${revision}</version>
-            <scope>test</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -43,7 +42,6 @@
             <groupId>com.adaptiverecognition</groupId>
             <artifactId>ldap4j-netty</artifactId>
             <version>${revision}</version>
-            <scope>test</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -82,7 +80,6 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

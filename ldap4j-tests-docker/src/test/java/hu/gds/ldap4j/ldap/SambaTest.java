@@ -1,5 +1,6 @@
 package hu.gds.ldap4j.ldap;
 
+import hu.gds.ldap4j.AbstractTest;
 import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.lava.Clock;
 import hu.gds.ldap4j.net.TlsSettings;
@@ -39,7 +40,7 @@ public class SambaTest {
             container.setPortBindings(List.of("389:389"));
             container.start();
 
-            long endNanos=Clock.SYSTEM_NANO_TIME.delayNanosToEndNanos(10_000_000_000L);
+            long endNanos=Clock.SYSTEM_NANO_TIME.delayNanosToEndNanos(AbstractTest.TIMEOUT_NANOS);
             TrampolineLdapConnection connection=TrampolineLdapConnection.createJavaAsync(
                     null,
                     endNanos,
