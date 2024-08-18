@@ -12,13 +12,18 @@ import hu.gds.ldap4j.net.ByteBuffer;
 import hu.gds.ldap4j.net.NetworkConnectionFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import org.apache.commons.lang3.stream.Streams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -144,6 +149,58 @@ public class UnboundidDSTest {
     }
 
     @Test
+    public void testBindIncorrectPassword() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
+                     false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
+            ldapServer.start();
+            for (Pair<String, String> bind: UnboundidDirectoryServer.allBinds()) {
+                context.<Void>get(
+                        Lava.catchErrors(
+                                (ldapException)->{
+                                    if (!LdapResultCode.INVALID_CREDENTIALS.equals(ldapException.resultCode2)) {
+                                        throw ldapException;
+                                    }
+                                    return Lava.VOID;
+                                },
+                                ()->Closeable.withCloseable(
+                                        ()->context.parameters().connectionFactory(
+                                                context,
+                                                ldapServer,
+                                                Pair.of(bind.first(), bind.second()+"x")),
+                                        (connection)->Lava.VOID),
+                                LdapException.class));
+            }
+        }
+    }
+
+    @Test
+    public void testBindIncorrectUser() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
+                     false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
+            ldapServer.start();
+            for (Pair<String, String> bind: UnboundidDirectoryServer.allBinds()) {
+                context.<Void>get(
+                        Lava.catchErrors(
+                                (ldapException)->{
+                                    if (!LdapResultCode.INVALID_CREDENTIALS.equals(ldapException.resultCode2)) {
+                                        throw ldapException;
+                                    }
+                                    return Lava.VOID;
+                                },
+                                ()->Closeable.withCloseable(
+                                        ()->context.parameters().connectionFactory(
+                                                context,
+                                                ldapServer,
+                                                Pair.of(bind.first()+"x", bind.second())),
+                                        (connection)->Lava.VOID),
+                                LdapException.class));
+            }
+        }
+    }
+
+    @Test
     public void testBindSASL() throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
              UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
@@ -240,6 +297,65 @@ public class UnboundidDSTest {
                                             .compose((response)->Lava.complete(
                                                     LdapResultCode.COMPARE_TRUE.equals(
                                                             response.message().ldapResult().resultCode2())));
+                                }
+                            }));
+        }
+    }
+
+    @Test
+    public void testDERLength() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
+                     false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
+            ldapServer.start();
+            context.get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context, ldapServer, UnboundidDirectoryServer.adminBind()),
+                            new Function<LdapConnection, Lava<Void>>() {
+                                @Override
+                                public @NotNull Lava<Void> apply(
+                                        @NotNull LdapConnection connection) throws Throwable {
+                                    return loop(
+                                            connection,
+                                            LdapConnectionTest.interestingIntegers()
+                                                    .filter((value)->65536>=value)
+                                                    .iterator());
+                                }
+
+                                private @NotNull Lava<Void> loop(
+                                        @NotNull LdapConnection connection,
+                                        @NotNull Iterator<@NotNull Integer> iterator) throws Throwable {
+                                    if (!iterator.hasNext()) {
+                                        return Lava.VOID;
+                                    }
+                                    int length=iterator.next();
+                                    char[] chars=new char[length];
+                                    Arrays.fill(chars, 'a');
+                                    String string=new String(chars);
+                                    return connection.search(
+                                                    connection.messageIdGenerator(),
+                                                    new SearchRequest(
+                                                            List.of(),
+                                                            "cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                            DerefAliases.NEVER_DEREF_ALIASES,
+                                                            Filter.parse(
+                                                                    "(|(objectClass=*)(sn=%s))".formatted(
+                                                                            string)),
+                                                            Scope.BASE_OBJECT,
+                                                            10,
+                                                            1,
+                                                            true)
+                                                            .controlsEmpty())
+                                            .compose((results)->{
+                                                assertEquals(2, results.size());
+                                                assertTrue(results.get(0).message().isEntry());
+                                                assertEquals(
+                                                        "cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                        results.get(0).message().asEntry().objectName());
+                                                assertTrue(results.get(1).message().isDone());
+                                                return loop(connection, iterator);
+                                            });
                                 }
                             }));
         }
@@ -644,6 +760,252 @@ public class UnboundidDSTest {
                                                 response.message().responseName());
                                         return Lava.VOID;
                                     })));
+        }
+    }
+
+    @Test
+    public void testSearchAttributes() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
+                     false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
+            ldapServer.start();
+            context.get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    ldapServer,
+                                    UnboundidDirectoryServer.adminBind()),
+                            (connection)->testSearchAttributes(
+                                    connection,
+                                    List.of(),
+                                    List.of("objectClass", "cn", "sn", "uid", "userPassword"))
+                                    .composeIgnoreResult(()->testSearchAttributes(
+                                            connection,
+                                            List.of("cn"),
+                                            List.of("cn")))
+                                    .composeIgnoreResult(()->testSearchAttributes(
+                                            connection,
+                                            List.of("cn", "sn"),
+                                            List.of("cn", "sn")))
+                                    .composeIgnoreResult(()->testSearchAttributes(
+                                            connection,
+                                            List.of(Ldap.NO_ATTRIBUTES),
+                                            List.of()))
+                                    .composeIgnoreResult(()->testSearchAttributes(
+                                            connection,
+                                            List.of(Ldap.ALL_ATTRIBUTES),
+                                            List.of("objectClass", "cn", "sn", "uid", "userPassword")))
+                                    .composeIgnoreResult(()->testSearchAttributes(
+                                            connection,
+                                            List.of(Ldap.ALL_ATTRIBUTES, Ldap.NO_ATTRIBUTES),
+                                            List.of("objectClass", "cn", "sn", "uid", "userPassword")))
+                                    .composeIgnoreResult(()->testSearchAttributes(
+                                            connection,
+                                            List.of(Ldap.NO_ATTRIBUTES, "cn"),
+                                            List.of("cn")))));
+        }
+    }
+
+    private @NotNull Lava<Void> testSearchAttributes(
+            @NotNull LdapConnection connection, @NotNull List<@NotNull String> requestAttributes,
+            @NotNull List<@NotNull String> responseAttributes) throws Throwable {
+        return connection.search(
+                        new SearchRequest(
+                                requestAttributes,
+                                "uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                DerefAliases.DEREF_ALWAYS,
+                                Filter.parse("(objectClass=*)"),
+                                Scope.WHOLE_SUBTREE,
+                                100,
+                                10,
+                                false)
+                                .controlsEmpty())
+                .compose((searchResult)->{
+                    assertEquals(2, searchResult.size());
+                    assertTrue(searchResult.get(0).message().isEntry());
+                    assertTrue(searchResult.get(1).message().isDone());
+                    SearchResult.Entry entry=searchResult.get(0).message().asEntry();
+                    assertEquals(
+                            responseAttributes,
+                            entry.attributes()
+                                    .stream()
+                                    .map(PartialAttribute::type)
+                                    .toList());
+                    return Lava.VOID;
+                });
+    }
+
+    @Test
+    public void testSearchFail() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
+                     false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
+            ldapServer.start();
+            context.get(
+                    Lava.catchErrors(
+                            (ldapException)->{
+                                if (!LdapResultCode.NO_SUCH_OBJECT.equals(ldapException.resultCode2)) {
+                                    throw ldapException;
+                                }
+                                return Lava.VOID;
+                            },
+                            ()->Closeable.withCloseable(
+                                    ()->context.parameters().connectionFactory(
+                                            context, ldapServer, UnboundidDirectoryServer.adminBind()),
+                                    (connection)->connection.search(
+                                                    new SearchRequest(
+                                                            List.of("cn", "objectClass"),
+                                                            "ou=invalid,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                            DerefAliases.DEREF_ALWAYS,
+                                                            Filter.parse("(objectClass=*)"),
+                                                            Scope.WHOLE_SUBTREE,
+                                                            100,
+                                                            10,
+                                                            false)
+                                                            .controlsEmpty())
+                                            .composeIgnoreResult(()->Lava.fail(new IllegalStateException()))),
+                            LdapException.class));
+        }
+    }
+
+    @Test
+    public void testSearchFilter() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
+                     false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
+            ldapServer.start();
+            context.get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    ldapServer,
+                                    UnboundidDirectoryServer.adminBind()),
+                            (connection)->testSearchFilter(
+                                    connection, "(objectClass=*)",
+                                    true, true, true)
+                                    .composeIgnoreResult(()->testSearchFilter(
+                                            connection, "(cn=User 0)",
+                                            false, true, false))
+                                    .composeIgnoreResult(()->testSearchFilter(
+                                            connection, "(cn<=User 0)",
+                                            false, true, false))
+                                    .composeIgnoreResult(()->testSearchFilter(
+                                            connection, "(cn>=User 1)",
+                                            false, false, true))
+                                    .composeIgnoreResult(()->testSearchFilter(
+                                            connection, "(&(objectClass=*)(cn=User 0))",
+                                            false, true, false))
+                                    .composeIgnoreResult(()->testSearchFilter(
+                                            connection, "(|(objectClass=*)(cn=User 0))",
+                                            true, true, true))
+                                    .composeIgnoreResult(()->testSearchFilter(
+                                            connection, "(!(cn=User 0))",
+                                            true, false, true))
+                                    .composeIgnoreResult(()->testSearchFilter(
+                                            connection, "(cn=User*)",
+                                            false, true, true))
+                                    .composeIgnoreResult(()->testSearchFilter(
+                                            connection, "(cn=*0)",
+                                            false, true, false))
+                                    .composeIgnoreResult(()->testSearchFilter(
+                                            connection, "(cn=*ser*)",
+                                            false, true, true))
+                                    .composeIgnoreResult(()->testSearchFilter(
+                                            connection, "(cn=U*0)",
+                                            false, true, false))));
+        }
+    }
+
+    private @NotNull Lava<Void> testSearchFilter(
+            @NotNull LdapConnection connection, @NotNull String filter, boolean base, boolean user0, boolean user1)
+            throws Throwable {
+        return connection.search(
+                        new SearchRequest(
+                                List.of(Ldap.NO_ATTRIBUTES),
+                                "ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                DerefAliases.DEREF_ALWAYS,
+                                Filter.parse(filter),
+                                Scope.WHOLE_SUBTREE,
+                                100,
+                                10,
+                                true)
+                                .controlsEmpty())
+                .compose((searchResult)->{
+                    Set<String> expectedDns=new HashSet<>(3);
+                    if (base) {
+                        expectedDns.add("ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu");
+                    }
+                    if (user0) {
+                        expectedDns.add("uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu");
+                    }
+                    if (user1) {
+                        expectedDns.add("uid=user1,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu");
+                    }
+                    Set<String> actualDns=new HashSet<>(3);
+                    for (ControlsMessage<SearchResult> result: searchResult) {
+                        assertFalse(result.message().isReferral());
+                        if (result.message().isEntry()) {
+                            actualDns.add(result.message().asEntry().objectName());
+                        }
+                    }
+                    assertEquals(expectedDns, actualDns);
+                    return Lava.VOID;
+                });
+    }
+
+    @Test
+    public void testSearchSearchSizeLimit() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
+                     false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
+            ldapServer.start();
+            record Params(int limit, boolean sizeTime) {
+            }
+            List<@NotNull Params> params=LdapConnectionTest.interestingIntegers()
+                    .flatMap((limit)->Streams.of(false, true)
+                            .map((sizeTime)->new Params(limit, sizeTime)))
+                    .toList();
+            context.get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    ldapServer,
+                                    UnboundidDirectoryServer.adminBind()),
+                            new Function<LdapConnection, Lava<Void>>() {
+                                @Override
+                                public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) throws Throwable {
+                                    return loop(connection, params.iterator());
+                                }
+
+                                private @NotNull Lava<Void> loop(
+                                        @NotNull LdapConnection connection,
+                                        @NotNull Iterator<@NotNull Params> iterator) throws Throwable {
+                                    if (!iterator.hasNext()) {
+                                        return Lava.VOID;
+                                    }
+                                    Params params=iterator.next();
+                                    return connection.search(
+                                                    new SearchRequest(
+                                                            List.of(),
+                                                            "cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                            DerefAliases.NEVER_DEREF_ALIASES,
+                                                            Filter.parse("(objectClass=*)"),
+                                                            Scope.BASE_OBJECT,
+                                                            params.sizeTime?params.limit:0,
+                                                            params.sizeTime?0:params.limit,
+                                                            true)
+                                                            .controlsEmpty())
+                                            .compose((results)->{
+                                                assertEquals(2, results.size());
+                                                assertTrue(results.get(0).message().isEntry());
+                                                assertEquals(
+                                                        "cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                        results.get(0).message().asEntry().objectName());
+                                                assertTrue(results.get(1).message().isDone());
+                                                return loop(connection, iterator);
+                                            });
+                                }
+                            }));
         }
     }
 
