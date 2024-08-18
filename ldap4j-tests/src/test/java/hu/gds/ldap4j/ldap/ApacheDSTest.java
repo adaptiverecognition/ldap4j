@@ -231,16 +231,12 @@ public class ApacheDSTest {
                                                     .contains("dc=test,dc=ldap4j,dc=gds,dc=hu"));
                                     assertEquals(Set.of("3"), featureDiscovery.supportedLdapVersions);
                                     assertTrue(featureDiscovery.supportedSaslMechanisms.contains("CRAM-MD5"));
-                                    assertTrue(featureDiscovery.supportedControlsFeature
-                                            .contains(Feature.MANAGE_DSA_IT_CONTROL));
-                                    assertTrue(featureDiscovery.supportedControlsOid
+                                    assertTrue(featureDiscovery.supportedControls
                                             .contains(Ldap.CONTROL_MANAGE_DSA_IT_OID));
-                                    assertTrue(featureDiscovery.supportedExtensionsFeature
-                                            .contains(Feature.NOTICE_OF_DISCONNECT_UNSOLICITED_NOTIFICATION));
-                                    assertTrue(featureDiscovery.supportedExtensionsOid
+                                    assertTrue(featureDiscovery.supportedExtensions
                                             .contains(Ldap.NOTICE_OF_DISCONNECTION_OID));
-                                    assertTrue(featureDiscovery.supportedFeaturesFeature
-                                            .contains(Feature.ALL_OPERATIONAL_ATTRIBUTES));
+                                    assertTrue(featureDiscovery.supportedFeatures
+                                            .contains(Ldap.FEATURE_ALL_OPERATIONAL_ATTRIBUTES));
                                     return Lava.VOID;
                                 });
                     }

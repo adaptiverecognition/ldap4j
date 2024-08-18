@@ -1,21 +1,24 @@
 package hu.gds.ldap4j.ldap;
 
 
+import org.jetbrains.annotations.NotNull;
+
 public abstract class Ldap {
-    public static final String ALL_ATTRIBUTES="*";
-    public static final String ALL_OPERATIONAL_ATTRIBUTES="+";
+    public static final @NotNull String ALL_ATTRIBUTES="*";
+    public static final @NotNull String ALL_OPERATIONAL_ATTRIBUTES="+";
     public static final byte AUTHENTICATION_CHOICE_SASL=(byte)0xa3;
     public static final byte AUTHENTICATION_CHOICE_SIMPLE=(byte)0x80;
     public static final byte BIND_RESPONSE_CREDENTIALS=(byte)0x87;
-    public static final String CONTROL_MANAGE_DSA_IT_OID="2.16.840.1.113730.3.4.2";
-    public static final String CONTROL_TRANSACTION_SPECIFICATION_OID="1.3.6.1.1.21.2";
-    public static final String EXTENDED_REQUEST_CANCEL_OP_OID="1.3.6.1.1.8";
-    public static final String EXTENDED_REQUEST_END_TRANSACTION_OID="1.3.6.1.1.21.3";
-    public static final String EXTENDED_REQUEST_FAST_BIND_OID="1.2.840.113556.1.4.1781";
-    public static final String EXTENDED_REQUEST_PASSWORD_MODIFY="1.3.6.1.4.1.4203.1.11.1";
-    public static final String EXTENDED_REQUEST_START_TLS_OID="1.3.6.1.4.1.1466.20037";
-    public static final String EXTENDED_REQUEST_START_TRANSACTION_OID="1.3.6.1.1.21.1";
-    public static final String EXTENDED_REQUEST_WHO_AM_I="1.3.6.1.4.1.4203.1.11.3";
+    public static final @NotNull String CONTROL_MANAGE_DSA_IT_OID="2.16.840.1.113730.3.4.2";
+    public static final @NotNull String CONTROL_TRANSACTION_SPECIFICATION_OID="1.3.6.1.1.21.2";
+    public static final @NotNull String EXTENDED_REQUEST_CANCEL_OP_OID="1.3.6.1.1.8";
+    public static final @NotNull String EXTENDED_REQUEST_END_TRANSACTION_OID="1.3.6.1.1.21.3";
+    public static final @NotNull String EXTENDED_REQUEST_FAST_BIND_OID="1.2.840.113556.1.4.1781";
+    public static final @NotNull String EXTENDED_REQUEST_PASSWORD_MODIFY="1.3.6.1.4.1.4203.1.11.1";
+    public static final @NotNull String EXTENDED_REQUEST_START_TLS_OID="1.3.6.1.4.1.1466.20037";
+    public static final @NotNull String EXTENDED_REQUEST_START_TRANSACTION_OID="1.3.6.1.1.21.1";
+    public static final @NotNull String EXTENDED_REQUEST_WHO_AM_I="1.3.6.1.4.1.4203.1.11.3";
+    public static final @NotNull String FEATURE_ALL_OPERATIONAL_ATTRIBUTES="1.3.6.1.4.1.4203.1.5.1";
     public static final byte FILTER_AND=(byte)0xa0;
     public static final byte FILTER_APPROX_MATCH=(byte)0xa8;
     public static final byte FILTER_EQUALITY_MATCH=(byte)0xa3;
@@ -36,8 +39,8 @@ public abstract class Ldap {
     public static final byte LDAP_RESULT_REFERRALS=(byte)0xa3;
     public static final byte MESSAGE_CONTROLS=(byte)0xa0;
     public static final byte MODIFY_DN_REQUEST_NEW_SUPERIOR=(byte)0x80;
-    public static final String NO_ATTRIBUTES="1.1";
-    public static final String NOTICE_OF_DISCONNECTION_OID="1.3.6.1.4.1.1466.20036";
+    public static final @NotNull String NO_ATTRIBUTES="1.1";
+    public static final @NotNull String NOTICE_OF_DISCONNECTION_OID="1.3.6.1.4.1.1466.20036";
     public static final byte PASSWORD_MODIFY_REQUEST_USER_IDENTITY=(byte)0x80;
     public static final byte PASSWORD_MODIFY_REQUEST_OLD_PASSWD=(byte)0x81;
     public static final byte PASSWORD_MODIFY_REQUEST_NEW_PASSWD=(byte)0x82;

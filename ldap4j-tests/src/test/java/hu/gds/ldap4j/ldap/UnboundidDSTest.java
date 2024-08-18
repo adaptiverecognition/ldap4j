@@ -263,16 +263,12 @@ public class UnboundidDSTest {
                                                         .contains("ou=test,dc=ldap4j,dc=gds,dc=hu"));
                                         assertEquals(Set.of("3"), featureDiscovery.supportedLdapVersions);
                                         assertTrue(featureDiscovery.supportedSaslMechanisms.contains("PLAIN"));
-                                        assertTrue(featureDiscovery.supportedControlsFeature
-                                                .contains(Feature.MANAGE_DSA_IT_CONTROL));
-                                        assertTrue(featureDiscovery.supportedControlsOid
+                                        assertTrue(featureDiscovery.supportedControls
                                                 .contains(Ldap.CONTROL_MANAGE_DSA_IT_OID));
-                                        assertTrue(featureDiscovery.supportedExtensionsFeature
-                                                .contains(Feature.WHO_AM_I_OPERATION));
-                                        assertTrue(featureDiscovery.supportedExtensionsOid
+                                        assertTrue(featureDiscovery.supportedExtensions
                                                 .contains(Ldap.EXTENDED_REQUEST_WHO_AM_I));
-                                        assertTrue(featureDiscovery.supportedFeaturesFeature
-                                                .contains(Feature.ALL_OPERATIONAL_ATTRIBUTES));
+                                        assertTrue(featureDiscovery.supportedFeatures
+                                                .contains(Ldap.FEATURE_ALL_OPERATIONAL_ATTRIBUTES));
                                         return Lava.VOID;
                                     })));
         }

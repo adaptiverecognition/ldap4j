@@ -21,12 +21,9 @@ public class FeatureDiscovery {
 
     public final @NotNull Set<@NotNull String> namingContexts=new TreeSet<>();
     public final @NotNull List<@NotNull String> referralUris=new ArrayList<>();
-    public final @NotNull Set<@NotNull Feature> supportedControlsFeature=new TreeSet<>();
-    public final @NotNull Set<@NotNull String> supportedControlsOid=new TreeSet<>();
-    public final @NotNull Set<@NotNull Feature> supportedExtensionsFeature=new TreeSet<>();
-    public final @NotNull Set<@NotNull String> supportedExtensionsOid=new TreeSet<>();
-    public final @NotNull Set<@NotNull Feature> supportedFeaturesFeature=new TreeSet<>();
-    public final @NotNull Set<@NotNull String> supportedFeaturesOid=new TreeSet<>();
+    public final @NotNull Set<@NotNull String> supportedControls=new TreeSet<>();
+    public final @NotNull Set<@NotNull String> supportedExtensions=new TreeSet<>();
+    public final @NotNull Set<@NotNull String> supportedFeatures=new TreeSet<>();
     public final @NotNull Set<@NotNull String> supportedLdapVersions=new TreeSet<>();
     public final @NotNull Set<@NotNull String> supportedSaslMechanisms=new TreeSet<>();
     public final @NotNull List<@NotNull PartialAttribute> unrecognizedAttributes=new ArrayList<>();
@@ -36,34 +33,14 @@ public class FeatureDiscovery {
     private void add(@NotNull PartialAttribute attribute) {
         switch (attribute.type()) {
             case NAMING_CONTEXTS -> namingContexts.addAll(attribute.values());
-            case SUPPORTED_CONTROL -> add(supportedControlsFeature, supportedControlsOid, attribute.values());
-            case SUPPORTED_EXTENSION -> add(supportedExtensionsFeature, supportedExtensionsOid, attribute.values());
-            case SUPPORTED_FEATURES -> add(supportedFeaturesFeature, supportedFeaturesOid, attribute.values());
+            case SUPPORTED_CONTROL -> supportedControls.addAll(attribute.values());
+            case SUPPORTED_EXTENSION -> supportedExtensions.addAll(attribute.values());
+            case SUPPORTED_FEATURES -> supportedFeatures.addAll(attribute.values());
             case SUPPORTED_LDAP_VERSION -> supportedLdapVersions.addAll(attribute.values());
             case SUPPORTED_SASL_MECHANISMS -> supportedSaslMechanisms.addAll(attribute.values());
             case VENDOR_NAME -> vendorNames.addAll(attribute.values());
             case VENDOR_VERSION -> vendorVersions.addAll(attribute.values());
             default -> unrecognizedAttributes.add(attribute);
-        }
-    }
-
-    private static void add(
-            @NotNull Set<@NotNull Feature> features,
-            @NotNull String oid,
-            @NotNull Set<@NotNull String> oids) {
-        @Nullable Feature feature=Feature.feature(oid);
-        if (null!=feature) {
-            features.add(feature);
-        }
-        oids.add(oid);
-    }
-
-    private static void add(
-            @NotNull Set<@NotNull Feature> features,
-            @NotNull Set<@NotNull String> oids,
-            @NotNull List<@NotNull String> values) {
-        for (@NotNull String value: values) {
-            add(features, value, oids);
         }
     }
 
@@ -104,20 +81,30 @@ public class FeatureDiscovery {
         return featureDiscovery;
     }
 
+    private static @NotNull String padding(char padding, int length) {
+        if (0>=length) {
+            return "";
+        }
+        if (1==length) {
+            return " ";
+        }
+        return ' '+String.valueOf(padding).repeat(length-2)+' ';
+    }
+
     public void prettyPrint() {
         prettyPrint(System.out);
     }
 
     public void prettyPrint(@NotNull PrintStream stream) {
-        prettyPrint(null, VENDOR_NAME, stream, vendorNames);
-        prettyPrint(null, VENDOR_VERSION, stream, vendorVersions);
-        prettyPrint(null, SUPPORTED_LDAP_VERSION, stream, supportedLdapVersions);
-        prettyPrint(null, SUPPORTED_SASL_MECHANISMS, stream, supportedSaslMechanisms);
-        prettyPrint(null, NAMING_CONTEXTS, stream, namingContexts);
-        prettyPrint(null, "referral URIs", stream, referralUris);
-        prettyPrint(supportedControlsFeature, SUPPORTED_CONTROL, stream, supportedControlsOid);
-        prettyPrint(supportedExtensionsFeature, SUPPORTED_EXTENSION, stream, supportedExtensionsOid);
-        prettyPrint(supportedFeaturesFeature, SUPPORTED_FEATURES, stream, supportedFeaturesOid);
+        prettyPrintValues(VENDOR_NAME, stream, vendorNames);
+        prettyPrintValues(VENDOR_VERSION, stream, vendorVersions);
+        prettyPrintValues(SUPPORTED_LDAP_VERSION, stream, supportedLdapVersions);
+        prettyPrintValues(SUPPORTED_SASL_MECHANISMS, stream, supportedSaslMechanisms);
+        prettyPrintValues(NAMING_CONTEXTS, stream, namingContexts);
+        prettyPrintValues("referral URIs", stream, referralUris);
+        prettyPrintOIDs(SUPPORTED_CONTROL, supportedControls, stream);
+        prettyPrintOIDs(SUPPORTED_EXTENSION, supportedExtensions, stream);
+        prettyPrintOIDs(SUPPORTED_FEATURES, supportedFeatures, stream);
         stream.println("unrecognized attributes");
         for (@NotNull PartialAttribute attribute: unrecognizedAttributes) {
             System.out.print("\t");
@@ -125,24 +112,39 @@ public class FeatureDiscovery {
         }
     }
 
-    private void prettyPrint(
-            @Nullable Collection<@NotNull Feature> features,
+    private void prettyPrintOIDs(
+            @NotNull String name,
+            @NotNull Collection<@NotNull String> OIDs,
+            @NotNull PrintStream stream) {
+        stream.println(name);
+        int maxOidLength=0;
+        for (var oid: OIDs) {
+            maxOidLength=Math.max(maxOidLength, oid.length());
+        }
+        int line=0;
+        for (@NotNull String oid: OIDs) {
+            @Nullable String oidName=OID.name(oid);
+            System.out.print("\t");
+            if (null==oidName) {
+                System.out.println(oid);
+            }
+            else {
+                System.out.print(oid);
+                System.out.print(padding((0==(line&1))?' ':'.', maxOidLength+2-oid.length()));
+                System.out.println(oidName);
+            }
+            ++line;
+        }
+    }
+
+    private void prettyPrintValues(
             @NotNull String name,
             @NotNull PrintStream stream,
             @NotNull Collection<@NotNull String> values) {
         stream.println(name);
-        if (null!=features) {
-            for (@NotNull Feature feature: features) {
-                System.out.print("\t");
-                System.out.println(feature);
-            }
-        }
         for (@NotNull String value: values) {
-            @Nullable Feature feature=Feature.feature(value);
-            if ((null==feature) || (null==features) || (!features.contains(feature))) {
-                System.out.print("\t");
-                System.out.println(value);
-            }
+            System.out.print("\t");
+            System.out.println(value);
         }
     }
 
@@ -174,12 +176,9 @@ public class FeatureDiscovery {
         return ("FeatureDiscovery("
                 +"namingContexts: %s"
                 +", referralUris: %s"
-                +", supportedControlsFeature: %s"
-                +", supportedControlsOid: %s"
-                +", supportedExtensionsFeature: %s"
-                +", supportedExtensionsOid: %s"
-                +", supportedFeaturesFeature: %s"
-                +", supportedFeaturesOid: %s"
+                +", supportedControls: %s"
+                +", supportedExtensions: %s"
+                +", supportedFeatures: %s"
                 +", supportedLdapVersions: %s"
                 +", supportedSaslMechanisms: %s"
                 +", unrecognizedAttributes: %s"
@@ -188,12 +187,9 @@ public class FeatureDiscovery {
                 .formatted(
                         namingContexts,
                         referralUris,
-                        supportedControlsFeature,
-                        supportedControlsOid,
-                        supportedExtensionsFeature,
-                        supportedExtensionsOid,
-                        supportedFeaturesFeature,
-                        supportedFeaturesOid,
+                        supportedControls,
+                        supportedExtensions,
+                        supportedFeatures,
                         supportedLdapVersions,
                         supportedSaslMechanisms,
                         unrecognizedAttributes,
