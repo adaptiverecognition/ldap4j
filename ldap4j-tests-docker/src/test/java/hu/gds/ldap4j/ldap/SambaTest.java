@@ -35,7 +35,7 @@ public class SambaTest {
                     //.withFileSystemBind("dc1_etc", "/usr/local/samba/etc", BindMode.READ_WRITE)
                     //.withFileSystemBind("dc1_private", "/usr/local/samba/private", BindMode.READ_WRITE)
                     //.withFileSystemBind("dc1_var", "/usr/local/samba/var", BindMode.READ_WRITE)
-                    .withStartupTimeout(Duration.of(60L, ChronoUnit.SECONDS));
+                    .withStartupTimeout(Duration.of(120L, ChronoUnit.SECONDS));
             container.setPortBindings(List.of("389:389"));
             container.start();
 
@@ -77,6 +77,14 @@ public class SambaTest {
                         List.of(new PartialAttribute("name", List.of("Administrator"))),
                         searchResponse.get(0).message().asEntry().attributes());
                 assertTrue(searchResponse.get(1).message().isDone());
+
+                FeatureDiscovery featureDiscovery=FeatureDiscovery.create(
+                        connection.search(endNanos, FeatureDiscovery.searchRequest()));
+                assertTrue(
+                        featureDiscovery.namingContexts
+                                .contains("DC=samdom,DC=example,DC=com"));
+                assertTrue(featureDiscovery.supportedLdapVersions.contains("3"));
+                assertTrue(featureDiscovery.supportedSaslMechanisms.contains("GSSAPI"));
             }
             finally {
                 connection.close(endNanos);

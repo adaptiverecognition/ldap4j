@@ -30,14 +30,53 @@ public class OID {
                 "1.2.840.113556.1.4.528",
                 "Notification Control, MS AD");
         names.put(
+                "1.2.840.113556.1.4.529",
+                "Extended DN Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.800",
+                "Active Directory Capability, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.801",
+                "SD Flags Control, MS AD");
+        names.put(
                 "1.2.840.113556.1.4.805",
                 "Tree Delete Control, draft");
         names.put(
                 "1.2.840.113556.1.4.841",
                 "DirSync Control, MS AD");
         names.put(
+                "1.2.840.113556.1.4.1338",
+                "Verify Name Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.1339",
+                "Domain Scope Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.1340",
+                "Search Options Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.1341",
+                "RODC DCPROMO Control, MS AD");
+        names.put(
                 "1.2.840.113556.1.4.1413",
                 "Permissive Modify Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.1504",
+                "ASQ Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.1670",
+                "Active Directory V51 Capability, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.1791",
+                "Active Directory Integ Capability, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.1935",
+                "Active Directory V60 Capability, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.2064",
+                "Show Recycled Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.2080",
+                "Active Directory V61 R2 Capability, MS AD");
         names.put(
                 "1.2.840.113556.1.4.2239",
                 "Policy Control, MS AD");

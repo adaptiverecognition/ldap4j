@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class FeatureDiscovery {
     public static final @NotNull String NAMING_CONTEXTS="namingContexts";
+    public static final @NotNull String SUPPORTED_CAPABILITIES="supportedCapabilities";
     public static final @NotNull String SUPPORTED_CONTROL="supportedControl";
     public static final @NotNull String SUPPORTED_EXTENSION="supportedExtension";
     public static final @NotNull String SUPPORTED_FEATURES="supportedFeatures";
@@ -21,6 +22,7 @@ public class FeatureDiscovery {
 
     public final @NotNull Set<@NotNull String> namingContexts=new TreeSet<>();
     public final @NotNull List<@NotNull String> referralUris=new ArrayList<>();
+    public final @NotNull Set<@NotNull String> supportedCapabilities=new TreeSet<>();
     public final @NotNull Set<@NotNull String> supportedControls=new TreeSet<>();
     public final @NotNull Set<@NotNull String> supportedExtensions=new TreeSet<>();
     public final @NotNull Set<@NotNull String> supportedFeatures=new TreeSet<>();
@@ -33,6 +35,7 @@ public class FeatureDiscovery {
     private void add(@NotNull PartialAttribute attribute) {
         switch (attribute.type()) {
             case NAMING_CONTEXTS -> namingContexts.addAll(attribute.values());
+            case SUPPORTED_CAPABILITIES -> supportedCapabilities.addAll(attribute.values());
             case SUPPORTED_CONTROL -> supportedControls.addAll(attribute.values());
             case SUPPORTED_EXTENSION -> supportedExtensions.addAll(attribute.values());
             case SUPPORTED_FEATURES -> supportedFeatures.addAll(attribute.values());
@@ -102,6 +105,7 @@ public class FeatureDiscovery {
         prettyPrintValues(SUPPORTED_SASL_MECHANISMS, stream, supportedSaslMechanisms);
         prettyPrintValues(NAMING_CONTEXTS, stream, namingContexts);
         prettyPrintValues("referral URIs", stream, referralUris);
+        prettyPrintOIDs(SUPPORTED_CAPABILITIES, supportedCapabilities, stream);
         prettyPrintOIDs(SUPPORTED_CONTROL, supportedControls, stream);
         prettyPrintOIDs(SUPPORTED_EXTENSION, supportedExtensions, stream);
         prettyPrintOIDs(SUPPORTED_FEATURES, supportedFeatures, stream);
@@ -154,6 +158,7 @@ public class FeatureDiscovery {
                         Ldap.ALL_ATTRIBUTES,
                         Ldap.ALL_OPERATIONAL_ATTRIBUTES,
                         NAMING_CONTEXTS,
+                        SUPPORTED_CAPABILITIES,
                         SUPPORTED_CONTROL,
                         SUPPORTED_EXTENSION,
                         SUPPORTED_FEATURES,
@@ -176,6 +181,7 @@ public class FeatureDiscovery {
         return ("FeatureDiscovery("
                 +"namingContexts: %s"
                 +", referralUris: %s"
+                +", supportedCapabilities: %s"
                 +", supportedControls: %s"
                 +", supportedExtensions: %s"
                 +", supportedFeatures: %s"
@@ -187,6 +193,7 @@ public class FeatureDiscovery {
                 .formatted(
                         namingContexts,
                         referralUris,
+                        supportedCapabilities,
                         supportedControls,
                         supportedExtensions,
                         supportedFeatures,
