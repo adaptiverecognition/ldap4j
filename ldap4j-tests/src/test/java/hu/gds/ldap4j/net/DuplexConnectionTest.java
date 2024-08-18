@@ -11,7 +11,7 @@ import hu.gds.ldap4j.lava.Clock;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.JoinCallback;
 import hu.gds.ldap4j.lava.Lava;
-import hu.gds.ldap4j.ldap.LdapServer;
+import hu.gds.ldap4j.ldap.UnboundidDirectoryServer;
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.net.InetAddress;
@@ -683,7 +683,7 @@ public class DuplexConnectionTest {
 
                 public @NotNull Lava<Void> server(@NotNull TlsConnection connection) throws Throwable {
                     @NotNull TlsConnection tlsConnection=new TlsConnection(connection);
-                    return tlsConnection.startTlsHandshake(null, LdapServer.serverTls(false))
+                    return tlsConnection.startTlsHandshake(null, UnboundidDirectoryServer.serverTls(false))
                             .composeIgnoreResult(tlsConnection::readNonEmpty)
                             .compose((readResult)->{
                                 assertNotNull(readResult);

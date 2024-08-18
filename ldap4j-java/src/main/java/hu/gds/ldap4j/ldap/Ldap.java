@@ -38,6 +38,10 @@ public abstract class Ldap {
     public static final byte MODIFY_DN_REQUEST_NEW_SUPERIOR=(byte)0x80;
     public static final String NO_ATTRIBUTES="1.1";
     public static final String NOTICE_OF_DISCONNECTION_OID="1.3.6.1.4.1.1466.20036";
+    public static final byte PASSWORD_MODIFY_REQUEST_USER_IDENTITY=(byte)0x80;
+    public static final byte PASSWORD_MODIFY_REQUEST_OLD_PASSWD=(byte)0x81;
+    public static final byte PASSWORD_MODIFY_REQUEST_NEW_PASSWD=(byte)0x82;
+    public static final byte PASSWORD_MODIFY_RESPONSE_GEN_PASSWD=(byte)0x80;
     public static final byte PROTOCOL_OP_ABANDON_REQUEST=0x70;
     public static final byte PROTOCOL_OP_ADD_REQUEST=0x68;
     public static final byte PROTOCOL_OP_ADD_RESPONSE=0x69;

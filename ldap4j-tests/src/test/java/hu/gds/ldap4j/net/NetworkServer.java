@@ -2,7 +2,7 @@ package hu.gds.ldap4j.net;
 
 import hu.gds.ldap4j.TestContext;
 import hu.gds.ldap4j.lava.Clock;
-import hu.gds.ldap4j.ldap.LdapServer;
+import hu.gds.ldap4j.ldap.UnboundidDirectoryServer;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -136,7 +136,7 @@ class NetworkServer<K, V> implements AutoCloseable, Runnable {
         this.context=Objects.requireNonNull(context, "context");
         this.worker=Objects.requireNonNull(worker, "worker");
         if (NetworkTestParameters.Tls.USE_TLS.equals(context.parameters().tls)) {
-            serverSocket=LdapServer.serverTls(badCertificate)
+            serverSocket=UnboundidDirectoryServer.serverTls(badCertificate)
                     .createSSLServerSocketFactory(null)
                     .createServerSocket();
         }

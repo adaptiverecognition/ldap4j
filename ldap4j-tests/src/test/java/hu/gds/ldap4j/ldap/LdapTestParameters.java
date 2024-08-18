@@ -62,16 +62,22 @@ public class LdapTestParameters extends TestParameters {
             @NotNull Tls tls)
             throws Throwable {
         return switch (tls) {
-            case CLEAR_TEXT -> Pair.of(remoteClearTextAddress.get(), TlsSettings.noTls());
-            case START_TLS -> Pair.of(remoteClearTextAddress.get(), LdapServer.clientTls(false, true, true));
-            case TLS -> Pair.of(remoteTlsAddress.get(), LdapServer.clientTls(false, false, true));
+            case CLEAR_TEXT -> Pair.of(
+                    remoteClearTextAddress.get(),
+                    TlsSettings.noTls());
+            case START_TLS -> Pair.of(
+                    remoteClearTextAddress.get(),
+                    UnboundidDirectoryServer.clientTls(false, true, true));
+            case TLS -> Pair.of(
+                    remoteTlsAddress.get(),
+                    UnboundidDirectoryServer.clientTls(false, false, true));
         };
     }
 
     public @NotNull Lava<@NotNull LdapConnection> connectionFactory(
             @NotNull TestContext<LdapTestParameters> context,
             boolean explicitTlsRenegotiation,
-            @NotNull LdapServer ldapServer,
+            @NotNull UnboundidDirectoryServer ldapServer,
             @Nullable Pair<@NotNull String, @NotNull String> simpleBind)
             throws Throwable {
         return connectionFactory(
@@ -119,7 +125,7 @@ public class LdapTestParameters extends TestParameters {
 
     public @NotNull Lava<@NotNull LdapConnection> connectionFactory(
             @NotNull TestContext<LdapTestParameters> context,
-            @NotNull LdapServer ldapServer,
+            @NotNull UnboundidDirectoryServer ldapServer,
             @Nullable Pair<@NotNull String, @NotNull String> simpleBind)
             throws Throwable {
         return connectionFactory(

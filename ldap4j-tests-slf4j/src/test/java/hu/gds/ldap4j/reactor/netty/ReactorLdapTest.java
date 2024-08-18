@@ -3,11 +3,11 @@ package hu.gds.ldap4j.reactor.netty;
 import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.Filter;
-import hu.gds.ldap4j.ldap.LdapServer;
 import hu.gds.ldap4j.ldap.PartialAttribute;
 import hu.gds.ldap4j.ldap.Scope;
 import hu.gds.ldap4j.ldap.SearchRequest;
 import hu.gds.ldap4j.ldap.SearchResult;
+import hu.gds.ldap4j.ldap.UnboundidDirectoryServer;
 import hu.gds.ldap4j.reactor.Monos;
 import java.net.InetSocketAddress;
 import java.util.List;
@@ -79,7 +79,7 @@ public class ReactorLdapTest {
 
     @Test
     public void test() throws Throwable {
-        try (LdapServer ldapServer=new LdapServer(false, 0, 0)) {
+        try (UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(false, 0, 0)) {
             ldapServer.start();
             webTestClient
                     .get()
@@ -97,7 +97,7 @@ public class ReactorLdapTest {
     }
 
     private static @NotNull Mono<Void> testConnection(ReactorLdapConnection connection) {
-        Map.Entry<String, String> user=LdapServer.USERS.entrySet().iterator().next();
+        Map.Entry<String, String> user=UnboundidDirectoryServer.USERS.entrySet().iterator().next();
         return Monos.compose(
                 connection.writeRequestReadResponseChecked(
                         BindRequest.simple(
@@ -149,7 +149,7 @@ public class ReactorLdapTest {
                 ReactorLdapTest::testConnection,
                 ldapClearTextAddress,
                 TIMEOUT_NANOS,
-                LdapServer.clientTls(false, true, true));
+                UnboundidDirectoryServer.clientTls(false, true, true));
     }
 
     private static @NotNull Mono<@NotNull Boolean> testMono(InetSocketAddress ldapClearTextAddress) {
@@ -168,7 +168,7 @@ public class ReactorLdapTest {
                         4,
                         ldapClearTextAddress,
                         TIMEOUT_NANOS,
-                        LdapServer.clientTls(false, true, true)),
+                        UnboundidDirectoryServer.clientTls(false, true, true)),
                 (pool)->Monos.finallyGet(
                         pool::close,
                         ()->pool.lease(ReactorLdapTest::testConnection)));

@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 
-public class LdapServer implements AutoCloseable {
+public class UnboundidDirectoryServer implements AutoCloseable {
     public static final Map<@NotNull String, @NotNull String> ADDITIONAL_BIND_CREDENTIALS=Map.of(
             adminBind().first(), adminBind().second(),
             "cn=bind0", "vu4pCu4drEGrBoBG",
@@ -43,7 +43,11 @@ public class LdapServer implements AutoCloseable {
 
     private final InMemoryDirectoryServer directoryServer;
 
-    public LdapServer(boolean badCertificate, int serverPortClearText, int serverPortTls) throws Throwable {
+    public UnboundidDirectoryServer(
+            boolean badCertificate,
+            int serverPortClearText,
+            int serverPortTls)
+            throws Throwable {
         InMemoryDirectoryServerConfig config=new InMemoryDirectoryServerConfig(BASE_DN);
         for (Map.Entry<String, String> entry: ADDITIONAL_BIND_CREDENTIALS.entrySet()) {
             config.addAdditionalBindCredentials(entry.getKey(), entry.getValue());
@@ -88,7 +92,7 @@ public class LdapServer implements AutoCloseable {
                 .trustCertificates(CryptoUtil.resource(
                         badCertificate?CERTIFICATE_FILE_BAD:CERTIFICATE_FILE_GOOD,
                         CryptoUtil::loadPEM,
-                        LdapServer.class))
+                        UnboundidDirectoryServer.class))
                 .verifyHostname(verifyHostname)
                 .build();
     }
@@ -100,7 +104,7 @@ public class LdapServer implements AutoCloseable {
                         badCertificate?KEY_FILE_BAD:KEY_FILE_GOOD,
                         (stream)->CryptoUtil.loadPKCS12(
                                 stream, KEY_FILE_PASS.toCharArray(), KEY_FILE_PASS.toCharArray()),
-                        LdapServer.class))
+                        UnboundidDirectoryServer.class))
                 .build();
     }
 

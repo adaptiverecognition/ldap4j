@@ -13,10 +13,7 @@ public record UnbindRequest() implements Message<UnbindRequest> {
         @Override
         public @NotNull UnbindRequest read(ByteBuffer.@NotNull Reader reader) throws Throwable {
             return DER.readTag(
-                    (reader2)->{
-                        reader2.assertNoRemainingBytes();
-                        return new UnbindRequest();
-                    },
+                    (reader2)->new UnbindRequest(),
                     reader,
                     Ldap.PROTOCOL_OP_UNBIND_REQUEST);
         }

@@ -7,11 +7,11 @@ import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.ControlsMessage;
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.Filter;
-import hu.gds.ldap4j.ldap.LdapServer;
 import hu.gds.ldap4j.ldap.PartialAttribute;
 import hu.gds.ldap4j.ldap.Scope;
 import hu.gds.ldap4j.ldap.SearchRequest;
 import hu.gds.ldap4j.ldap.SearchResult;
+import hu.gds.ldap4j.ldap.UnboundidDirectoryServer;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TrampolineLdapTest {
     @Test
     public void test() throws Throwable {
-        try (LdapServer ldapServer=new LdapServer(false, 0, 0);
+        try (UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(false, 0, 0);
              Trampoline trampoline=new Trampoline(Log.systemErr())) {
             ldapServer.start();
             long endNanos=trampoline.clock().delayNanosToEndNanos(AbstractTest.TIMEOUT_NANOS);
@@ -37,7 +37,7 @@ public class TrampolineLdapTest {
 
     private void testConnection(
             @NotNull TrampolineLdapConnection connection, long endNanos) throws Throwable {
-        Map.Entry<String, String> user=LdapServer.USERS.entrySet().iterator().next();
+        Map.Entry<String, String> user=UnboundidDirectoryServer.USERS.entrySet().iterator().next();
         connection.writeRequestReadResponseChecked(
                 endNanos,
                 BindRequest.simple(
@@ -85,7 +85,7 @@ public class TrampolineLdapTest {
                     endNanos,
                     log,
                     ldapClearTextAddress,
-                    LdapServer.clientTls(false, true, true));
+                    UnboundidDirectoryServer.clientTls(false, true, true));
         }
         else {
             connection=TrampolineLdapConnection.createJavaAsync(
@@ -93,7 +93,7 @@ public class TrampolineLdapTest {
                     endNanos,
                     log,
                     ldapClearTextAddress,
-                    LdapServer.clientTls(false, true, true));
+                    UnboundidDirectoryServer.clientTls(false, true, true));
         }
         try {
             testConnection(connection, endNanos);

@@ -3,6 +3,7 @@ package hu.gds.ldap4j.ldap;
 import hu.gds.ldap4j.net.ByteBuffer;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public record BindRequest(
         @NotNull AuthenticationChoice authentication,
@@ -11,10 +12,10 @@ public record BindRequest(
         implements Request<BindRequest, BindResponse> {
     public sealed interface AuthenticationChoice {
         record SASL(
-                byte[] credentials,
+                byte@Nullable [] credentials,
                 @NotNull String mechanism)
                 implements AuthenticationChoice {
-            public SASL(byte[] credentials, @NotNull String mechanism) {
+            public SASL(byte@Nullable[] credentials, @NotNull String mechanism) {
                 this.credentials=credentials;
                 this.mechanism=Objects.requireNonNull(mechanism, "mechanism");
             }
@@ -40,8 +41,12 @@ public record BindRequest(
         }
 
         record Simple(
-                char[] password)
+                char@NotNull[] password)
                 implements AuthenticationChoice {
+            public Simple(char @NotNull [] password) {
+                this.password=Objects.requireNonNull(password, "password");
+            }
+
             @Override
             public @NotNull MessageReader<BindResponse> responseReader() {
                 return BindResponse.READER_SUCCESS;

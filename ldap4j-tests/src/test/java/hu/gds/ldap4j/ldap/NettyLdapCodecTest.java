@@ -99,8 +99,8 @@ public class NettyLdapCodecTest {
             ctx.writeAndFlush(
                     new ResponseRequest<>(
                             hu.gds.ldap4j.ldap.BindRequest.simple(
-                                            LdapServer.ADMIN_USER,
-                                            LdapServer.ADMIN_PASSWORD.toCharArray())
+                                            UnboundidDirectoryServer.ADMIN_USER,
+                                            UnboundidDirectoryServer.ADMIN_PASSWORD.toCharArray())
                                     .controlsEmpty()));
         }
 
@@ -219,7 +219,7 @@ public class NettyLdapCodecTest {
     @ParameterizedTest
     @MethodSource("hu.gds.ldap4j.ldap.NettyLdapCodecTest#parameters")
     public void test(@NotNull Parameters parameters) throws Throwable {
-        try (LdapServer ldapServer=new LdapServer(
+        try (UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                 false, AbstractTest.SERVER_PORT_CLEAR_TEXT, AbstractTest.SERVER_PORT_TLS)) {
             ldapServer.start();
             EventLoopGroup eventLoopGroup=parameters.channelFactory().createEventLoopGroup(AbstractTest.PARALLELISM);

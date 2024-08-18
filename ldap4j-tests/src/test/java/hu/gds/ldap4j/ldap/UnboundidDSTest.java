@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -48,7 +49,7 @@ public class UnboundidDSTest {
     @Test
     public void testAddDelete() throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
             ldapServer.start();
             String attribute="member";
@@ -58,7 +59,10 @@ public class UnboundidDSTest {
             String user1="uid=user1,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu";
             context.get(
                     Closeable.withCloseable(
-                            ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    ldapServer,
+                                    UnboundidDirectoryServer.adminBind()),
                             new Function<LdapConnection, Lava<Void>>() {
                                 private @NotNull Lava<Void> assertMembers(
                                         @NotNull LdapConnection connection, String... members) throws Throwable {
@@ -142,13 +146,16 @@ public class UnboundidDSTest {
     @Test
     public void testBindSASL() throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
             ldapServer.start();
-            var bind=LdapServer.allBinds().iterator().next();
+            var bind=UnboundidDirectoryServer.allBinds().iterator().next();
             context.get(
                     Closeable.withCloseable(
-                            ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    ldapServer,
+                                    UnboundidDirectoryServer.adminBind()),
                             (connection)->connection.writeRequestReadResponseChecked(
                                             BindRequest.sasl(
                                                             "dn: %s\0dn: %s\0%s".formatted(
@@ -194,7 +201,7 @@ public class UnboundidDSTest {
     @Test
     public void testCompare() throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
             ldapServer.start();
             String attribute="member";
@@ -203,7 +210,10 @@ public class UnboundidDSTest {
             String user2="uid=user2,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu";
             context.get(
                     Closeable.withCloseable(
-                            ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    ldapServer,
+                                    UnboundidDirectoryServer.adminBind()),
                             new Function<LdapConnection, Lava<Void>>() {
                                 private @NotNull Lava<Void> assertCompare(
                                         @NotNull LdapConnection connection, boolean result, String value) {
@@ -238,10 +248,10 @@ public class UnboundidDSTest {
     @Test
     public void testFeatureDiscovery() throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
             ldapServer.start();
-            Pair<String, String> bind=LdapServer.allBinds().iterator().next();
+            Pair<String, String> bind=UnboundidDirectoryServer.allBinds().iterator().next();
             context.<Void>get(
                     Closeable.withCloseable(
                             ()->context.parameters().connectionFactory(context, ldapServer, bind),
@@ -271,7 +281,7 @@ public class UnboundidDSTest {
     @Test
     public void testInvalidRequest() throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
             ldapServer.start();
             context.get(
@@ -287,7 +297,7 @@ public class UnboundidDSTest {
                             },
                             ()->Closeable.withCloseable(
                                     ()->context.parameters().connectionFactory(
-                                            context, ldapServer, LdapServer.adminBind()),
+                                            context, ldapServer, UnboundidDirectoryServer.adminBind()),
                                     (connection)->connection.writeMessage(
                                                     new InvalidMessage()
                                                             .controlsEmpty())
@@ -303,7 +313,7 @@ public class UnboundidDSTest {
     @Test
     public void testModify() throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
             ldapServer.start();
             String attribute="member";
@@ -314,7 +324,10 @@ public class UnboundidDSTest {
             String user3="uid=user3,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu";
             context.get(
                     Closeable.withCloseable(
-                            ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    ldapServer,
+                                    UnboundidDirectoryServer.adminBind()),
                             new Function<LdapConnection, Lava<Void>>() {
                                 private @NotNull Lava<Void> assertMembers(
                                         @NotNull LdapConnection connection, String... members) throws Throwable {
@@ -393,7 +406,7 @@ public class UnboundidDSTest {
     @Test
     public void testModifyDN() throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
             ldapServer.start();
             String attribute="member";
@@ -407,7 +420,10 @@ public class UnboundidDSTest {
             String user1="uid=user1,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu";
             context.get(
                     Closeable.withCloseable(
-                            ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    ldapServer,
+                                    UnboundidDirectoryServer.adminBind()),
                             new Function<LdapConnection, Lava<Void>>() {
                                 private @NotNull Lava<Void> assertMembers(
                                         @NotNull LdapConnection connection, @NotNull String object, String... members)
@@ -515,15 +531,101 @@ public class UnboundidDSTest {
     }
 
     @Test
+    public void testPasswordModify() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
+                     false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
+            ldapServer.start();
+            var bind=UnboundidDirectoryServer.USERS.entrySet().iterator().next();
+            @NotNull String bindDn=bind.getKey();
+            char @NotNull [] password=bind.getValue().toCharArray();
+            char @NotNull [] password2=(bind.getValue()+"x").toCharArray();
+            context.get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context, ldapServer, Pair.of(bindDn, new String(password))),
+                            new Function<@NotNull LdapConnection, @NotNull Lava<Void>>() {
+                                @Override
+                                public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) {
+                                    return Lava.catchErrors(
+                                                    (throwable)->{
+                                                        assertEquals(
+                                                                LdapResultCode.INVALID_CREDENTIALS,
+                                                                throwable.resultCode2);
+                                                        return Lava.VOID;
+                                                    },
+                                                    ()->modifyPassword(connection, null, password2, null)
+                                                            .composeIgnoreResult(()->Lava.fail(
+                                                                    new RuntimeException("should have failed")
+                                                            )),
+                                                    LdapException.class)
+                                            .composeIgnoreResult(()->modifyPassword(connection, null, null, null))
+                                            .compose((genPasswd)->{
+                                                assertNotNull(genPasswd);
+                                                return test(password, connection, genPasswd);
+                                            })
+                                            .composeIgnoreResult(()->modifyPassword(
+                                                    connection, password2, null, bindDn))
+                                            .composeIgnoreResult(()->test(password, connection, password2));
+                                }
+
+                                private @NotNull Lava<char @Nullable []> modifyPassword(
+                                        @NotNull LdapConnection connection,
+                                        char @Nullable [] newPassword,
+                                        char @Nullable [] oldPassword,
+                                        @Nullable String userIdentity) {
+                                    return connection.writeRequestReadResponseChecked(
+                                                    PasswordModify.request(newPassword, oldPassword, userIdentity))
+                                            .compose((response)->{
+                                                PasswordModify.Response response2=PasswordModify.response(response);
+                                                if (null==newPassword) {
+                                                    assertNotNull(response2);
+                                                    assertNotNull(response2.genPasswd());
+                                                    return Lava.complete(response2.genPasswd());
+                                                }
+                                                else {
+                                                    assertTrue((null==response2) || (null==response2.genPasswd()));
+                                                    return Lava.complete(null);
+                                                }
+                                            });
+                                }
+
+                                private @NotNull Lava<Void> test(
+                                        char @NotNull [] badPassword,
+                                        @NotNull LdapConnection connection,
+                                        char @NotNull [] goodPassword) {
+                                    return Lava.catchErrors(
+                                                    (throwable)->{
+                                                        assertEquals(
+                                                                LdapResultCode.INVALID_CREDENTIALS,
+                                                                throwable.resultCode2);
+                                                        return Lava.VOID;
+                                                    },
+                                                    ()->connection.writeRequestReadResponseChecked(
+                                                                    BindRequest.simple(bindDn, badPassword)
+                                                                            .controlsEmpty())
+                                                            .compose((response)->Lava.fail
+                                                                    (new RuntimeException("should have failed"))),
+                                                    LdapException.class)
+                                            .composeIgnoreResult(()->connection.writeRequestReadResponseChecked(
+                                                    BindRequest.simple(bindDn, goodPassword)
+                                                            .controlsEmpty()))
+                                            .composeIgnoreResult(()->Lava.VOID);
+                                }
+                            }));
+        }
+    }
+
+    @Test
     public void testReadNoticeOfDisconnect() throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
             ldapServer.start();
             context.get(
                     Closeable.withCloseable(
                             ()->context.parameters().connectionFactory(
-                                    context, ldapServer, LdapServer.adminBind()),
+                                    context, ldapServer, UnboundidDirectoryServer.adminBind()),
                             (connection)->connection.writeMessage(
                                             new InvalidMessage()
                                                     .controlsEmpty())
@@ -552,7 +654,7 @@ public class UnboundidDSTest {
     @Test
     public void testSearchManageDsaIt() throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
             ldapServer.start();
             for (boolean manageDsaIt: new boolean[]{false, true}) {
@@ -561,7 +663,10 @@ public class UnboundidDSTest {
                 try {
                     result=context.get(
                             Closeable.withCloseable(
-                                    ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
+                                    ()->context.parameters().connectionFactory(
+                                            context,
+                                            ldapServer,
+                                            UnboundidDirectoryServer.adminBind()),
                                     (connection)->connection.search(
                                             new SearchRequest(
                                                     List.of("ref"),
@@ -606,10 +711,10 @@ public class UnboundidDSTest {
     @Test
     public void testWhoAmI() throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
             ldapServer.start();
-            for (Pair<String, String> bind: LdapServer.allBinds()) {
+            for (Pair<String, String> bind: UnboundidDirectoryServer.allBinds()) {
                 context.<Void>get(
                         Closeable.withCloseable(
                                 ()->context.parameters().connectionFactory(context, ldapServer, bind),

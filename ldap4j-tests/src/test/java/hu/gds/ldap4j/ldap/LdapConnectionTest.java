@@ -51,10 +51,10 @@ public class LdapConnectionTest {
     @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
     public void testBindIncorrectPassword(LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
-            for (Pair<String, String> bind: LdapServer.allBinds()) {
+            for (Pair<String, String> bind: UnboundidDirectoryServer.allBinds()) {
                 context.<Void>get(
                         Lava.catchErrors(
                                 (ldapException)->{
@@ -78,10 +78,10 @@ public class LdapConnectionTest {
     @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
     public void testBindIncorrectUser(LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
-            for (Pair<String, String> bind: LdapServer.allBinds()) {
+            for (Pair<String, String> bind: UnboundidDirectoryServer.allBinds()) {
                 context.<Void>get(
                         Lava.catchErrors(
                                 (ldapException)->{
@@ -105,10 +105,10 @@ public class LdapConnectionTest {
     @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
     public void testBindSuccess(LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
-            for (Pair<String, String> bind: LdapServer.allBinds()) {
+            for (Pair<String, String> bind: UnboundidDirectoryServer.allBinds()) {
                 context.<Void>get(
                         Closeable.withCloseable(
                                 ()->context.parameters().connectionFactory(context, ldapServer, bind),
@@ -121,13 +121,13 @@ public class LdapConnectionTest {
     @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
     public void testDERLength(LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
             context.get(
                     Closeable.withCloseable(
                             ()->context.parameters().connectionFactory(
-                                    context, ldapServer, LdapServer.adminBind()),
+                                    context, ldapServer, UnboundidDirectoryServer.adminBind()),
                             new Function<LdapConnection, Lava<Void>>() {
                                 @Override
                                 public @NotNull Lava<Void> apply(
@@ -181,13 +181,13 @@ public class LdapConnectionTest {
     @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
     public void testMessageId(LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
             context.get(
                     Closeable.withCloseable(
                             ()->context.parameters().connectionFactory(
-                                    context, ldapServer, LdapServer.adminBind()),
+                                    context, ldapServer, UnboundidDirectoryServer.adminBind()),
                             new Function<LdapConnection, Lava<Void>>() {
                                 @Override
                                 public @NotNull Lava<Void> apply(
@@ -236,14 +236,14 @@ public class LdapConnectionTest {
     @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
     public void testParallelSearch(LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
             int size=10;
             context.get(
                     Closeable.withCloseable(
                             ()->context.parameters().connectionFactory(
-                                    context, ldapServer, LdapServer.adminBind()),
+                                    context, ldapServer, UnboundidDirectoryServer.adminBind()),
                             new Function<@NotNull LdapConnection, @NotNull Lava<Void>>() {
                                 private final int[] counts=new int[size];
 
@@ -325,12 +325,15 @@ public class LdapConnectionTest {
     @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
     public void testSearchAttributes(LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
             context.get(
                     Closeable.withCloseable(
-                            ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    ldapServer,
+                                    UnboundidDirectoryServer.adminBind()),
                             (connection)->testSearchAttributes(
                                     connection,
                                     List.of(),
@@ -395,7 +398,7 @@ public class LdapConnectionTest {
     @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
     public void testSearchFail(LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
             context.get(
@@ -408,7 +411,7 @@ public class LdapConnectionTest {
                             },
                             ()->Closeable.withCloseable(
                                     ()->context.parameters().connectionFactory(
-                                            context, ldapServer, LdapServer.adminBind()),
+                                            context, ldapServer, UnboundidDirectoryServer.adminBind()),
                                     (connection)->connection.search(
                                                     new SearchRequest(
                                                             List.of("cn", "objectClass"),
@@ -429,12 +432,15 @@ public class LdapConnectionTest {
     @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
     public void testSearchFilter(LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
             context.get(
                     Closeable.withCloseable(
-                            ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    ldapServer,
+                                    UnboundidDirectoryServer.adminBind()),
                             (connection)->testSearchFilter(
                                     connection, "(objectClass=*)",
                                     true, true, true)
@@ -512,7 +518,7 @@ public class LdapConnectionTest {
     @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
     public void testSearchSearchSizeLimit(LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
             record Params(int limit, boolean sizeTime) {
@@ -523,7 +529,10 @@ public class LdapConnectionTest {
                     .toList();
             context.get(
                     Closeable.withCloseable(
-                            ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    ldapServer,
+                                    UnboundidDirectoryServer.adminBind()),
                             new Function<LdapConnection, Lava<Void>>() {
                                 @Override
                                 public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) throws Throwable {
@@ -566,13 +575,16 @@ public class LdapConnectionTest {
     @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
     public void testSearchSuccess(LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
-            for (String user: LdapServer.USERS.keySet()) {
+            for (String user: UnboundidDirectoryServer.USERS.keySet()) {
                 List<ControlsMessage<SearchResult>> results=context.get(
                         Closeable.withCloseable(
-                                ()->context.parameters().connectionFactory(context, ldapServer, LdapServer.adminBind()),
+                                ()->context.parameters().connectionFactory(
+                                        context,
+                                        ldapServer,
+                                        UnboundidDirectoryServer.adminBind()),
                                 (connection)->connection.search(
                                         new SearchRequest(
                                                 List.of("cn", "objectClass"),
@@ -590,7 +602,7 @@ public class LdapConnectionTest {
                 results.remove(results.size()-1);
                 results.sort(Comparator.comparing((result)->result.message().asEntry().objectName()));
                 List<String> groups=new ArrayList<>();
-                LdapServer.GROUPS.forEach((group, users)->{
+                UnboundidDirectoryServer.GROUPS.forEach((group, users)->{
                     if (users.contains(user)) {
                         groups.add(group);
                     }
@@ -671,7 +683,9 @@ public class LdapConnectionTest {
 
                 public @NotNull Lava<Void> run() {
                     return readStartTls()
-                            .composeIgnoreResult(()->tlsConnection.startTlsHandshake(null, LdapServer.serverTls(false)))
+                            .composeIgnoreResult(()->tlsConnection.startTlsHandshake(
+                                    null,
+                                    UnboundidDirectoryServer.serverTls(false)))
                             .composeIgnoreResult(()->ldapConnection.readMessageCheckedParallel((messageId)->{
                                 if (0>=messageId) {
                                     return null;
@@ -795,10 +809,10 @@ public class LdapConnectionTest {
     @MethodSource("hu.gds.ldap4j.ldap.LdapTestParameters#streamLdap")
     public void testTlsSession(LdapTestParameters testParameters) throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(testParameters);
-             LdapServer ldapServer=new LdapServer(
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
-            for (Pair<String, String> bind: LdapServer.allBinds()) {
+            for (Pair<String, String> bind: UnboundidDirectoryServer.allBinds()) {
                 context.<Void>get(
                         Closeable.withCloseable(
                                 ()->context.parameters().connectionFactory(context, ldapServer, bind),

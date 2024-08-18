@@ -395,6 +395,13 @@ public sealed interface ByteBuffer {
         return nioByteBuffer.byteBuffer.flip();
     }
 
+    default <T> T read(@NotNull Function<@NotNull Reader, T> function) throws Throwable {
+        @NotNull Reader reader=reader();
+        T result=function.apply(reader);
+        reader.assertNoRemainingBytes();
+        return result;
+    }
+
     default @NotNull Reader reader() {
         return new Reader(this);
     }

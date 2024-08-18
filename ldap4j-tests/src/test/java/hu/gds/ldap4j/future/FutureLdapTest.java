@@ -9,11 +9,11 @@ import hu.gds.ldap4j.lava.ThreadLocalScheduledExecutorContext;
 import hu.gds.ldap4j.ldap.BindRequest;
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.Filter;
-import hu.gds.ldap4j.ldap.LdapServer;
 import hu.gds.ldap4j.ldap.PartialAttribute;
 import hu.gds.ldap4j.ldap.Scope;
 import hu.gds.ldap4j.ldap.SearchRequest;
 import hu.gds.ldap4j.ldap.SearchResult;
+import hu.gds.ldap4j.ldap.UnboundidDirectoryServer;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +31,7 @@ public class FutureLdapTest {
     @Test
     public void test() throws Throwable {
         ScheduledExecutorService executor=Executors.newScheduledThreadPool(AbstractTest.PARALLELISM);
-        try (LdapServer ldapServer=new LdapServer(false, 0, 0)) {
+        try (UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(false, 0, 0)) {
             ldapServer.start();
             Log log=Log.systemErr();
             Context context=ThreadLocalScheduledExecutorContext.createDelayNanos(
@@ -49,7 +49,7 @@ public class FutureLdapTest {
     }
 
     private @NotNull CompletableFuture<Void> testConnection(@NotNull FutureLdapConnection connection) {
-        Map.Entry<String, String> user=LdapServer.USERS.entrySet().iterator().next();
+        Map.Entry<String, String> user=UnboundidDirectoryServer.USERS.entrySet().iterator().next();
         return Futures.compose(
                 (bindResponse)->{
                     int index=user.getKey().indexOf(',');
@@ -106,7 +106,7 @@ public class FutureLdapTest {
                         AbstractTest.PARALLELISM,
                         ldapClearTextAddress,
                         AbstractTest.TIMEOUT_NANOS,
-                        LdapServer.clientTls(false, true, true)),
+                        UnboundidDirectoryServer.clientTls(false, true, true)),
                 this::testConnection);
     }
 
@@ -128,7 +128,7 @@ public class FutureLdapTest {
                         ldapClearTextAddress,
                         new ThreadLocal<>(),
                         AbstractTest.TIMEOUT_NANOS,
-                        LdapServer.clientTls(false, true, true)),
+                        UnboundidDirectoryServer.clientTls(false, true, true)),
                 (pool)->pool.lease(this::testConnection));
     }
 }

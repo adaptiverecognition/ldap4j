@@ -9,7 +9,7 @@ import hu.gds.ldap4j.TestParameters;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.ContextHolder;
 import hu.gds.ldap4j.lava.Lava;
-import hu.gds.ldap4j.ldap.LdapServer;
+import hu.gds.ldap4j.ldap.UnboundidDirectoryServer;
 import java.net.InetSocketAddress;
 import java.net.SocketOption;
 import java.util.Map;
@@ -168,7 +168,7 @@ public class NetworkTestParameters extends TestParameters {
                         ()->tlsConnectionFactory,
                         (connection)->connection.startTlsHandshake(
                                         handshakeExecutor,
-                                        LdapServer.clientTls(badCertificate, false, verifyHostname))
+                                        UnboundidDirectoryServer.clientTls(badCertificate, false, verifyHostname))
                                 .composeIgnoreResult(()->Lava.complete(connection)));
             }
             else {

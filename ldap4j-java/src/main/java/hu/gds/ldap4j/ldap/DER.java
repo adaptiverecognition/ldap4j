@@ -189,7 +189,15 @@ public abstract class DER {
     }
 
     public static @NotNull String readUtf8NoTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
-        return new String(reader.readReaminingByteBuffer().arrayCopy(), StandardCharsets.UTF_8);
+        return new String(readUtf8NoTagChars(reader));
+    }
+
+    public static char@NotNull[] readUtf8NoTagChars(@NotNull ByteBuffer.Reader reader) throws Throwable {
+        @NotNull CharBuffer chars=StandardCharsets.UTF_8.decode(
+                reader.readReaminingByteBuffer().nioByteBufferCopy());
+        char@NotNull[] chars2=new char[chars.remaining()];
+        chars.get(chars2);
+        return chars2;
     }
 
     public static @NotNull String readUtf8Tag(@NotNull ByteBuffer.Reader reader) throws Throwable {
