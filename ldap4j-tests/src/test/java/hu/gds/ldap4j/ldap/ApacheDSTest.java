@@ -19,6 +19,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.apache.commons.lang3.stream.Streams;
@@ -49,7 +50,7 @@ import static org.junit.jupiter.api.Assertions.fail;
                         suffix="dc=test,dc=ldap4j,dc=gds,dc=hu")
         })
 @ApplyLdifFiles("hu/gds/ldap4j/ldap/apache-directory-studio-test.ldif")
-public class LdapConnectionVsApacheDirectoryStudioTest {
+public class ApacheDSTest {
     private static final int PORT=0;
 
     @Test
@@ -67,7 +68,6 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
             ldapServer.setSearchBaseDn("ou=system");
             ldapServer.addTransports(new TcpTransport("localhost", PORT));
             ldapServer.start();
-            System.out.println(ldapServer.getSaslMechanismHandlers());
             InetSocketAddress serverAddress
                     =(InetSocketAddress)ldapServer.getTransports()[0].getAcceptor().getLocalAddress();
             assertNotNull(serverAddress);
@@ -85,6 +85,7 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                         testApproxMatch(serverAddress)
                                 .composeIgnoreResult(()->testBindSASL(serverAddress))
                                 .composeIgnoreResult(()->testDERLength(serverAddress))
+                                .composeIgnoreResult(()->testFeatureDiscovery(serverAddress))
                                 .composeIgnoreResult(()->testMessageId(serverAddress))
                                 .composeIgnoreResult(()->testReferrals(serverAddress))
                                 .composeIgnoreResult(()->testSearchSizeTimeLimit(serverAddress)));
@@ -211,6 +212,36 @@ public class LdapConnectionVsApacheDirectoryStudioTest {
                                             "cn=User 0,ou=Users,dc=test,dc=ldap4j,dc=gds,dc=hu",
                                             results.get(0).asEntry().objectName());
                                     return loop(connection, iterator);
+                                });
+                    }
+                },
+                serverAddress);
+    }
+
+    private @NotNull Lava<Void> testFeatureDiscovery(InetSocketAddress serverAddress) {
+        return withConnection(
+                new Function<@NotNull LdapConnection, @NotNull Lava<Void>>() {
+                    @Override
+                    public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) throws Throwable {
+                        return connection.search(FeatureDiscovery.searchRequest())
+                                .compose((results)->{
+                                    FeatureDiscovery featureDiscovery=FeatureDiscovery.create(results);
+                                    assertTrue(
+                                            featureDiscovery.namingContexts
+                                                    .contains("dc=test,dc=ldap4j,dc=gds,dc=hu"));
+                                    assertEquals(Set.of("3"), featureDiscovery.supportedLdapVersions);
+                                    assertTrue(featureDiscovery.supportedSaslMechanisms.contains("CRAM-MD5"));
+                                    assertTrue(featureDiscovery.supportedControlsFeature
+                                            .contains(Feature.MANAGE_DSA_IT_CONTROL));
+                                    assertTrue(featureDiscovery.supportedControlsOid
+                                            .contains(Ldap.CONTROL_MANAGE_DSA_IT_OID));
+                                    assertTrue(featureDiscovery.supportedExtensionsFeature
+                                            .contains(Feature.NOTICE_OF_DISCONNECT_UNSOLICITED_NOTIFICATION));
+                                    assertTrue(featureDiscovery.supportedExtensionsOid
+                                            .contains(Ldap.NOTICE_OF_DISCONNECTION_OID));
+                                    assertTrue(featureDiscovery.supportedFeaturesFeature
+                                            .contains(Feature.ALL_OPERATIONAL_ATTRIBUTES));
+                                    return Lava.VOID;
                                 });
                     }
                 },

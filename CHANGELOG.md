@@ -2,6 +2,7 @@ Version 1.1.1-SNAPSHOT:
 - add event-driven LDAP engine support classes
 - add Netty codec
 - add optional TLS handshake executor
+- add server feature discovery
 - add thread-local executor
 - add "Who am I?" operation
 - receive and send TLS renegotiations

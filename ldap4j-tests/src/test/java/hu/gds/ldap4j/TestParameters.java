@@ -41,9 +41,9 @@ public class TestParameters {
         contextHolderFactories.add(NewThreadContextHolder.factory(AbstractTest.PARALLELISM, null));
         contextHolderFactories.add(RandomTrampolineContextHolder.factory(null));
         contextHolderFactories.add(RandomTrampolineContextHolder.factory(System.nanoTime()));
-        contextHolderFactories.add(ThreadPoolContextHolder.factory(1, AbstractTest.PARALLELISM, null, false));
-        contextHolderFactories.add(ThreadPoolContextHolder.factory(8, AbstractTest.PARALLELISM, null, false));
-        contextHolderFactories.add(ThreadPoolContextHolder.factory(8, AbstractTest.PARALLELISM, null, true));
+        contextHolderFactories.add(ThreadPoolContextHolder.factory(1, null, false));
+        contextHolderFactories.add(ThreadPoolContextHolder.factory(AbstractTest.PARALLELISM, null, false));
+        contextHolderFactories.add(ThreadPoolContextHolder.factory(AbstractTest.PARALLELISM, null, true));
         contextHolderFactories.add(TrampolineContextHolder.factory());
         return contextHolderFactories.stream();
     }
@@ -58,7 +58,7 @@ public class TestParameters {
                 =new ArrayList<>();
         blockingIoContextHolderFactories.add(NewThreadContextHolder.factory(AbstractTest.PARALLELISM, null));
         blockingIoContextHolderFactories.add(
-                ThreadPoolContextHolder.factory(AbstractTest.PARALLELISM, 8, null, false));
+                ThreadPoolContextHolder.factory(AbstractTest.PARALLELISM, null, false));
         List<@NotNull Supplier<@NotNull NetworkConnectionFactory>> networkConnectionFactories=new ArrayList<>();
         networkConnectionFactories.add(NetworkConnectionFactory.engineConnection());
         networkConnectionFactories.add(NetworkConnectionFactory.javaAsyncChannel());

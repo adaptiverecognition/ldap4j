@@ -44,6 +44,7 @@ Ldap4j currently supports:
 - all operations defined in [LDAP v3](https://www.ietf.org/rfc/rfc4511.txt), except removal of the TLS Layer,
 - [cancel operation](https://www.ietf.org/rfc/rfc3909.txt),
 - [fast bind operation](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/58bbd5c4-b5c4-41e2-b12c-cdaad1223d6a),
+- [feature discovery](https://www.ietf.org/rfc/rfc3674.txt),
 - [manage DSA IT control](https://www.ietf.org/rfc/rfc3296.txt),
 - ["Who am I?" operation](https://www.ietf.org/rfc/rfc4532.txt).
 

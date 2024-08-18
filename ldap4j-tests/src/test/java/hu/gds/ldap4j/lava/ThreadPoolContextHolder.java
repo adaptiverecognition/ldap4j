@@ -66,7 +66,6 @@ public class ThreadPoolContextHolder extends ContextHolder {
     }
 
     private final @NotNull AtomicReference<ScheduledExecutorService> executor=new AtomicReference<>();
-    private final int parallelism;
     private final int poolSize;
     private final @Nullable ThreadFactory threadFactory;
     private final boolean threadLocal;
@@ -75,7 +74,6 @@ public class ThreadPoolContextHolder extends ContextHolder {
 
     public ThreadPoolContextHolder(
             @NotNull Log log,
-            int parallelism,
             int poolSize,
             @Nullable ThreadFactory threadFactory,
             boolean threadLocal) {
@@ -83,7 +81,6 @@ public class ThreadPoolContextHolder extends ContextHolder {
         if (0>=poolSize) {
             throw new IllegalArgumentException("0 >= poolSize %,d".formatted(poolSize));
         }
-        this.parallelism=parallelism;
         this.poolSize=poolSize;
         this.threadFactory=threadFactory;
         this.threadLocal=threadLocal;
@@ -105,12 +102,11 @@ public class ThreadPoolContextHolder extends ContextHolder {
     @Override
     public @NotNull Context context() {
         return threadLocal
-                ?new ThreadLocalScheduledContextImpl("", null, log, parallelism)
-                :new ScheduledContextImpl("", null, log, parallelism);
+                ?new ThreadLocalScheduledContextImpl("", null, log, poolSize)
+                :new ScheduledContextImpl("", null, log, poolSize);
     }
 
     public static @NotNull Function<@NotNull Log, @NotNull ContextHolder> factory(
-            int parallelism,
             int poolSize,
             @Nullable ThreadFactory threadFactory,
             boolean threadLocal) {
@@ -121,7 +117,7 @@ public class ThreadPoolContextHolder extends ContextHolder {
             @Override
             public ContextHolder apply(@NotNull Log value) {
                 Objects.requireNonNull(value, "value");
-                return new ThreadPoolContextHolder(value, parallelism, poolSize, threadFactory, threadLocal);
+                return new ThreadPoolContextHolder(value, poolSize, threadFactory, threadLocal);
             }
 
             @Override
