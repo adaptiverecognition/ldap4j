@@ -9,6 +9,9 @@ public abstract class Ldap {
     public static final byte AUTHENTICATION_CHOICE_SASL=(byte)0xa3;
     public static final byte AUTHENTICATION_CHOICE_SIMPLE=(byte)0x80;
     public static final byte BIND_RESPONSE_CREDENTIALS=(byte)0x87;
+    /**
+     * RFC 3296
+     */
     public static final @NotNull String CONTROL_MANAGE_DSA_IT_OID="2.16.840.1.113730.3.4.2";
     public static final @NotNull String CONTROL_TRANSACTION_SPECIFICATION_OID="1.3.6.1.1.21.2";
     public static final @NotNull String EXTENDED_REQUEST_CANCEL_OP_OID="1.3.6.1.1.8";
@@ -40,6 +43,7 @@ public abstract class Ldap {
     public static final @NotNull String MATCHING_RULE_BOOLEAN_MATCH="2.5.13.13";
     public static final @NotNull String MATCHING_RULE_CASE_EXACT_MATCH="2.5.13.5";
     public static final @NotNull String MATCHING_RULE_CASE_IGNORE_MATCH="2.5.13.2";
+    public static final @NotNull String MATCHING_RULE_CASE_IGNORE_ORDERING_MATCH="2.5.13.6";
     public static final @NotNull String MATCHING_RULE_DISTINGUISHED_NAME_MATCH="2.5.13.1";
     public static final @NotNull String MATCHING_RULE_INTEGER_MATCH="2.5.13.14";
     public static final @NotNull String MATCHING_RULE_OCTET_STRING_MATCH="2.5.13.17";

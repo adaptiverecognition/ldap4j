@@ -4,6 +4,9 @@ import hu.gds.ldap4j.net.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * RFC 3062
+ */
 public class PasswordModify {
     public record Response(char @Nullable [] genPasswd) {
     }

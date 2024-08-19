@@ -48,10 +48,10 @@ public class OID {
                 "1.2.840.113556.1.4.417",
                 "Show Deleted Control, MS AD");
         names.put(
-                "1.2.840.113556.1.4.473",
+                ServerSideSorting.REQUEST_CONTROL_OID, // "1.2.840.113556.1.4.473",
                 "Server Side Sorting Request Control, RFC 2891");
         names.put(
-                "1.2.840.113556.1.4.474",
+                ServerSideSorting.RESPONSE_CONTROL_OID, // "1.2.840.113556.1.4.474",
                 "Server Side Sorting Response Control, RFC 2891");
         names.put(
                 "1.2.840.113556.1.4.521",

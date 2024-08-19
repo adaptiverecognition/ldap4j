@@ -9,6 +9,9 @@ import java.util.TreeSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * RFC 3674
+ */
 public class FeatureDiscovery {
     public static final @NotNull String NAMING_CONTEXTS="namingContexts";
     public static final @NotNull String SUPPORTED_CAPABILITIES="supportedCapabilities";

@@ -1067,6 +1067,79 @@ public class UnboundidDSTest {
     }
 
     @Test
+    public void testServerSideSorting() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
+                     false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
+            ldapServer.start();
+            context.<Void>get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    ldapServer,
+                                    UnboundidDirectoryServer.adminBind()),
+                            new Function<@NotNull LdapConnection, @NotNull Lava<Void>>() {
+                                @Override
+                                public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) throws Throwable {
+                                    return search(connection, null, false)
+                                            .composeIgnoreResult(()->search(
+                                                    connection,
+                                                    Ldap.MATCHING_RULE_CASE_IGNORE_ORDERING_MATCH,
+                                                    true));
+                                }
+
+                                private @NotNull Lava<Void> search(
+                                        @NotNull LdapConnection connection,
+                                        @Nullable String orderingRule,
+                                        boolean reverseOrder)
+                                        throws Throwable {
+                                    return connection.search(
+                                                    new SearchRequest(
+                                                            List.of(),
+                                                            "ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                            DerefAliases.DEREF_ALWAYS,
+                                                            Filter.parse("(objectClass=person)"),
+                                                            Scope.WHOLE_SUBTREE,
+                                                            100,
+                                                            10,
+                                                            true)
+                                                            .controls(List.of(ServerSideSorting.requestControl(
+                                                                    true,
+                                                                    List.of(new ServerSideSorting.SortKey(
+                                                                            "uid",
+                                                                            orderingRule,
+                                                                            reverseOrder))))))
+                                            .compose((results)->{
+                                                assertEquals(3, results.size());
+                                                assertTrue(results.get(0).message().isEntry());
+                                                assertTrue(results.get(1).message().isEntry());
+                                                assertTrue(results.get(2).message().isDone());
+                                                @NotNull ServerSideSorting.SortResult sortResult
+                                                        =ServerSideSorting.responseControlCheckSuccess(
+                                                        results.get(2).controls());
+                                                assertEquals(
+                                                        ServerSideSorting.SortResultCode.SUCCESS,
+                                                        sortResult.sortResultCode());
+                                                assertEquals(
+                                                        "uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                        results.get(reverseOrder?1:0)
+                                                                .message()
+                                                                .asEntry()
+                                                                .objectName());
+                                                assertEquals(
+                                                        "uid=user1,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                        results.get(reverseOrder?0:1)
+                                                                .message()
+                                                                .asEntry()
+                                                                .objectName());
+                                                return Lava.VOID;
+                                            });
+                                }
+                            }));
+        }
+    }
+
+    @Test
     public void testWhoAmI() throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
              UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(

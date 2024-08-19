@@ -24,30 +24,30 @@ public record LdapResult(
     }
 
     public void checkCancel(@NotNull List<@NotNull Control> controls, int messageId) throws LdapException {
-        if ((!LdapResultCode.CANCELED.equals(resultCode2))
-                && (!LdapResultCode.CANNOT_CANCEL.equals(resultCode2))
-                && (!LdapResultCode.NO_SUCH_OPERATION.equals(resultCode2))
-                && (!LdapResultCode.TOO_LATE.equals(resultCode2))) {
+        if ((LdapResultCode.CANCELED.code!=resultCode)
+                && (LdapResultCode.CANNOT_CANCEL.code!=resultCode)
+                && (LdapResultCode.NO_SUCH_OPERATION.code!=resultCode)
+                && (LdapResultCode.TOO_LATE.code!=resultCode)) {
             throw new LdapException(controls, diagnosticMessages, messageId, referrals, resultCode, resultCode2);
         }
     }
 
     public void checkCompare(@NotNull List<@NotNull Control> controls, int messageId) throws LdapException {
-        if ((!LdapResultCode.COMPARE_FALSE.equals(resultCode2))
-                && (!LdapResultCode.COMPARE_TRUE.equals(resultCode2))) {
+        if ((LdapResultCode.COMPARE_FALSE.code!=resultCode)
+                && (LdapResultCode.COMPARE_TRUE.code!=resultCode)) {
             throw new LdapException(controls, diagnosticMessages, messageId, referrals, resultCode, resultCode2);
         }
     }
 
     public void checkSASL(@NotNull List<@NotNull Control> controls, int messageId) throws LdapException {
-        if ((!LdapResultCode.SASL_BIND_IN_PROGRESS.equals(resultCode2))
-                && (!LdapResultCode.SUCCESS.equals(resultCode2))) {
+        if ((LdapResultCode.SASL_BIND_IN_PROGRESS.code!=resultCode)
+                && (LdapResultCode.SUCCESS.code!=resultCode)) {
             throw new LdapException(controls, diagnosticMessages, messageId, referrals, resultCode, resultCode2);
         }
     }
 
     public void checkSuccess(@NotNull List<@NotNull Control> controls, int messageId) throws LdapException {
-        if (!LdapResultCode.SUCCESS.equals(resultCode2)) {
+        if (LdapResultCode.SUCCESS.code!=resultCode) {
             throw new LdapException(controls, diagnosticMessages, messageId, referrals, resultCode, resultCode2);
         }
     }

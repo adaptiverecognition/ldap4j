@@ -4,6 +4,7 @@ Version 1.1.1-SNAPSHOT:
 - add optional TLS handshake executor
 - add password modify operation
 - add server feature discovery
+- add server side sorting controls
 - add thread-local executor
 - add "Who am I?" operation
 - receive and send TLS renegotiations
