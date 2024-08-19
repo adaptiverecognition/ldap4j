@@ -47,6 +47,7 @@ Ldap4j currently supports:
 - [fast bind operation](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/58bbd5c4-b5c4-41e2-b12c-cdaad1223d6a),
 - [feature discovery](https://www.ietf.org/rfc/rfc3674.txt),
 - [manage DSA IT control](https://www.ietf.org/rfc/rfc3296.txt),
+- [modify-increment operation](https://www.ietf.org/rfc/rfc4525.txt),
 - [password modify operation](https://www.ietf.org/rfc/rfc3062.txt),
 - [server side sorting control](https://www.ietf.org/rfc/rfc2891.txt),
 - [simple paged results control](https://www.ietf.org/rfc/rfc2696.txt),

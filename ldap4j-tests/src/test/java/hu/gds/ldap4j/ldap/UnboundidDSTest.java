@@ -11,6 +11,7 @@ import hu.gds.ldap4j.lava.ThreadPoolContextHolder;
 import hu.gds.ldap4j.ldap.extension.AllOperationAttributes;
 import hu.gds.ldap4j.ldap.extension.FeatureDiscovery;
 import hu.gds.ldap4j.ldap.extension.ManageDsaIt;
+import hu.gds.ldap4j.ldap.extension.ModifyIncrement;
 import hu.gds.ldap4j.ldap.extension.PasswordModify;
 import hu.gds.ldap4j.ldap.extension.ServerSideSorting;
 import hu.gds.ldap4j.ldap.extension.SimplePagedResults;
@@ -464,22 +465,22 @@ public class UnboundidDSTest {
                                                     connection,
                                                     new ModifyRequest.Change(
                                                             new PartialAttribute(attribute, List.of(user2, user3)),
-                                                            ModifyRequest.Operation.REPLACE)))
+                                                            ModifyRequest.OPERATION_REPLACE)))
                                             .composeIgnoreResult(()->assertMembers(connection, user2, user3))
                                             .composeIgnoreResult(()->modify(
                                                     connection,
                                                     new ModifyRequest.Change(
                                                             new PartialAttribute(attribute, List.of()),
-                                                            ModifyRequest.Operation.DELETE)))
+                                                            ModifyRequest.OPERATION_DELETE)))
                                             .composeIgnoreResult(()->assertMembers(connection))
                                             .composeIgnoreResult(()->modify(
                                                     connection,
                                                     new ModifyRequest.Change(
                                                             new PartialAttribute(attribute, List.of(user0)),
-                                                            ModifyRequest.Operation.ADD),
+                                                            ModifyRequest.OPERATION_ADD),
                                                     new ModifyRequest.Change(
                                                             new PartialAttribute(attribute, List.of(user1)),
-                                                            ModifyRequest.Operation.ADD)))
+                                                            ModifyRequest.OPERATION_ADD)))
                                             .composeIgnoreResult(()->assertMembers(connection, user0, user1));
                                 }
 
@@ -646,6 +647,90 @@ public class UnboundidDSTest {
                                 }
                             }));
 
+        }
+    }
+
+    @Test
+    public void testModifyIncrement() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
+                     false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
+            ldapServer.start();
+            context.get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context, ldapServer, UnboundidDirectoryServer.adminBind()),
+                            new Function<@NotNull LdapConnection, @NotNull Lava<Void>>() {
+                                @Override
+                                public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) {
+                                    String type="( test-counter-oid"
+                                            +" NAME 'testCounter'"
+                                            +" SYNTAX "+Syntax.INTEGER_SYNTAX
+                                            +" EQUALITY "+MatchingRule.INTEGER_MATCH
+                                            +" ORDERING "+MatchingRule.INTEGER_ORDERING_MATCH
+                                            +" SINGLE-VALUE )";
+                                    return connection.writeRequestReadResponseChecked(
+                                                    new ModifyRequest(
+                                                            List.of(new ModifyRequest.Change(
+                                                                    new PartialAttribute(
+                                                                            "attributeTypes",
+                                                                            List.of(type)),
+                                                                    ModifyRequest.OPERATION_ADD)),
+                                                            "cn=schema")
+                                                            .controlsEmpty())
+                                            .composeIgnoreResult(()->connection.writeRequestReadResponseChecked(
+                                                    new ModifyRequest(
+                                                            List.of(
+                                                                    new ModifyRequest.Change(
+                                                                            new PartialAttribute(
+                                                                                    "objectClass",
+                                                                                    List.of("extensibleObject")),
+                                                                            ModifyRequest.OPERATION_ADD),
+                                                                    new ModifyRequest.Change(
+                                                                            new PartialAttribute(
+                                                                                    "testCounter",
+                                                                                    List.of("123")),
+                                                                            ModifyRequest.OPERATION_ADD)),
+                                                            "ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu")
+                                                            .controlsEmpty()))
+                                            .composeIgnoreResult(()->assertCounter(connection, 123))
+                                            .composeIgnoreResult(()->connection.writeRequestReadResponseChecked(
+                                                    new ModifyRequest(
+                                                            List.of(
+                                                                    new ModifyRequest.Change(
+                                                                            new PartialAttribute(
+                                                                                    "testCounter",
+                                                                                    List.of("456")),
+                                                                            ModifyIncrement.OPERATION_INCREMENT)),
+                                                            "ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu")
+                                                            .controlsEmpty()))
+                                            .composeIgnoreResult(()->assertCounter(connection, 579))
+                                            .composeIgnoreResult(()->Lava.VOID);
+                                }
+
+                                private @NotNull Lava<Void> assertCounter(
+                                        @NotNull LdapConnection connection, int counter) throws Throwable {
+                                    return connection.search(
+                                                    new SearchRequest(
+                                                            List.of("testCounter"),
+                                                            "ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                            DerefAliases.DEREF_ALWAYS,
+                                                            Filter.parse("(objectClass=*)"),
+                                                            Scope.BASE_OBJECT,
+                                                            100,
+                                                            10,
+                                                            false)
+                                                            .controlsEmpty())
+                                            .compose((results)->{
+                                                assertEquals(2, results.size());
+                                                assertEquals(
+                                                        List.of(Integer.toString(counter)),
+                                                        results.get(0).message().asEntry()
+                                                                .attributes().get(0).values());
+                                                return Lava.VOID;
+                                            });
+                                }
+                            }));
         }
     }
 
@@ -1091,7 +1176,7 @@ public class UnboundidDSTest {
                                     return search(connection, null, false)
                                             .composeIgnoreResult(()->search(
                                                     connection,
-                                                    MatchingRules.CASE_IGNORE_ORDERING_MATCH,
+                                                    MatchingRule.CASE_IGNORE_ORDERING_MATCH,
                                                     true));
                                 }
 

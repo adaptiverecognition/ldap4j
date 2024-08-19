@@ -87,13 +87,13 @@ public class OpenLdapTest {
                                     return search(
                                             connection,
                                             true,
-                                            MatchingRules.DISTINGUISHED_NAME_MATCH,
+                                            MatchingRule.DISTINGUISHED_NAME_MATCH,
                                             "dc=example,dc=org",
                                             "entryDN")
                                             .composeIgnoreResult(()->search(
                                                     connection,
                                                     false,
-                                                    MatchingRules.CASE_IGNORE_MATCH,
+                                                    MatchingRule.CASE_IGNORE_MATCH,
                                                     "foobar",
                                                     "dc"));
                                 }

@@ -9,35 +9,26 @@ public record ModifyRequest(
         @NotNull List<@NotNull Change> changes,
         @NotNull String object)
         implements Request<ModifyRequest, ModifyResponse> {
-    public record Change(@NotNull PartialAttribute modification, @NotNull Operation operation) {
-        public Change(@NotNull PartialAttribute modification, @NotNull Operation operation) {
+    public record Change(
+            @NotNull PartialAttribute modification,
+            int operation) {
+        public Change(
+                @NotNull PartialAttribute modification,
+                int operation) {
             this.modification=Objects.requireNonNull(modification, "modification");
-            this.operation=Objects.requireNonNull(operation, "operation");
+            this.operation=operation;
         }
 
         public @NotNull ByteBuffer write() {
             return BER.writeSequence(
-                    operation.write()
+                    BER.writeEnumeratedTag(operation)
                             .append(modification.write()));
         }
     }
 
-    public enum Operation {
-        ADD(0),
-        DELETE(1),
-        REPLACE(2);
-
-        public final int value;
-
-        Operation(int value) {
-            this.value=value;
-        }
-
-        public @NotNull ByteBuffer write() {
-            return BER.writeEnumeratedTag(value);
-        }
-    }
-
+    public static final int OPERATION_ADD=0;
+    public static final int OPERATION_DELETE=1;
+    public static final int OPERATION_REPLACE=2;
     public static final byte REQUEST_TAG=0x66;
 
     public ModifyRequest(@NotNull List<@NotNull Change> changes, @NotNull String object) {

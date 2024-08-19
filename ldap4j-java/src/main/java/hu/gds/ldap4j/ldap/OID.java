@@ -4,6 +4,7 @@ import hu.gds.ldap4j.ldap.extension.AllOperationAttributes;
 import hu.gds.ldap4j.ldap.extension.Cancel;
 import hu.gds.ldap4j.ldap.extension.FastBind;
 import hu.gds.ldap4j.ldap.extension.ManageDsaIt;
+import hu.gds.ldap4j.ldap.extension.ModifyIncrement;
 import hu.gds.ldap4j.ldap.extension.PasswordModify;
 import hu.gds.ldap4j.ldap.extension.ServerSideSorting;
 import hu.gds.ldap4j.ldap.extension.SimplePagedResults;
@@ -199,7 +200,7 @@ public class OID {
                 "1.3.6.1.1.13.2",
                 "Post-read entry control, RFC 4527");
         names.put(
-                "1.3.6.1.1.14",
+                ModifyIncrement.FEATURE_OID, //"1.3.6.1.1.14",
                 "Modify-Increment Extension, RFC 4525");
         names.put(
                 "1.3.6.1.1.21.1",

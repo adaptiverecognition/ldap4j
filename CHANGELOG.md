@@ -1,5 +1,6 @@
 Version 1.1.1-SNAPSHOT:
 - add event-driven LDAP engine support classes
+- add modify-increment operation
 - add Netty codec
 - add optional TLS handshake executor
 - add password modify operation
