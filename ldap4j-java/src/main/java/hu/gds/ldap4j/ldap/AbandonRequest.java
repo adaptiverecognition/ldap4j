@@ -6,6 +6,8 @@ import org.jetbrains.annotations.NotNull;
 public record AbandonRequest(
         int messageId)
         implements Message<AbandonRequest> {
+    public static final byte REQUEST_TAG=0x70;
+
     @Override
     public @NotNull AbandonRequest self() {
         return this;
@@ -14,7 +16,7 @@ public record AbandonRequest(
     @Override
     public @NotNull ByteBuffer write() {
         return BER.writeTag(
-                Ldap.PROTOCOL_OP_ABANDON_REQUEST,
+                REQUEST_TAG,
                 BER.writeIntegerNoTag(messageId));
     }
 }

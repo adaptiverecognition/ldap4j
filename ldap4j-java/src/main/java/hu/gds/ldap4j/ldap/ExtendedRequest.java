@@ -29,28 +29,22 @@ public record ExtendedRequest(
                         @NotNull String requestName=BER.readTag(
                                 BER::readUtf8NoTag,
                                 reader2,
-                                Ldap.PROTOCOL_OP_EXTENDED_REQUEST_NAME);
+                                REQUEST_NAME_TAG);
                         byte@Nullable[] requestValue=BER.readOptionalTag(
                                 BER::readOctetStringNoTag,
                                 reader2,
                                 ()->null,
-                                Ldap.PROTOCOL_OP_EXTENDED_REQUEST_VALUE);
+                                REQUEST_VALUE_TAG);
                         return new ExtendedRequest(requestName, requestValue, responseReader);
                     },
                     reader,
-                    Ldap.PROTOCOL_OP_EXTENDED_REQUEST);
+                    REQUEST_TAG);
         }
     }
     
-    public static final @NotNull ExtendedRequest FAST_BIND=new ExtendedRequest(
-            Ldap.EXTENDED_REQUEST_FAST_BIND_OID, null, ExtendedResponse.READER_SUCCESS);
-    public static final @NotNull ExtendedRequest START_TLS=new ExtendedRequest(
-            Ldap.EXTENDED_REQUEST_START_TLS_OID, null, ExtendedResponse.READER_SUCCESS);
-    /**
-     * RFC 4532
-     */
-    public static final @NotNull ExtendedRequest WHO_AM_I=new ExtendedRequest(
-            Ldap.EXTENDED_REQUEST_WHO_AM_I, null, ExtendedResponse.READER_SUCCESS);
+    public static final byte REQUEST_NAME_TAG=(byte)0x80;
+    public static final byte REQUEST_TAG=0x77;
+    public static final byte REQUEST_VALUE_TAG=(byte)0x81;
 
     public ExtendedRequest(
             @NotNull String requestName,
@@ -59,18 +53,6 @@ public record ExtendedRequest(
         this.requestName=Objects.requireNonNull(requestName, "requestName");
         this.requestValue=requestValue;
         this.responseReader=Objects.requireNonNull(responseReader, "responseReader");
-    }
-    
-    /**
-     * RFC 3909
-     */
-    public static @NotNull ExtendedRequest cancel(int messageId) {
-        return new ExtendedRequest(
-                Ldap.EXTENDED_REQUEST_CANCEL_OP_OID,
-                BER.writeSequence(
-                                BER.writeIntegerTag(messageId))
-                        .arrayCopy(),
-                ExtendedResponse.READER_CANCEL);
     }
 
     @Override
@@ -86,14 +68,14 @@ public record ExtendedRequest(
     @Override
     public @NotNull ByteBuffer write() {
         ByteBuffer byteBuffer=BER.writeTag(
-                Ldap.PROTOCOL_OP_EXTENDED_REQUEST_NAME,
+                REQUEST_NAME_TAG,
                 BER.writeUtf8NoTag(requestName));
         if (null!=requestValue) {
             byteBuffer=byteBuffer.append(
                     BER.writeTag(
-                            Ldap.PROTOCOL_OP_EXTENDED_REQUEST_VALUE,
+                            REQUEST_VALUE_TAG,
                             ByteBuffer.create(requestValue)));
         }
-        return BER.writeTag(Ldap.PROTOCOL_OP_EXTENDED_REQUEST, byteBuffer);
+        return BER.writeTag(REQUEST_TAG, byteBuffer);
     }
 }

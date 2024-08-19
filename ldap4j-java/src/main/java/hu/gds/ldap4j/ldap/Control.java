@@ -35,10 +35,6 @@ public record Control(
         return result;
     }
 
-    public static Control nonCritical(@NotNull String controlType) {
-        return new Control(controlType, null, false);
-    }
-
     public static @NotNull Control read(@NotNull ByteBuffer.Reader reader) throws Throwable {
         return BER.readSequence(
                 (reader2)->{

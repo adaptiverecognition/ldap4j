@@ -11,6 +11,9 @@ public record ModifyDNRequest(
         @NotNull String newRDN,
         @Nullable String newSuperior)
         implements Request<ModifyDNRequest, ModifyDNResponse> {
+    public static final byte NEW_SUPERIOR_TAG=(byte)0x80;
+    public static final byte REQUEST_TAG=0x6c;
+
     public ModifyDNRequest(
             boolean deleteOldRDN,
             @NotNull String entry,
@@ -45,11 +48,11 @@ public record ModifyDNRequest(
         if (null!=newSuperior) {
             requestBuffer=requestBuffer.append(
                     BER.writeTag(
-                            Ldap.MODIFY_DN_REQUEST_NEW_SUPERIOR,
+                            NEW_SUPERIOR_TAG,
                             BER.writeUtf8NoTag(newSuperior)));
         }
         return BER.writeTag(
-                Ldap.PROTOCOL_OP_MODIFY_DN_REQUEST,
+                REQUEST_TAG,
                 requestBuffer);
     }
 }

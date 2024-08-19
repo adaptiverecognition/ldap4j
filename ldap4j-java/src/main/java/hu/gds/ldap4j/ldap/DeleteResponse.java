@@ -22,11 +22,12 @@ public record DeleteResponse(
                     BER.readTag(
                             LdapResult::read,
                             reader,
-                            Ldap.PROTOCOL_OP_DELETE_RESPONSE));
+                            RESPONSE_TAG));
         }
     }
 
     public static final @NotNull MessageReader<DeleteResponse> READER=new Reader();
+    public static final byte RESPONSE_TAG=0x6b;
 
     public DeleteResponse(@NotNull LdapResult ldapResult) {
         this.ldapResult=Objects.requireNonNull(ldapResult, "ldapResult");

@@ -35,7 +35,7 @@ public record BindRequest(
                                     ByteBuffer.create(credentials)));
                 }
                 return BER.writeTag(
-                        Ldap.AUTHENTICATION_CHOICE_SASL,
+                        AUTHENTICATION_CHOICE_SASL_TAG,
                         saslBuffer);
             }
         }
@@ -55,7 +55,7 @@ public record BindRequest(
             @Override
             public @NotNull ByteBuffer write() {
                 return BER.writeTag(
-                        Ldap.AUTHENTICATION_CHOICE_SIMPLE,
+                        AUTHENTICATION_CHOICE_SIMPLE_TAG,
                         BER.writeUtf8NoTag(password));
             }
         }
@@ -64,6 +64,11 @@ public record BindRequest(
 
         @NotNull ByteBuffer write();
     }
+    
+    public static final byte AUTHENTICATION_CHOICE_SASL_TAG=(byte)0xa3;
+    public static final byte AUTHENTICATION_CHOICE_SIMPLE_TAG=(byte)0x80;
+    public static final byte REQUEST_TAG=0x60;
+    public static final int VERSION_3=3;
 
     public BindRequest(
             @NotNull AuthenticationChoice authentication,
@@ -84,7 +89,7 @@ public record BindRequest(
         return new BindRequest(
                 new AuthenticationChoice.SASL(credentials, mechanism),
                 name,
-                Ldap.VERSION);
+                VERSION_3);
     }
 
     @Override
@@ -96,7 +101,7 @@ public record BindRequest(
         return new BindRequest(
                 new AuthenticationChoice.Simple(password),
                 name,
-                Ldap.VERSION);
+                VERSION_3);
     }
 
     @Override
@@ -107,7 +112,7 @@ public record BindRequest(
     @Override
     public @NotNull ByteBuffer write() {
         return BER.writeTag(
-                Ldap.PROTOCOL_OP_BIND_REQUEST,
+                REQUEST_TAG,
                 BER.writeIntegerTag(version)
                         .append(BER.writeUtf8Tag(name))
                         .append(authentication.write()));

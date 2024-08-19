@@ -95,15 +95,15 @@ public sealed interface SearchResult {
         public @NotNull SearchResult read(@NotNull ByteBuffer.Reader reader) throws Throwable {
             return BER.readTag(
                     (tag)->switch (tag) {
-                        case Ldap.PROTOCOL_OP_SEARCH_RESULT_DONE -> Either.left(Done::read);
-                        case Ldap.PROTOCOL_OP_SEARCH_RESULT_ENTRY -> Either.left(Entry::read);
-                        case Ldap.PROTOCOL_OP_SEARCH_RESULT_REFERRAL -> Either.left(Referral::read);
+                        case RESULT_DONE_TAG -> Either.left(Done::read);
+                        case RESULT_ENTRY_TAG -> Either.left(Entry::read);
+                        case RESULT_REFERRAL_TAG -> Either.left(Referral::read);
                         default -> throw new RuntimeException(
                                 "unexpected tag 0x%x, expected 0x%x, 0x%x, or 0x%x".formatted(
                                         tag,
-                                        Ldap.PROTOCOL_OP_SEARCH_RESULT_DONE,
-                                        Ldap.PROTOCOL_OP_SEARCH_RESULT_ENTRY,
-                                        Ldap.PROTOCOL_OP_SEARCH_RESULT_REFERRAL));
+                                        RESULT_DONE_TAG,
+                                        RESULT_ENTRY_TAG,
+                                        RESULT_REFERRAL_TAG));
                     },
                     reader);
         }
@@ -141,6 +141,9 @@ public sealed interface SearchResult {
     }
 
     @NotNull MessageReader<SearchResult> READER=new Reader();
+    byte RESULT_DONE_TAG=0x65;
+    byte RESULT_ENTRY_TAG=0x64;
+    byte RESULT_REFERRAL_TAG=0x73;
 
     interface Visitor<T> {
         T done(@NotNull Done done) throws Throwable;

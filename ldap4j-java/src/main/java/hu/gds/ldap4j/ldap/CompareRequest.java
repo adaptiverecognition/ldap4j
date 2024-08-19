@@ -8,6 +8,8 @@ public record CompareRequest(
         @NotNull Filter.AttributeValueAssertion attributeValueAssertion,
         @NotNull String entry)
         implements Request<CompareRequest, CompareResponse> {
+    public static final byte REQUEST_TAG=0x6e;
+
     public CompareRequest(@NotNull Filter.AttributeValueAssertion attributeValueAssertion, @NotNull String entry) {
         this.attributeValueAssertion=Objects.requireNonNull(attributeValueAssertion, "attributeValueAssertion");
         this.entry=Objects.requireNonNull(entry, "entry");
@@ -31,7 +33,7 @@ public record CompareRequest(
     @Override
     public @NotNull ByteBuffer write() throws Throwable {
         return BER.writeTag(
-                Ldap.PROTOCOL_OP_COMPARE_REQUEST,
+                REQUEST_TAG,
                 BER.writeUtf8Tag(entry)
                         .append(attributeValueAssertion.write()));
     }

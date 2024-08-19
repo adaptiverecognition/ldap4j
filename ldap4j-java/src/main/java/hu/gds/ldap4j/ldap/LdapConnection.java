@@ -316,7 +316,7 @@ public class LdapConnection implements Connection {
                 throw new RuntimeException("already using tls");
             }
             usingTls=true;
-            return writeRequestReadResponseChecked(ExtendedRequest.START_TLS.controlsEmpty())
+            return writeRequestReadResponseChecked(StartTls.REQUEST.controlsEmpty())
                     .composeIgnoreResult(()->connection().startTlsHandshake(function, handshakeExecutor));
         });
     }

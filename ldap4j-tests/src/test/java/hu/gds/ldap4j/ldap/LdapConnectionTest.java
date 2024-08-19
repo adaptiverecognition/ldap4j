@@ -5,6 +5,8 @@ import hu.gds.ldap4j.Pair;
 import hu.gds.ldap4j.TestContext;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
+import hu.gds.ldap4j.ldap.extension.Cancel;
+import hu.gds.ldap4j.ldap.extension.FastBind;
 import hu.gds.ldap4j.net.DuplexConnection;
 import hu.gds.ldap4j.net.JavaAsyncChannelConnection;
 import hu.gds.ldap4j.net.TlsConnection;
@@ -291,7 +293,7 @@ public class LdapConnectionTest {
                                 .compose((request)->{
                                     assertTrue(request.controls().isEmpty());
                                     assertEquals(
-                                            Ldap.EXTENDED_REQUEST_START_TLS_OID,
+                                            StartTls.REQUEST_OID,
                                             request.message().requestName());
                                     assertNull(request.message().requestValue());
                                     return ldapConnection.writeMessage(
@@ -328,7 +330,7 @@ public class LdapConnectionTest {
                                         .parallel(Function::identity);
                             }))
                             .compose((request)->{
-                                assertEquals(Ldap.EXTENDED_REQUEST_CANCEL_OP_OID, request.message().requestName());
+                                assertEquals(Cancel.REQUEST_OPERATION_OID, request.message().requestName());
                                 return ldapConnection.restartTlsHandshake()
                                         .composeIgnoreResult(()->ldapConnection.writeMessage(
                                                 new ExtendedResponse(
@@ -338,7 +340,7 @@ public class LdapConnectionTest {
                                                                 List.of(),
                                                                 LdapResultCode.SUCCESS.code,
                                                                 LdapResultCode.SUCCESS),
-                                                        Ldap.EXTENDED_REQUEST_FAST_BIND_OID,
+                                                        FastBind.REQUEST_OPERATION_OID,
                                                         null)
                                                         .controlsEmpty(),
                                                 MessageIdGenerator.constant(request.messageId())));
@@ -368,7 +370,7 @@ public class LdapConnectionTest {
                 }
 
                 private @NotNull Lava<Void> client(@NotNull LdapConnection connection) {
-                    return connection.writeMessage(ExtendedRequest.cancel(13).controlsEmpty())
+                    return connection.writeMessage(Cancel.request(13).controlsEmpty())
                             .compose((messageId)->{
                                 @NotNull Lava<Void> tryRead;
                                 if (explicitTlsRenegotiation) {
@@ -389,7 +391,7 @@ public class LdapConnectionTest {
                                                 ExtendedResponse.READER_SUCCESS)
                                         .compose((response)->{
                                             assertEquals(
-                                                    Ldap.EXTENDED_REQUEST_FAST_BIND_OID,
+                                                    FastBind.REQUEST_OPERATION_OID,
                                                     response.message().responseName());
                                             return Lava.VOID;
                                         }));

@@ -38,16 +38,18 @@ public record BindResponse(
                                 BER::readOctetStringNoTag,
                                 reader2,
                                 ()->null,
-                                Ldap.BIND_RESPONSE_CREDENTIALS);
+                                CREDENTIALS_TAG);
                         return new BindResponse(ldapResult, serverSaslCredentials);
                     },
                     reader,
-                    Ldap.PROTOCOL_OP_BIND_RESPONSE);
+                    RESPONSE_TAG);
         }
     }
 
+    public static final byte CREDENTIALS_TAG=(byte)0x87;
     public static final @NotNull MessageReader<BindResponse> READER_SASL=new Reader.SASL();
     public static final @NotNull MessageReader<BindResponse> READER_SUCCESS=new Reader.Success();
+    public static final byte RESPONSE_TAG=0x61;
 
     public BindResponse(@NotNull LdapResult ldapResult, byte@Nullable [] serverSaslCredentials) {
         this.ldapResult=Objects.requireNonNull(ldapResult, "ldapResult");

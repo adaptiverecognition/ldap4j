@@ -1,5 +1,9 @@
-package hu.gds.ldap4j.ldap;
+package hu.gds.ldap4j.ldap.extension;
 
+import hu.gds.ldap4j.ldap.BER;
+import hu.gds.ldap4j.ldap.ControlsMessage;
+import hu.gds.ldap4j.ldap.ExtendedRequest;
+import hu.gds.ldap4j.ldap.ExtendedResponse;
 import hu.gds.ldap4j.net.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -8,6 +12,12 @@ import org.jetbrains.annotations.Nullable;
  * RFC 3062
  */
 public class PasswordModify {
+    public static final byte REQUEST_USER_IDENTITY_TAG=(byte)0x80;
+    public static final byte REQUEST_OLD_PASSWD_TAG=(byte)0x81;
+    public static final @NotNull String REQUEST_OPERATION_IOD="1.3.6.1.4.1.4203.1.11.1";
+    public static final byte REQUEST_NEW_PASSWD_TAG=(byte)0x82;
+    public static final byte RESPONSE_GEN_PASSWD_TAG=(byte)0x80;
+    
     public record Response(char @Nullable [] genPasswd) {
     }
 
@@ -19,21 +29,21 @@ public class PasswordModify {
         ByteBuffer buffer=ByteBuffer.EMPTY;
         if (null!=userIdentity) {
             buffer=buffer.append(BER.writeTag(
-                    Ldap.PASSWORD_MODIFY_REQUEST_USER_IDENTITY,
+                    REQUEST_USER_IDENTITY_TAG,
                     BER.writeUtf8NoTag(userIdentity)));
         }
         if (null!=oldPasswd) {
             buffer=buffer.append(BER.writeTag(
-                    Ldap.PASSWORD_MODIFY_REQUEST_OLD_PASSWD,
+                    REQUEST_OLD_PASSWD_TAG,
                     BER.writeUtf8NoTag(oldPasswd)));
         }
         if (null!=newPasswd) {
             buffer=buffer.append(BER.writeTag(
-                    Ldap.PASSWORD_MODIFY_REQUEST_NEW_PASSWD,
+                    REQUEST_NEW_PASSWD_TAG,
                     BER.writeUtf8NoTag(newPasswd)));
         }
         return new ExtendedRequest(
-                Ldap.EXTENDED_REQUEST_PASSWORD_MODIFY,
+                REQUEST_OPERATION_IOD,
                 BER.writeSequence(buffer)
                         .arrayCopy(),
                 ExtendedResponse.READER_SUCCESS)
@@ -52,7 +62,7 @@ public class PasswordModify {
                                         BER::readUtf8NoTagChars,
                                         reader2,
                                         ()->null,
-                                        Ldap.PASSWORD_MODIFY_RESPONSE_GEN_PASSWD),
+                                        RESPONSE_GEN_PASSWD_TAG),
                                 reader));
         return new Response(genPasswd);
     }

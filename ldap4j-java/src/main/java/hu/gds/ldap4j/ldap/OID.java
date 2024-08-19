@@ -1,5 +1,11 @@
 package hu.gds.ldap4j.ldap;
 
+import hu.gds.ldap4j.ldap.extension.AllOperationAttributes;
+import hu.gds.ldap4j.ldap.extension.Cancel;
+import hu.gds.ldap4j.ldap.extension.FastBind;
+import hu.gds.ldap4j.ldap.extension.ManageDsaIt;
+import hu.gds.ldap4j.ldap.extension.PasswordModify;
+import hu.gds.ldap4j.ldap.extension.ServerSideSorting;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Comparator;
@@ -105,7 +111,7 @@ public class OID {
                 "1.2.840.113556.1.4.1670",
                 "Active Directory V51 Capability, MS AD");
         names.put(
-                Ldap.EXTENDED_REQUEST_FAST_BIND_OID, //"1.2.840.113556.1.4.1781",
+                FastBind.REQUEST_OPERATION_OID, //"1.2.840.113556.1.4.1781",
                 "Fast Bind Operation, MS AD");
         names.put(
                 "1.2.840.113556.1.4.1791",
@@ -180,7 +186,7 @@ public class OID {
                 "1.2.840.113556.1.4.2354",
                 "Thread Trace Override Control, MS AD");
         names.put(
-                Ldap.EXTENDED_REQUEST_CANCEL_OP_OID, // "1.3.6.1.1.8",
+                Cancel.REQUEST_OPERATION_OID, // "1.3.6.1.1.8",
                 "Cancel Operation, RFC 3909");
         names.put(
                 "1.3.6.1.1.12",
@@ -195,13 +201,13 @@ public class OID {
                 "1.3.6.1.1.14",
                 "Modify-Increment Extension, RFC 4525");
         names.put(
-                Ldap.EXTENDED_REQUEST_START_TRANSACTION_OID, // "1.3.6.1.1.21.1"
+                "1.3.6.1.1.21.1",
                 "Start Transaction Request and Response, RFC 5805");
         names.put(
-                Ldap.CONTROL_TRANSACTION_SPECIFICATION_OID, // "1.3.6.1.1.21.2"
+                "1.3.6.1.1.21.2",
                 "Transaction Specification Control, RFC 5805");
         names.put(
-                Ldap.EXTENDED_REQUEST_END_TRANSACTION_OID, // "1.3.6.1.1.21.3"
+                "1.3.6.1.1.21.3",
                 "End Transactions Request and Response, RFC 5805");
         names.put(
                 "1.3.6.1.1.22",
@@ -213,13 +219,13 @@ public class OID {
                 "1.3.6.1.4.1.1466.101.119.1",
                 "Refresh Operation, RFC 2589");
         names.put(
-                Ldap.NOTICE_OF_DISCONNECTION_OID, // "1.3.6.1.4.1.1466.20036"
+                ExtendedResponse.NOTICE_OF_DISCONNECTION_OID, // "1.3.6.1.4.1.1466.20036"
                 "Notice of Disconnection Unsolicited Notification, RFC 4511");
         names.put(
-                Ldap.EXTENDED_REQUEST_START_TLS_OID, // "1.3.6.1.4.1.1466.20037"
+                StartTls.REQUEST_OID, // "1.3.6.1.4.1.1466.20037"
                 "StartTLS Request, RFC 4511");
         names.put(
-                Ldap.FEATURE_ALL_OPERATIONAL_ATTRIBUTES, // "1.3.6.1.4.1.4203.1.5.1",
+                AllOperationAttributes.FEATURE_OID, // "1.3.6.1.4.1.4203.1.5.1",
                 "All Operational Attributes, RFC 3673");
         names.put(
                 "1.3.6.1.4.1.4203.1.5.2",
@@ -249,7 +255,7 @@ public class OID {
                 "1.3.6.1.4.1.4203.1.10.2",
                 "No-Op Control, draft");
         names.put(
-                Ldap.EXTENDED_REQUEST_PASSWORD_MODIFY, // "1.3.6.1.4.1.4203.1.11.1"
+                PasswordModify.REQUEST_OPERATION_IOD, // "1.3.6.1.4.1.4203.1.11.1"
                 "Password Modify Extended Operation, RFC 3062");
         names.put(
                 "1.3.6.1.4.1.4203.1.11.3",
@@ -267,7 +273,7 @@ public class OID {
                 "1.3.6.1.4.1.30221.2.5.5",
                 "Ignore NO-USER-MODIFICATION Request Control, Ping Identity DS");
         names.put(
-                Ldap.CONTROL_MANAGE_DSA_IT_OID, // "2.16.840.1.113730.3.4.2"
+                ManageDsaIt.REQUEST_CONTROL_OID, // "2.16.840.1.113730.3.4.2"
                 "ManageDsaIT Control, RFC 3296");
         names.put(
                 "2.16.840.1.113730.3.4.3",

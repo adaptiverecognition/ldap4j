@@ -49,10 +49,10 @@ public class BERDump {
         put.apply(BER.INTEGER).accept("INTEGER", (reader)->BER.readIntegerNoTag(false, reader));
         put.apply(BER.OCTET_STRING).accept("OCTET STRING", BER::readUtf8NoTag);
         put.apply(BER.SEQUENCE).accept("SEQUENCE", null);
-        put.apply(Ldap.FILTER_AND).accept("LDAP and filter?", null);
-        put.apply(Ldap.FILTER_PRESENT).accept("LDAP present filter?", null);
-        put.apply(Ldap.MESSAGE_CONTROLS).accept("LDAP message controls?", null);
-        put.apply(Ldap.PROTOCOL_OP_SEARCH_REQUEST).accept("LDAP search request?", null);
+        put.apply(Filter.AND_TAG).accept("LDAP and filter?", null);
+        put.apply(Filter.PRESENT_TAG).accept("LDAP present filter?", null);
+        put.apply(LdapMessage.CONTROLS_TAG).accept("LDAP message controls?", null);
+        put.apply(SearchRequest.REQUEST_TAG).accept("LDAP search request?", null);
         TAGS=Collections.unmodifiableMap(tags);
     }
 

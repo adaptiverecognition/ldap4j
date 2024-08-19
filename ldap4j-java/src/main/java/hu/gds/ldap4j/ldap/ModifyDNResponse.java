@@ -22,11 +22,12 @@ public record ModifyDNResponse(
                     BER.readTag(
                             LdapResult::read,
                             reader,
-                            Ldap.PROTOCOL_OP_MODIFY_DN_RESPONSE));
+                            RESPONSE_TAG));
         }
     }
 
     public static final @NotNull MessageReader<ModifyDNResponse> READER=new Reader();
+    public static final byte RESPONSE_TAG=0x6d;
 
     public ModifyDNResponse(@NotNull LdapResult ldapResult) {
         this.ldapResult=Objects.requireNonNull(ldapResult, "ldapResult");

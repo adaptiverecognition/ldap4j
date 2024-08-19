@@ -10,6 +10,9 @@ import hu.gds.ldap4j.lava.Context;
 import hu.gds.ldap4j.lava.JoinCallback;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.lava.ThreadLocalScheduledExecutorContext;
+import hu.gds.ldap4j.ldap.extension.AllOperationAttributes;
+import hu.gds.ldap4j.ldap.extension.FeatureDiscovery;
+import hu.gds.ldap4j.ldap.extension.ManageDsaIt;
 import hu.gds.ldap4j.net.JavaAsyncChannelConnection;
 import hu.gds.ldap4j.net.TlsSettings;
 import java.net.InetSocketAddress;
@@ -232,11 +235,11 @@ public class ApacheDSTest {
                                     assertEquals(Set.of("3"), featureDiscovery.supportedLdapVersions);
                                     assertTrue(featureDiscovery.supportedSaslMechanisms.contains("CRAM-MD5"));
                                     assertTrue(featureDiscovery.supportedControls
-                                            .contains(Ldap.CONTROL_MANAGE_DSA_IT_OID));
+                                            .contains(ManageDsaIt.REQUEST_CONTROL_OID));
                                     assertTrue(featureDiscovery.supportedExtensions
-                                            .contains(Ldap.NOTICE_OF_DISCONNECTION_OID));
+                                            .contains(ExtendedResponse.NOTICE_OF_DISCONNECTION_OID));
                                     assertTrue(featureDiscovery.supportedFeatures
-                                            .contains(Ldap.FEATURE_ALL_OPERATIONAL_ATTRIBUTES));
+                                            .contains(AllOperationAttributes.FEATURE_OID));
                                     return Lava.VOID;
                                 });
                     }
@@ -416,7 +419,7 @@ public class ApacheDSTest {
         return connection.search(
                         messageIdGenerator,
                         new SearchRequest(
-                                List.of("ref", Ldap.ALL_ATTRIBUTES),
+                                List.of("ref", SearchRequest.ALL_ATTRIBUTES),
                                 baseObject,
                                 DerefAliases.DEREF_ALWAYS,
                                 Filter.parse(filter),
@@ -424,7 +427,7 @@ public class ApacheDSTest {
                                 sizeLimitEntries,
                                 timeLimitSeconds,
                                 false)
-                                .controlsManageDsaIt(manageDsaIt))
+                                .controls(ManageDsaIt.requestControls(manageDsaIt)))
                 .compose((results)->{
                     assertFalse(results.isEmpty());
                     results=new ArrayList<>(results);

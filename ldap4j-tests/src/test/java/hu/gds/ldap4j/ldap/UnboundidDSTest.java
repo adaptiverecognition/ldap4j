@@ -8,6 +8,12 @@ import hu.gds.ldap4j.TestContext;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.lava.ThreadPoolContextHolder;
+import hu.gds.ldap4j.ldap.extension.AllOperationAttributes;
+import hu.gds.ldap4j.ldap.extension.FeatureDiscovery;
+import hu.gds.ldap4j.ldap.extension.ManageDsaIt;
+import hu.gds.ldap4j.ldap.extension.PasswordModify;
+import hu.gds.ldap4j.ldap.extension.ServerSideSorting;
+import hu.gds.ldap4j.ldap.extension.WhoAmI;
 import hu.gds.ldap4j.net.ByteBuffer;
 import hu.gds.ldap4j.net.NetworkConnectionFactory;
 import java.nio.charset.StandardCharsets;
@@ -380,11 +386,11 @@ public class UnboundidDSTest {
                                         assertEquals(Set.of("3"), featureDiscovery.supportedLdapVersions);
                                         assertTrue(featureDiscovery.supportedSaslMechanisms.contains("PLAIN"));
                                         assertTrue(featureDiscovery.supportedControls
-                                                .contains(Ldap.CONTROL_MANAGE_DSA_IT_OID));
+                                                .contains(ManageDsaIt.REQUEST_CONTROL_OID));
                                         assertTrue(featureDiscovery.supportedExtensions
-                                                .contains(Ldap.EXTENDED_REQUEST_WHO_AM_I));
+                                                .contains(WhoAmI.REQUEST_OID));
                                         assertTrue(featureDiscovery.supportedFeatures
-                                                .contains(Ldap.FEATURE_ALL_OPERATIONAL_ATTRIBUTES));
+                                                .contains(AllOperationAttributes.FEATURE_OID));
                                         return Lava.VOID;
                                     })));
         }
@@ -399,7 +405,7 @@ public class UnboundidDSTest {
             context.get(
                     Lava.catchErrors(
                             (extendedLdapException)->{
-                                if (Ldap.NOTICE_OF_DISCONNECTION_OID.equals(
+                                if (ExtendedResponse.NOTICE_OF_DISCONNECTION_OID.equals(
                                         extendedLdapException.response.message().responseName())) {
                                     return Lava.VOID;
                                 }
@@ -756,7 +762,7 @@ public class UnboundidDSTest {
                                                 response.message().ldapResult().resultCode2());
                                         assertEquals(0, response.messageId());
                                         assertEquals(
-                                                Ldap.NOTICE_OF_DISCONNECTION_OID,
+                                                ExtendedResponse.NOTICE_OF_DISCONNECTION_OID,
                                                 response.message().responseName());
                                         return Lava.VOID;
                                     })));
@@ -789,19 +795,19 @@ public class UnboundidDSTest {
                                             List.of("cn", "sn")))
                                     .composeIgnoreResult(()->testSearchAttributes(
                                             connection,
-                                            List.of(Ldap.NO_ATTRIBUTES),
+                                            List.of(SearchRequest.NO_ATTRIBUTES),
                                             List.of()))
                                     .composeIgnoreResult(()->testSearchAttributes(
                                             connection,
-                                            List.of(Ldap.ALL_ATTRIBUTES),
+                                            List.of(SearchRequest.ALL_ATTRIBUTES),
                                             List.of("objectClass", "cn", "sn", "uid", "userPassword")))
                                     .composeIgnoreResult(()->testSearchAttributes(
                                             connection,
-                                            List.of(Ldap.ALL_ATTRIBUTES, Ldap.NO_ATTRIBUTES),
+                                            List.of(SearchRequest.ALL_ATTRIBUTES, SearchRequest.NO_ATTRIBUTES),
                                             List.of("objectClass", "cn", "sn", "uid", "userPassword")))
                                     .composeIgnoreResult(()->testSearchAttributes(
                                             connection,
-                                            List.of(Ldap.NO_ATTRIBUTES, "cn"),
+                                            List.of(SearchRequest.NO_ATTRIBUTES, "cn"),
                                             List.of("cn")))));
         }
     }
@@ -921,7 +927,7 @@ public class UnboundidDSTest {
             throws Throwable {
         return connection.search(
                         new SearchRequest(
-                                List.of(Ldap.NO_ATTRIBUTES),
+                                List.of(SearchRequest.NO_ATTRIBUTES),
                                 "ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
                                 DerefAliases.DEREF_ALWAYS,
                                 Filter.parse(filter),
@@ -1035,7 +1041,7 @@ public class UnboundidDSTest {
                                                     100,
                                                     10,
                                                     false)
-                                                    .controlsManageDsaIt(manageDsaIt))));
+                                                    .controls(ManageDsaIt.requestControls(manageDsaIt)))));
                     if (!manageDsaIt) {
                         fail("should have failed");
                     }
@@ -1084,7 +1090,7 @@ public class UnboundidDSTest {
                                     return search(connection, null, false)
                                             .composeIgnoreResult(()->search(
                                                     connection,
-                                                    Ldap.MATCHING_RULE_CASE_IGNORE_ORDERING_MATCH,
+                                                    MatchingRules.CASE_IGNORE_ORDERING_MATCH,
                                                     true));
                                 }
 
@@ -1150,7 +1156,7 @@ public class UnboundidDSTest {
                         Closeable.withCloseable(
                                 ()->context.parameters().connectionFactory(context, ldapServer, bind),
                                 (connection)->connection.writeRequestReadResponseChecked(
-                                                ExtendedRequest.WHO_AM_I.controlsEmpty())
+                                                WhoAmI.REQUEST.controlsEmpty())
                                         .compose((response)->{
                                             assertEquals(
                                                     LdapResultCode.SUCCESS,

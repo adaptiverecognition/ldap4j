@@ -9,6 +9,8 @@ public record AddRequest(
         @NotNull List<@NotNull PartialAttribute> attributes,
         @NotNull String entry)
         implements Request<AddRequest, AddResponse> {
+    public static final byte REQUEST_TAG=0x68;
+
     public AddRequest(@NotNull List<@NotNull PartialAttribute> attributes, @NotNull String entry) {
         this.attributes=Objects.requireNonNull(attributes, "attributes");
         this.entry=Objects.requireNonNull(entry, "entry");
@@ -36,7 +38,7 @@ public record AddRequest(
             attributesBuffer=attributesBuffer.append(attribute.write());
         }
         return BER.writeTag(
-                Ldap.PROTOCOL_OP_ADD_REQUEST,
+                REQUEST_TAG,
                 BER.writeUtf8Tag(entry)
                         .append(BER.writeSequence(
                                 attributesBuffer)));

@@ -13,6 +13,8 @@ public record LdapMessage<T>(
         @NotNull List<@NotNull Control> controls,
         @NotNull T message,
         int messageId) {
+    public static final byte CONTROLS_TAG=(byte)0xa0;
+
     public LdapMessage(
             @NotNull List<@NotNull Control> controls, @NotNull T message, int messageId) {
         this.controls=Objects.requireNonNull(controls, "controls");
@@ -31,7 +33,7 @@ public record LdapMessage<T>(
                         return null;
                     },
                     reader,
-                    Ldap.MESSAGE_CONTROLS);
+                    CONTROLS_TAG);
         }
         return controls;
     }
@@ -68,7 +70,7 @@ public record LdapMessage<T>(
             for (Control control: controls) {
                 controls3=controls3.append(control.write());
             }
-            controls2=BER.writeTag(Ldap.MESSAGE_CONTROLS, controls3);
+            controls2=BER.writeTag(CONTROLS_TAG, controls3);
         }
         return BER.writeSequence(
                 BER.writeIntegerTag(messageId)

@@ -22,11 +22,12 @@ public record AddResponse(
                     BER.readTag(
                             LdapResult::read,
                             reader,
-                            Ldap.PROTOCOL_OP_ADD_RESPONSE));
+                            RESPONSE_TAG));
         }
     }
 
     public static final @NotNull MessageReader<AddResponse> READER=new Reader();
+    public static final byte RESPONSE_TAG=0x69;
 
     public AddResponse(@NotNull LdapResult ldapResult) {
         this.ldapResult=Objects.requireNonNull(ldapResult, "ldapResult");

@@ -13,6 +13,8 @@ public record LdapResult(
         @NotNull List<@NotNull String> referrals,
         int resultCode,
         @Nullable LdapResultCode resultCode2) {
+    public static final byte REFERRALS_TAG=(byte)0xa3;
+
     public LdapResult(
             @NotNull String diagnosticMessages, @NotNull String matchedDn,
             @NotNull List<@NotNull String> referrals, int resultCode, @Nullable LdapResultCode resultCode2) {
@@ -21,15 +23,6 @@ public record LdapResult(
         this.referrals=Objects.requireNonNull(referrals, "referrals");
         this.resultCode=resultCode;
         this.resultCode2=resultCode2;
-    }
-
-    public void checkCancel(@NotNull List<@NotNull Control> controls, int messageId) throws LdapException {
-        if ((LdapResultCode.CANCELED.code!=resultCode)
-                && (LdapResultCode.CANNOT_CANCEL.code!=resultCode)
-                && (LdapResultCode.NO_SUCH_OPERATION.code!=resultCode)
-                && (LdapResultCode.TOO_LATE.code!=resultCode)) {
-            throw new LdapException(controls, diagnosticMessages, messageId, referrals, resultCode, resultCode2);
-        }
     }
 
     public void checkCompare(@NotNull List<@NotNull Control> controls, int messageId) throws LdapException {
@@ -57,17 +50,16 @@ public record LdapResult(
         String matchedDn=BER.readUtf8Tag(reader);
         String diagnosticMessage=BER.readUtf8Tag(reader);
         List<@NotNull String> referrals=new ArrayList<>();
-        if (reader.hasRemainingBytes() && (Ldap.LDAP_RESULT_REFERRALS==reader.peekByte())) {
-            BER.readTag(
-                    (reader2)->{
-                        while (reader2.hasRemainingBytes()) {
-                            referrals.add(BER.readUtf8Tag(reader2));
-                        }
-                        return null;
-                    },
-                    reader,
-                    Ldap.LDAP_RESULT_REFERRALS);
-        }
+        BER.readOptionalTag(
+                (reader2)->{
+                    while (reader2.hasRemainingBytes()) {
+                        referrals.add(BER.readUtf8Tag(reader2));
+                    }
+                    return null;
+                },
+                reader,
+                ()->null,
+                REFERRALS_TAG);
         return new LdapResult(
                 diagnosticMessage,
                 matchedDn,
@@ -86,7 +78,7 @@ public record LdapResult(
                 referralsBuffer=referralsBuffer.append(BER.writeUtf8Tag(referral));
             }
             resultBuffer=resultBuffer.append(BER.writeTag(
-                    Ldap.LDAP_RESULT_REFERRALS,
+                    REFERRALS_TAG,
                     referralsBuffer));
         }
         return resultBuffer;

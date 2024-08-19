@@ -13,16 +13,6 @@ public interface Message<M> {
         return controls(List.of());
     }
 
-    default @NotNull ControlsMessage<M> controlsManageDsaIt() {
-        return controls(List.of(Control.nonCritical(Ldap.CONTROL_MANAGE_DSA_IT_OID)));
-    }
-
-    default @NotNull ControlsMessage<M> controlsManageDsaIt(boolean manageDsaIt) {
-        return manageDsaIt
-                ?controlsManageDsaIt()
-                :controlsEmpty();
-    }
-
     @NotNull M self();
 
     @NotNull ByteBuffer write() throws Throwable;

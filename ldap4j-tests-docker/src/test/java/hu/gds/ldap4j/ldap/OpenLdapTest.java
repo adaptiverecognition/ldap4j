@@ -7,6 +7,7 @@ import hu.gds.ldap4j.TestContext;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.lava.ThreadPoolContextHolder;
+import hu.gds.ldap4j.ldap.extension.FeatureDiscovery;
 import hu.gds.ldap4j.net.NetworkConnectionFactory;
 import hu.gds.ldap4j.net.TlsConnection;
 import org.jetbrains.annotations.NotNull;
@@ -86,13 +87,13 @@ public class OpenLdapTest {
                                     return search(
                                             connection,
                                             true,
-                                            Ldap.MATCHING_RULE_DISTINGUISHED_NAME_MATCH,
+                                            MatchingRules.DISTINGUISHED_NAME_MATCH,
                                             "dc=example,dc=org",
                                             "entryDN")
                                             .composeIgnoreResult(()->search(
                                                     connection,
                                                     false,
-                                                    Ldap.MATCHING_RULE_CASE_IGNORE_MATCH,
+                                                    MatchingRules.CASE_IGNORE_MATCH,
                                                     "foobar",
                                                     "dc"));
                                 }
@@ -105,7 +106,7 @@ public class OpenLdapTest {
                                         @NotNull String type) {
                                     return connection.search(
                                                     new SearchRequest(
-                                                            List.of(Ldap.ALL_ATTRIBUTES),
+                                                            List.of(SearchRequest.ALL_ATTRIBUTES),
                                                             "dc=example,dc=org",
                                                             DerefAliases.DEREF_ALWAYS,
                                                             new Filter.And(List.of(

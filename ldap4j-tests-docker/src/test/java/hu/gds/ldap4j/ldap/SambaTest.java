@@ -3,6 +3,7 @@ package hu.gds.ldap4j.ldap;
 import hu.gds.ldap4j.AbstractTest;
 import hu.gds.ldap4j.Log;
 import hu.gds.ldap4j.lava.Clock;
+import hu.gds.ldap4j.ldap.extension.FeatureDiscovery;
 import hu.gds.ldap4j.net.TlsSettings;
 import hu.gds.ldap4j.trampoline.TrampolineLdapConnection;
 import java.net.InetSocketAddress;

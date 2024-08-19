@@ -19,7 +19,7 @@ public abstract class Filter {
 
         @Override
         protected byte tag() {
-            return Ldap.FILTER_AND;
+            return AND_TAG;
         }
 
         @Override
@@ -37,7 +37,7 @@ public abstract class Filter {
 
         @Override
         protected byte tag() {
-            return Ldap.FILTER_APPROX_MATCH;
+            return APPROX_MATCH_TAG;
         }
 
         @Override
@@ -53,7 +53,7 @@ public abstract class Filter {
 
         @Override
         protected byte tag() {
-            return Ldap.FILTER_OR;
+            return OR_TAG;
         }
 
         @Override
@@ -95,7 +95,7 @@ public abstract class Filter {
 
         @Override
         protected byte tag() {
-            return Ldap.FILTER_EQUALITY_MATCH;
+            return EQUALITY_MATCH_TAG;
         }
 
         @Override
@@ -121,7 +121,7 @@ public abstract class Filter {
 
         @Override
         protected byte tag() {
-            return Ldap.FILTER_EXTENSIBLE_MATCH;
+            return EXTENSIBLE_MATCH_TAG;
         }
 
         @Override
@@ -149,20 +149,20 @@ public abstract class Filter {
             ByteBuffer result=ByteBuffer.EMPTY;
             if (null!=matchingRule) {
                 result=result.append(BER.writeTag(
-                        Ldap.FILTER_EXTENSIBLE_MATCH_MATCHING_RULE,
+                        EXTENSIBLE_MATCH_MATCHING_RULE_TAG,
                         BER.writeUtf8NoTag(matchingRule)));
             }
             if (null!=type) {
                 result=result.append(BER.writeTag(
-                        Ldap.FILTER_EXTENSIBLE_MATCH_TYPE,
+                        EXTENSIBLE_MATCH_TYPE_TAG,
                         BER.writeUtf8NoTag(type)));
             }
             result=result.append(BER.writeTag(
-                    Ldap.FILTER_EXTENSIBLE_MATCH_MATCH_VALUE,
+                    EXTENSIBLE_MATCH_MATCH_VALUE_TAG,
                     BER.writeUtf8NoTag(matchValue)));
             if (dnAttributes) {
                 result=result.append(BER.writeTag(
-                        Ldap.FILTER_EXTENSIBLE_MATCH_DN_ATTRIBUTES,
+                        EXTENSIBLE_MATCH_DN_ATTRIBUTES_TAG,
                         BER.writeBooleanNoTag(true)));
             }
             return result;
@@ -178,7 +178,7 @@ public abstract class Filter {
 
         @Override
         protected byte tag() {
-            return Ldap.FILTER_GREATER_OR_EQUAL;
+            return GREATER_OR_EQUAL_TAG;
         }
 
         @Override
@@ -196,7 +196,7 @@ public abstract class Filter {
 
         @Override
         protected byte tag() {
-            return Ldap.FILTER_LESS_OR_EQUAL;
+            return LESS_OR_EQUAL_TAG;
         }
 
         @Override
@@ -245,7 +245,7 @@ public abstract class Filter {
 
         @Override
         protected byte tag() {
-            return Ldap.FILTER_NOT;
+            return NOT_TAG;
         }
 
         @Override
@@ -273,7 +273,7 @@ public abstract class Filter {
 
         @Override
         protected byte tag() {
-            return Ldap.FILTER_PRESENT;
+            return PRESENT_TAG;
         }
 
         @Override
@@ -299,7 +299,7 @@ public abstract class Filter {
 
         @Override
         protected byte tag() {
-            return Ldap.FILTER_SUBSTRINGS;
+            return SUBSTRINGS_TAG;
         }
 
         @Override
@@ -319,22 +319,40 @@ public abstract class Filter {
             ByteBuffer substrings=ByteBuffer.EMPTY;
             if (null!=initial) {
                 substrings=substrings.append(
-                        BER.writeTag(Ldap.FILTER_SUBSTRINGS_INITIAL, BER.writeUtf8NoTag(initial)));
+                        BER.writeTag(SUBSTRINGS_INITIAL_TAG, BER.writeUtf8NoTag(initial)));
             }
             if (null!=any) {
                 for (String any2 : any) {
                     substrings=substrings.append(
-                            BER.writeTag(Ldap.FILTER_SUBSTRINGS_ANY, BER.writeUtf8NoTag(any2)));
+                            BER.writeTag(SUBSTRINGS_ANY_TAG, BER.writeUtf8NoTag(any2)));
                 }
             }
             if (null!=final2) {
                 substrings=substrings.append(
-                        BER.writeTag(Ldap.FILTER_SUBSTRINGS_FINAL, BER.writeUtf8NoTag(final2)));
+                        BER.writeTag(SUBSTRINGS_FINAL_TAG, BER.writeUtf8NoTag(final2)));
             }
             return BER.writeUtf8Tag(type)
                     .append(BER.writeSequence(substrings));
         }
     }
+    
+    public static final byte AND_TAG=(byte)0xa0;
+    public static final byte APPROX_MATCH_TAG=(byte)0xa8;
+    public static final byte EQUALITY_MATCH_TAG=(byte)0xa3;
+    public static final byte EXTENSIBLE_MATCH_TAG=(byte)0xa9;
+    public static final byte EXTENSIBLE_MATCH_DN_ATTRIBUTES_TAG=(byte)0x84;
+    public static final byte EXTENSIBLE_MATCH_MATCH_VALUE_TAG=(byte)0x83;
+    public static final byte EXTENSIBLE_MATCH_MATCHING_RULE_TAG=(byte)0x81;
+    public static final byte EXTENSIBLE_MATCH_TYPE_TAG=(byte)0x82;
+    public static final byte GREATER_OR_EQUAL_TAG=(byte)0xa5;
+    public static final byte LESS_OR_EQUAL_TAG=(byte)0xa6;
+    public static final byte NOT_TAG=(byte)0xa2;
+    public static final byte OR_TAG=(byte)0xa1;
+    public static final byte PRESENT_TAG=(byte)0x87;
+    public static final byte SUBSTRINGS_TAG=(byte)0xa4;
+    public static final byte SUBSTRINGS_ANY_TAG=(byte)0x81;
+    public static final byte SUBSTRINGS_FINAL_TAG=(byte)0x82;
+    public static final byte SUBSTRINGS_INITIAL_TAG=(byte)0x80;
 
     public static @NotNull Filter parse(@NotNull String string) throws Throwable {
         try (Reader reader=new StringReader(string)) {

@@ -1,5 +1,13 @@
-package hu.gds.ldap4j.ldap;
+package hu.gds.ldap4j.ldap.extension;
 
+import hu.gds.ldap4j.ldap.ControlsMessage;
+import hu.gds.ldap4j.ldap.DerefAliases;
+import hu.gds.ldap4j.ldap.Filter;
+import hu.gds.ldap4j.ldap.OID;
+import hu.gds.ldap4j.ldap.PartialAttribute;
+import hu.gds.ldap4j.ldap.Scope;
+import hu.gds.ldap4j.ldap.SearchRequest;
+import hu.gds.ldap4j.ldap.SearchResult;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -169,8 +177,8 @@ public class FeatureDiscovery {
     public static @NotNull ControlsMessage<SearchRequest> searchRequest() throws Throwable {
         return new SearchRequest(
                 List.of(
-                        Ldap.ALL_ATTRIBUTES,
-                        Ldap.ALL_OPERATIONAL_ATTRIBUTES,
+                        SearchRequest.ALL_ATTRIBUTES,
+                        AllOperationAttributes.ALL_OPERATIONAL_ATTRIBUTES,
                         NAMING_CONTEXTS,
                         SUPPORTED_CAPABILITIES,
                         SUPPORTED_CONTROL,

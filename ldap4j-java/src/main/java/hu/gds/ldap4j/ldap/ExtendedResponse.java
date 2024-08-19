@@ -12,15 +12,6 @@ public record ExtendedResponse(
         byte@Nullable[] responseValue)
         implements Message<ExtendedResponse>, Response {
     public static abstract class Reader implements MessageReader<ExtendedResponse> {
-        public static class Cancel extends ExtendedResponse.Reader {
-            @Override
-            public void check(
-                    @NotNull List<@NotNull Control> controls, @NotNull ExtendedResponse message, int messageId)
-                    throws Throwable {
-                message.ldapResult.checkCancel(controls, messageId);
-            }
-        }
-
         public static class Success extends ExtendedResponse.Reader {
             @Override
             public void check(
@@ -39,21 +30,24 @@ public record ExtendedResponse(
                                 BER::readUtf8NoTag,
                                 reader2,
                                 ()->null,
-                                Ldap.PROTOCOL_OP_EXTENDED_RESPONSE_NAME);
+                                RESPONSE_NAME_TAG);
                         byte@Nullable[] responseValue=BER.readOptionalTag(
                                 BER::readOctetStringNoTag,
                                 reader2,
                                 ()->null,
-                                Ldap.PROTOCOL_OP_EXTENDED_RESPONSE_VALUE);
+                                RESPONSE_VALUE_TAG);
                         return new ExtendedResponse(ldapResult, responseName, responseValue);
                     },
                     reader,
-                    Ldap.PROTOCOL_OP_EXTENDED_RESPONSE);
+                    RESPONSE_TAG);
         }
     }
 
-    public static final @NotNull MessageReader<ExtendedResponse> READER_CANCEL=new Reader.Cancel();
+    public static final @NotNull String NOTICE_OF_DISCONNECTION_OID="1.3.6.1.4.1.1466.20036";
     public static final @NotNull MessageReader<ExtendedResponse> READER_SUCCESS=new Reader.Success();
+    public static final byte RESPONSE_NAME_TAG=(byte)0x8a;
+    public static final byte RESPONSE_TAG=0x78;
+    public static final byte RESPONSE_VALUE_TAG=(byte)0x8b;
 
     public ExtendedResponse(
             @NotNull LdapResult ldapResult,
@@ -79,16 +73,16 @@ public record ExtendedResponse(
         ByteBuffer contentBuffer=ldapResult.write();
         if (null!=responseName) {
             contentBuffer=contentBuffer.append(BER.writeTag(
-                    Ldap.PROTOCOL_OP_EXTENDED_RESPONSE_NAME,
+                    RESPONSE_NAME_TAG,
                     BER.writeUtf8NoTag(responseName)));
         }
         if (null!=responseValue) {
             contentBuffer=contentBuffer.append(BER.writeTag(
-                    Ldap.PROTOCOL_OP_EXTENDED_RESPONSE_VALUE,
+                    RESPONSE_VALUE_TAG,
                     ByteBuffer.create(responseValue)));
         }
         return BER.writeTag(
-                Ldap.PROTOCOL_OP_EXTENDED_RESPONSE,
+                RESPONSE_TAG,
                 contentBuffer);
     }
 }

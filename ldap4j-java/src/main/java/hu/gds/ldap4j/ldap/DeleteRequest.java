@@ -7,6 +7,8 @@ import org.jetbrains.annotations.NotNull;
 public record DeleteRequest(
         @NotNull String entry)
         implements Request<DeleteRequest, DeleteResponse> {
+    public static final byte REQUEST_TAG=0x4a;
+
     public DeleteRequest(@NotNull String entry) {
         this.entry=Objects.requireNonNull(entry, "entry");
     }
@@ -29,7 +31,7 @@ public record DeleteRequest(
     @Override
     public @NotNull ByteBuffer write() {
         return BER.writeTag(
-                Ldap.PROTOCOL_OP_DELETE_REQUEST,
+                REQUEST_TAG,
                 BER.writeUtf8NoTag(entry));
     }
 }

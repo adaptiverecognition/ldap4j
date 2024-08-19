@@ -1,5 +1,7 @@
-package hu.gds.ldap4j.ldap;
+package hu.gds.ldap4j.ldap.extension;
 
+import hu.gds.ldap4j.ldap.BER;
+import hu.gds.ldap4j.ldap.Control;
 import hu.gds.ldap4j.net.ByteBuffer;
 import java.io.Serial;
 import java.util.Collections;

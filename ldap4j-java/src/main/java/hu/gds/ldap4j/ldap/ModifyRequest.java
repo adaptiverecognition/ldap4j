@@ -38,6 +38,8 @@ public record ModifyRequest(
         }
     }
 
+    public static final byte REQUEST_TAG=0x66;
+
     public ModifyRequest(@NotNull List<@NotNull Change> changes, @NotNull String object) {
         this.changes=Objects.requireNonNull(changes, "changes");
         this.object=Objects.requireNonNull(object, "object");
@@ -65,7 +67,7 @@ public record ModifyRequest(
             changesBuffer=changesBuffer.append(change.write());
         }
         return BER.writeTag(
-                Ldap.PROTOCOL_OP_MODIFY_REQUEST,
+                REQUEST_TAG,
                 BER.writeUtf8Tag(object)
                         .append(BER.writeSequence(changesBuffer)));
     }

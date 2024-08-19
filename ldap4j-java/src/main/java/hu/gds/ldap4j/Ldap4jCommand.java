@@ -5,13 +5,14 @@ import hu.gds.ldap4j.ldap.CompareRequest;
 import hu.gds.ldap4j.ldap.CompareResponse;
 import hu.gds.ldap4j.ldap.ControlsMessage;
 import hu.gds.ldap4j.ldap.DerefAliases;
-import hu.gds.ldap4j.ldap.ExtendedRequest;
-import hu.gds.ldap4j.ldap.FeatureDiscovery;
 import hu.gds.ldap4j.ldap.Filter;
 import hu.gds.ldap4j.ldap.PartialAttribute;
 import hu.gds.ldap4j.ldap.Scope;
 import hu.gds.ldap4j.ldap.SearchRequest;
 import hu.gds.ldap4j.ldap.SearchResult;
+import hu.gds.ldap4j.ldap.extension.FastBind;
+import hu.gds.ldap4j.ldap.extension.FeatureDiscovery;
+import hu.gds.ldap4j.ldap.extension.ManageDsaIt;
 import hu.gds.ldap4j.net.CryptoUtil;
 import hu.gds.ldap4j.net.TlsSettings;
 import hu.gds.ldap4j.trampoline.Trampoline;
@@ -205,7 +206,8 @@ public class Ldap4jCommand {
         System.out.printf("%sassertion: %s%n", INDENT, compareRequest.attributeValueAssertion());
         System.out.printf("%smanage dsa it: %s%n", INDENT, manageDsaIt);
         @NotNull CompareResponse compareResponse=connection.writeRequestReadResponseChecked(
-                        endNanos, compareRequest.controlsManageDsaIt(manageDsaIt))
+                        endNanos,
+                        compareRequest.controls(ManageDsaIt.requestControls(manageDsaIt)))
                 .message();
         System.out.printf("%sresult: %s%n", INDENT, compareResponse.ldapResult().resultCode2());
     }
@@ -222,7 +224,7 @@ public class Ldap4jCommand {
 
     private static void commandFastBind(@NotNull TrampolineLdapConnection connection, long endNanos) throws Throwable {
         System.out.printf("fast bind%n");
-        connection.writeRequestReadResponseChecked(endNanos, ExtendedRequest.FAST_BIND.controlsEmpty());
+        connection.writeRequestReadResponseChecked(endNanos, FastBind.REQUEST.controlsEmpty());
         System.out.printf("fast bind successful%n");
     }
 
@@ -297,8 +299,9 @@ public class Ldap4jCommand {
         System.out.printf("%ssize limit: %,d entries%n", INDENT, searchRequest.sizeLimitEntries());
         System.out.printf("%stime limit: %,d sec%n", INDENT, searchRequest.timeLimitSeconds());
         System.out.printf("%stypes only: %s%n", INDENT, searchRequest.typesOnly());
-        @NotNull List<@NotNull ControlsMessage<SearchResult>> searchResults
-                =connection.search(endNanos, searchRequest.controlsManageDsaIt(manageDsaIt));
+        @NotNull List<@NotNull ControlsMessage<SearchResult>> searchResults=connection.search(
+                endNanos,
+                searchRequest.controls(ManageDsaIt.requestControls(manageDsaIt)));
         for (@NotNull ControlsMessage<SearchResult> searchResult: searchResults) {
             searchResult.message().visit(new SearchResult.Visitor<>() {
                 @Override

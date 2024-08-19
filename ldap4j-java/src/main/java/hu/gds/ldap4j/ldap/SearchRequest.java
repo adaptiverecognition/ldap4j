@@ -15,6 +15,10 @@ public record SearchRequest(
         int timeLimitSeconds,
         boolean typesOnly)
         implements Message<SearchRequest> {
+    public static final @NotNull String ALL_ATTRIBUTES="*";
+    public static final @NotNull String NO_ATTRIBUTES="1.1";
+    public static final byte REQUEST_TAG=0x63;
+
     public SearchRequest(
             @NotNull List<@NotNull String> attributes,
             @NotNull String baseObject,
@@ -48,7 +52,7 @@ public record SearchRequest(
     @Override
     public @NotNull ByteBuffer write() throws Throwable {
         return BER.writeTag(
-                Ldap.PROTOCOL_OP_SEARCH_REQUEST,
+                REQUEST_TAG,
                 BER.writeUtf8Tag(baseObject)
                         .append(scope.write())
                         .append(derefAliases.write())
