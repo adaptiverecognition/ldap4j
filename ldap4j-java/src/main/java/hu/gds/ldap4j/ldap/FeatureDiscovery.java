@@ -95,59 +95,70 @@ public class FeatureDiscovery {
     }
 
     public void prettyPrint() {
-        prettyPrint(System.out);
+        prettyPrint("", System.out, "    ");
     }
 
-    public void prettyPrint(@NotNull PrintStream stream) {
-        prettyPrintValues(VENDOR_NAME, stream, vendorNames);
-        prettyPrintValues(VENDOR_VERSION, stream, vendorVersions);
-        prettyPrintValues(SUPPORTED_LDAP_VERSION, stream, supportedLdapVersions);
-        prettyPrintValues(SUPPORTED_SASL_MECHANISMS, stream, supportedSaslMechanisms);
-        prettyPrintValues(NAMING_CONTEXTS, stream, namingContexts);
-        prettyPrintValues("referral URIs", stream, referralUris);
-        prettyPrintOIDs(SUPPORTED_CAPABILITIES, supportedCapabilities, stream);
-        prettyPrintOIDs(SUPPORTED_CONTROL, supportedControls, stream);
-        prettyPrintOIDs(SUPPORTED_EXTENSION, supportedExtensions, stream);
-        prettyPrintOIDs(SUPPORTED_FEATURES, supportedFeatures, stream);
+    public void prettyPrint(
+            @NotNull String headerIndent,
+            @NotNull PrintStream stream,
+            @NotNull String valueIndent) {
+        prettyPrintValues(headerIndent, VENDOR_NAME, stream, valueIndent, vendorNames);
+        prettyPrintValues(headerIndent, VENDOR_VERSION, stream, valueIndent, vendorVersions);
+        prettyPrintValues(headerIndent, SUPPORTED_LDAP_VERSION, stream, valueIndent, supportedLdapVersions);
+        prettyPrintValues(headerIndent, SUPPORTED_SASL_MECHANISMS, stream, valueIndent, supportedSaslMechanisms);
+        prettyPrintValues(headerIndent, NAMING_CONTEXTS, stream, valueIndent, namingContexts);
+        prettyPrintValues(headerIndent, "referral URIs", stream, valueIndent, referralUris);
+        prettyPrintOIDs(headerIndent, SUPPORTED_CAPABILITIES, supportedCapabilities, stream, valueIndent);
+        prettyPrintOIDs(headerIndent, SUPPORTED_CONTROL, supportedControls, stream, valueIndent);
+        prettyPrintOIDs(headerIndent, SUPPORTED_EXTENSION, supportedExtensions, stream, valueIndent);
+        prettyPrintOIDs(headerIndent, SUPPORTED_FEATURES, supportedFeatures, stream, valueIndent);
+        stream.print(headerIndent);
         stream.println("unrecognized attributes");
         for (@NotNull PartialAttribute attribute: unrecognizedAttributes) {
-            System.out.print("\t");
+            System.out.print(valueIndent);
             System.out.println(attribute);
         }
     }
 
     private void prettyPrintOIDs(
+            @NotNull String headerIndent,
             @NotNull String name,
             @NotNull Collection<@NotNull String> OIDs,
-            @NotNull PrintStream stream) {
+            @NotNull PrintStream stream,
+            @NotNull String valueIndent) {
+        stream.print(headerIndent);
         stream.println(name);
         int maxOidLength=0;
-        for (var oid: OIDs) {
+        for (@NotNull String oid: OIDs) {
             maxOidLength=Math.max(maxOidLength, oid.length());
         }
-        int line=0;
+        boolean dots=true;
         for (@NotNull String oid: OIDs) {
             @Nullable String oidName=OID.name(oid);
-            System.out.print("\t");
+            System.out.print(valueIndent);
             if (null==oidName) {
                 System.out.println(oid);
+                dots=true;
             }
             else {
                 System.out.print(oid);
-                System.out.print(padding((0==(line&1))?' ':'.', maxOidLength+2-oid.length()));
+                System.out.print(padding(dots?'.':' ', maxOidLength+2-oid.length()));
                 System.out.println(oidName);
+                dots=!dots;
             }
-            ++line;
         }
     }
 
     private void prettyPrintValues(
+            @NotNull String headerIndent,
             @NotNull String name,
             @NotNull PrintStream stream,
+            @NotNull String valueIndent,
             @NotNull Collection<@NotNull String> values) {
+        stream.print(headerIndent);
         stream.println(name);
         for (@NotNull String value: values) {
-            System.out.print("\t");
+            System.out.print(valueIndent);
             System.out.println(value);
         }
     }

@@ -6,6 +6,7 @@ import hu.gds.ldap4j.ldap.CompareResponse;
 import hu.gds.ldap4j.ldap.ControlsMessage;
 import hu.gds.ldap4j.ldap.DerefAliases;
 import hu.gds.ldap4j.ldap.ExtendedRequest;
+import hu.gds.ldap4j.ldap.FeatureDiscovery;
 import hu.gds.ldap4j.ldap.Filter;
 import hu.gds.ldap4j.ldap.PartialAttribute;
 import hu.gds.ldap4j.ldap.Scope;
@@ -35,6 +36,7 @@ public class Ldap4jCommand {
     private static final String BIND_SIMPLE_FILE="file";
     private static final String COMMAND_BIND_SIMPLE="bind-simple";
     private static final String COMMAND_COMPARE="compare";
+    private static final String COMMAND_DISCOVER_FEATURES="discover-features";
     private static final String COMMAND_FAST_BIND="fast-bind";
     private static final String COMMAND_SEARCH="search";
     private static final String CONNECTION_OPTION_DON_T_VERIFY_HOSTNAME="-don-t-verify-hostname";
@@ -47,6 +49,7 @@ public class Ldap4jCommand {
     private static final String CONNECTION_OPTION_TRUST="-trust";
     private static final String CONNECTION_OPTION_TRUST_EVERYONE="-trust-everyone";
     private static final String CONNECTION_OPTION_VERIFY_HOSTNAME="-verify-hostname";
+    private static final String INDENT="    ";
     private static final String SEARCH_OPTION_ATTRIBUTE="-attribute";
     private static final String SEARCH_OPTION_DEREF_ALIASES_ALWAYS="-deref-aliases-always";
     private static final String SEARCH_OPTION_DEREF_ALIASES_FINDING_BASE_OBJ="-deref-aliases-finding-base-obj";
@@ -143,6 +146,7 @@ public class Ldap4jCommand {
         switch (command) {
             case COMMAND_BIND_SIMPLE -> commandBindSimple(arguments, connection, endNanos);
             case COMMAND_COMPARE -> commandCompare(arguments, connection, endNanos);
+            case COMMAND_DISCOVER_FEATURES -> commandDiscoverFeatures(connection, endNanos);
             case COMMAND_FAST_BIND -> commandFastBind(connection, endNanos);
             case COMMAND_SEARCH -> commandSearch(arguments, connection, endNanos);
             default -> throw new SyntaxException("unknown command %s".formatted(command));
@@ -197,13 +201,23 @@ public class Ldap4jCommand {
         };
         CompareRequest compareRequest=new CompareRequest(assertion2, entry);
         System.out.printf("compare%n");
-        System.out.printf("\tentry: %s%n", compareRequest.entry());
-        System.out.printf("\tassertion: %s%n", compareRequest.attributeValueAssertion());
-        System.out.printf("\tmanage dsa it: %s%n", manageDsaIt);
+        System.out.printf("%sentry: %s%n", INDENT, compareRequest.entry());
+        System.out.printf("%sassertion: %s%n", INDENT, compareRequest.attributeValueAssertion());
+        System.out.printf("%smanage dsa it: %s%n", INDENT, manageDsaIt);
         @NotNull CompareResponse compareResponse=connection.writeRequestReadResponseChecked(
                         endNanos, compareRequest.controlsManageDsaIt(manageDsaIt))
                 .message();
-        System.out.printf("\tresult: %s%n", compareResponse.ldapResult().resultCode2());
+        System.out.printf("%sresult: %s%n", INDENT, compareResponse.ldapResult().resultCode2());
+    }
+
+    private static void commandDiscoverFeatures(
+            @NotNull TrampolineLdapConnection connection, long endNanos) throws Throwable {
+        System.out.printf("discover features%n");
+        FeatureDiscovery featureDiscovery=FeatureDiscovery.create(
+                connection.search(
+                        endNanos,
+                        FeatureDiscovery.searchRequest()));
+        featureDiscovery.prettyPrint(INDENT, System.out, INDENT+INDENT);
     }
 
     private static void commandFastBind(@NotNull TrampolineLdapConnection connection, long endNanos) throws Throwable {
@@ -274,15 +288,15 @@ public class Ldap4jCommand {
         SearchRequest searchRequest=new SearchRequest(
                 attributes, baseObject, derefAliases, filter, scope, sizeLimitEntries, timeLimitSeconds, typesOnly);
         System.out.printf("search%n");
-        System.out.printf("\tattributes: %s%n", searchRequest.attributes());
-        System.out.printf("\tbase object: %s%n", searchRequest.baseObject());
-        System.out.printf("\tderef. aliases: %s%n", searchRequest.derefAliases());
-        System.out.printf("\tfilter: %s%n", searchRequest.filter());
-        System.out.printf("\tmanage dsa it: %s%n", manageDsaIt);
-        System.out.printf("\tscope: %s%n", searchRequest.scope());
-        System.out.printf("\tsize limit: %,d entries%n", searchRequest.sizeLimitEntries());
-        System.out.printf("\ttime limit: %,d sec%n", searchRequest.timeLimitSeconds());
-        System.out.printf("\ttypes only: %s%n", searchRequest.typesOnly());
+        System.out.printf("%sattributes: %s%n", INDENT, searchRequest.attributes());
+        System.out.printf("%sbase object: %s%n", INDENT, searchRequest.baseObject());
+        System.out.printf("%sderef. aliases: %s%n", INDENT, searchRequest.derefAliases());
+        System.out.printf("%sfilter: %s%n", INDENT, searchRequest.filter());
+        System.out.printf("%smanage dsa it: %s%n", INDENT, manageDsaIt);
+        System.out.printf("%sscope: %s%n", INDENT, searchRequest.scope());
+        System.out.printf("%ssize limit: %,d entries%n", INDENT, searchRequest.sizeLimitEntries());
+        System.out.printf("%stime limit: %,d sec%n", INDENT, searchRequest.timeLimitSeconds());
+        System.out.printf("%stypes only: %s%n", INDENT, searchRequest.typesOnly());
         @NotNull List<@NotNull ControlsMessage<SearchResult>> searchResults
                 =connection.search(endNanos, searchRequest.controlsManageDsaIt(manageDsaIt));
         for (@NotNull ControlsMessage<SearchResult> searchResult: searchResults) {
@@ -296,12 +310,9 @@ public class Ldap4jCommand {
                 @Override
                 public Void entry(@NotNull SearchResult.Entry entry) {
                     System.out.printf("search entry%n");
-                    System.out.printf("\tdn: %s%n", entry.objectName());
+                    System.out.printf("%sdn: %s%n", INDENT, entry.objectName());
                     for (PartialAttribute attribute: entry.attributes()) {
-                        System.out.printf(
-                                "\t%s: %s%n",
-                                attribute.type(),
-                                attribute.values());
+                        System.out.printf("%s%s: %s%n", INDENT, attribute.type(), attribute.values());
                     }
                     return null;
                 }
@@ -310,7 +321,7 @@ public class Ldap4jCommand {
                 public Void referral(@NotNull SearchResult.Referral referral) {
                     System.out.printf("search referral%n");
                     for (String uri: referral.uris()) {
-                        System.out.printf("\turi: %s%n", uri);
+                        System.out.printf("%suri: %s%n", INDENT, uri);
                     }
                     return null;
                 }
@@ -420,43 +431,46 @@ public class Ldap4jCommand {
 
     public static void printUsage() {
         System.out.printf("ldap4j [connect-parameters...] host [command command-parameters...]...%n");
-        System.out.printf("\tconnect parameters%n");
-        System.out.printf("\t\t%s%n", CONNECTION_OPTION_DON_T_VERIFY_HOSTNAME);
-        System.out.printf("\t\t%s%n", CONNECTION_OPTION_PLAINTEXT);
-        System.out.printf("\t\t%s%n", CONNECTION_OPTION_PORT);
-        System.out.printf("\t\t%s%n", CONNECTION_OPTION_PORT_DEFAULT);
-        System.out.printf("\t\t%s%n", CONNECTION_OPTION_STARTTLS);
-        System.out.printf("\t\t%s%n", CONNECTION_OPTION_TIMEOUT_NANOS);
-        System.out.printf("\t\t%s%n", CONNECTION_OPTION_TLS);
-        System.out.printf("\t\t%s certificate-file%n", CONNECTION_OPTION_TRUST);
-        System.out.printf("\t\t%s%n", CONNECTION_OPTION_TRUST_EVERYONE);
-        System.out.printf("\t\t%s%n", CONNECTION_OPTION_VERIFY_HOSTNAME);
-        System.out.printf("\tcommands:%n");
-        System.out.printf("\t\t%s name %s password%n", COMMAND_BIND_SIMPLE, BIND_SIMPLE_ARGUMENT);
-        System.out.printf("\t\t%s name %s%n", COMMAND_BIND_SIMPLE, BIND_SIMPLE_CONSOLE);
-        System.out.printf("\t\t%s name %s password-file%n", COMMAND_BIND_SIMPLE, BIND_SIMPLE_FILE);
+        System.out.printf("%sconnect parameters%n", INDENT);
+        System.out.printf("%s%s%s%n", INDENT, INDENT, CONNECTION_OPTION_DON_T_VERIFY_HOSTNAME);
+        System.out.printf("%s%s%s%n", INDENT, INDENT, CONNECTION_OPTION_PLAINTEXT);
+        System.out.printf("%s%s%s%n", INDENT, INDENT, CONNECTION_OPTION_PORT);
+        System.out.printf("%s%s%s%n", INDENT, INDENT, CONNECTION_OPTION_PORT_DEFAULT);
+        System.out.printf("%s%s%s%n", INDENT, INDENT, CONNECTION_OPTION_STARTTLS);
+        System.out.printf("%s%s%s%n", INDENT, INDENT, CONNECTION_OPTION_TIMEOUT_NANOS);
+        System.out.printf("%s%s%s%n", INDENT, INDENT, CONNECTION_OPTION_TLS);
+        System.out.printf("%s%s%s certificate-file%n", INDENT, INDENT, CONNECTION_OPTION_TRUST);
+        System.out.printf("%s%s%s%n", INDENT, INDENT, CONNECTION_OPTION_TRUST_EVERYONE);
+        System.out.printf("%s%s%s%n", INDENT, INDENT, CONNECTION_OPTION_VERIFY_HOSTNAME);
+        System.out.printf("%scommands:%n", INDENT);
+        System.out.printf("%s%s%s name %s password%n", INDENT, INDENT, COMMAND_BIND_SIMPLE, BIND_SIMPLE_ARGUMENT);
+        System.out.printf("%s%s%s name %s%n", INDENT, INDENT, COMMAND_BIND_SIMPLE, BIND_SIMPLE_CONSOLE);
+        System.out.printf("%s%s%s name %s password-file%n", INDENT, INDENT, COMMAND_BIND_SIMPLE, BIND_SIMPLE_FILE);
         System.out.printf(
-                "\t\t%s entry attribute [%s|%s|%s|%s] value%n",
+                "%s%s%s entry attribute [%s|%s|%s|%s] value%n",
+                INDENT,
+                INDENT,
                 COMMAND_COMPARE,
                 Filter.ApproxMatch.RELATION_STRING,
                 Filter.EqualityMatch.RELATION_STRING,
                 Filter.GreaterOrEqual.RELATION_STRING,
                 Filter.LessOrEqual.RELATION_STRING);
-        System.out.printf("\t\t\t%s%n", SEARCH_OPTION_DON_T_MANAGE_DSA_IT);
-        System.out.printf("\t\t\t%s%n", SEARCH_OPTION_MANAGE_DSA_IT);
-        System.out.printf("\t\t%s%n", COMMAND_FAST_BIND);
-        System.out.printf("\t\t%s [parameter ...] base-object filter%n", COMMAND_SEARCH);
-        System.out.printf("\t\t\t%s attribute-name%n", SEARCH_OPTION_ATTRIBUTE);
-        System.out.printf("\t\t\t%s%n", SEARCH_OPTION_DEREF_ALIASES_ALWAYS);
-        System.out.printf("\t\t\t%s%n", SEARCH_OPTION_DEREF_ALIASES_FINDING_BASE_OBJ);
-        System.out.printf("\t\t\t%s%n", SEARCH_OPTION_DEREF_ALIASES_IN_SEARCHING);
-        System.out.printf("\t\t\t%s%n", SEARCH_OPTION_DEREF_ALIASES_NEVER);
-        System.out.printf("\t\t\t%s%n", SEARCH_OPTION_DON_T_MANAGE_DSA_IT);
-        System.out.printf("\t\t\t%s%n", SEARCH_OPTION_MANAGE_DSA_IT);
-        System.out.printf("\t\t\t%s%n", SEARCH_OPTION_SCOPE_BASE_OBJECT);
-        System.out.printf("\t\t\t%s%n", SEARCH_OPTION_SCOPE_SINGLE_LEVEL);
-        System.out.printf("\t\t\t%s%n", SEARCH_OPTION_SCOPE_WHOLE_SUBTREE);
-        System.out.printf("\t\t\t%s%n", SEARCH_OPTION_SIZE_LIMIT_ENTRIES);
-        System.out.printf("\t\t\t%s%n", SEARCH_OPTION_TIME_LIMIT_SECS);
+        System.out.printf("%s%s%s%s%n", INDENT, INDENT, INDENT, SEARCH_OPTION_DON_T_MANAGE_DSA_IT);
+        System.out.printf("%s%s%s%s%n", INDENT, INDENT, INDENT, SEARCH_OPTION_MANAGE_DSA_IT);
+        System.out.printf("%s%s%s%n", INDENT, INDENT, COMMAND_DISCOVER_FEATURES);
+        System.out.printf("%s%s%s%n", INDENT, INDENT, COMMAND_FAST_BIND);
+        System.out.printf("%s%s%s [parameter ...] base-object filter%n", INDENT, INDENT, COMMAND_SEARCH);
+        System.out.printf("%s%s%s%s attribute-name%n", INDENT, INDENT, INDENT, SEARCH_OPTION_ATTRIBUTE);
+        System.out.printf("%s%s%s%s%n", INDENT, INDENT, INDENT, SEARCH_OPTION_DEREF_ALIASES_ALWAYS);
+        System.out.printf("%s%s%s%s%n", INDENT, INDENT, INDENT, SEARCH_OPTION_DEREF_ALIASES_FINDING_BASE_OBJ);
+        System.out.printf("%s%s%s%s%n", INDENT, INDENT, INDENT, SEARCH_OPTION_DEREF_ALIASES_IN_SEARCHING);
+        System.out.printf("%s%s%s%s%n", INDENT, INDENT, INDENT, SEARCH_OPTION_DEREF_ALIASES_NEVER);
+        System.out.printf("%s%s%s%s%n", INDENT, INDENT, INDENT, SEARCH_OPTION_DON_T_MANAGE_DSA_IT);
+        System.out.printf("%s%s%s%s%n", INDENT, INDENT, INDENT, SEARCH_OPTION_MANAGE_DSA_IT);
+        System.out.printf("%s%s%s%s%n", INDENT, INDENT, INDENT, SEARCH_OPTION_SCOPE_BASE_OBJECT);
+        System.out.printf("%s%s%s%s%n", INDENT, INDENT, INDENT, SEARCH_OPTION_SCOPE_SINGLE_LEVEL);
+        System.out.printf("%s%s%s%s%n", INDENT, INDENT, INDENT, SEARCH_OPTION_SCOPE_WHOLE_SUBTREE);
+        System.out.printf("%s%s%s%s%n", INDENT, INDENT, INDENT, SEARCH_OPTION_SIZE_LIMIT_ENTRIES);
+        System.out.printf("%s%s%s%s%n", INDENT, INDENT, INDENT, SEARCH_OPTION_TIME_LIMIT_SECS);
     }
 }

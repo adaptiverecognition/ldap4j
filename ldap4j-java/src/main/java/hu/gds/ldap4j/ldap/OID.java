@@ -54,11 +54,17 @@ public class OID {
                 "1.2.840.113556.1.4.474",
                 "Server Side Sorting Response Control, RFC 2891");
         names.put(
+                "1.2.840.113556.1.4.521",
+                "CrossDom Move Target Control, MS AD");
+        names.put(
                 "1.2.840.113556.1.4.528",
                 "Notification Control, MS AD");
         names.put(
                 "1.2.840.113556.1.4.529",
                 "Extended DN Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.619",
+                "Lazy Commit Control, MS AD");
         names.put(
                 "1.2.840.113556.1.4.800",
                 "Active Directory Capability, MS AD");
@@ -66,11 +72,17 @@ public class OID {
                 "1.2.840.113556.1.4.801",
                 "SD Flags Control, MS AD");
         names.put(
+                "1.2.840.113556.1.4.802",
+                "Range Option Control, MS AD");
+        names.put(
                 "1.2.840.113556.1.4.805",
                 "Tree Delete Control, draft");
         names.put(
                 "1.2.840.113556.1.4.841",
                 "DirSync Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.970",
+                "Get Stats Control, MS AD");
         names.put(
                 "1.2.840.113556.1.4.1338",
                 "Verify Name Control, MS AD");
@@ -93,20 +105,80 @@ public class OID {
                 "1.2.840.113556.1.4.1670",
                 "Active Directory V51 Capability, MS AD");
         names.put(
+                Ldap.EXTENDED_REQUEST_FAST_BIND_OID, //"1.2.840.113556.1.4.1781",
+                "Fast Bind Operation, MS AD");
+        names.put(
                 "1.2.840.113556.1.4.1791",
                 "Active Directory Integ Capability, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.1852",
+                "Quota Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.1907",
+                "Shutdown Notify Control, MS AD");
         names.put(
                 "1.2.840.113556.1.4.1935",
                 "Active Directory V60 Capability, MS AD");
         names.put(
+                "1.2.840.113556.1.4.1948",
+                "Range Retrieval NoErr Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.1974",
+                "Force Update Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.2026",
+                "DN Input Control, MS AD");
+        names.put(
                 "1.2.840.113556.1.4.2064",
                 "Show Recycled Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.2065",
+                "Show Deactivated Link Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.2066",
+                "Policy Hints Deprecated Control, MS AD");
         names.put(
                 "1.2.840.113556.1.4.2080",
                 "Active Directory V61 R2 Capability, MS AD");
         names.put(
+                "1.2.840.113556.1.4.2090",
+                "DirSync Ex Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.2204",
+                "Tree Delete Ex Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.2205",
+                "Update Stats Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.2206",
+                "Search Hints Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.2212",
+                "Batch Request Operation, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.2211",
+                "Expected Entry Count Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.2237",
+                "Active Directory W8 Capability, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.2255",
+                "Set Owner Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.2256",
+                "Bypass Quota Control, MS AD");
+        names.put(
                 "1.2.840.113556.1.4.2239",
                 "Policy Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.2309",
+                "Link TTL Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.2330",
+                "Set Correlation Id Control, MS AD");
+        names.put(
+                "1.2.840.113556.1.4.2354",
+                "Thread Trace Override Control, MS AD");
         names.put(
                 Ldap.EXTENDED_REQUEST_CANCEL_OP_OID, // "1.3.6.1.1.8",
                 "Cancel Operation, RFC 3909");
@@ -137,6 +209,9 @@ public class OID {
         names.put(
                 "1.3.6.1.4.1.42.2.27.8.5.1",
                 "Password Policy Control, draft");
+        names.put(
+                "1.3.6.1.4.1.1466.101.119.1",
+                "Refresh Operation, RFC 2589");
         names.put(
                 Ldap.NOTICE_OF_DISCONNECTION_OID, // "1.3.6.1.4.1.1466.20036"
                 "Notice of Disconnection Unsolicited Notification, RFC 4511");
