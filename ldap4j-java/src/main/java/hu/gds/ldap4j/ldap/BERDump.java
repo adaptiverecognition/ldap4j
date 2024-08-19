@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-public class DERDump {
+public class BERDump {
     public static final String INDENT="      ";
     public static final String INDENT_ELEMENT=" ---- ";
     public static final int MAX_BYTES_PER_LINE=64;
@@ -44,11 +44,11 @@ public class DERDump {
                         "more than one reader for tag 0x%02x, %s, %s".formatted(tag, name, pair));
             }
         };
-        put.apply(DER.BOOLEAN).accept("BOOLEAN", DER::readBooleanNoTag);
-        put.apply(DER.ENUMERATED).accept("ENUMERATED", DER::readEnumeratedNoTag);
-        put.apply(DER.INTEGER).accept("INTEGER", (reader)->DER.readIntegerNoTag(false, reader));
-        put.apply(DER.OCTET_STRING).accept("OCTET STRING", DER::readUtf8NoTag);
-        put.apply(DER.SEQUENCE).accept("SEQUENCE", null);
+        put.apply(BER.BOOLEAN).accept("BOOLEAN", BER::readBooleanNoTag);
+        put.apply(BER.ENUMERATED).accept("ENUMERATED", BER::readEnumeratedNoTag);
+        put.apply(BER.INTEGER).accept("INTEGER", (reader)->BER.readIntegerNoTag(false, reader));
+        put.apply(BER.OCTET_STRING).accept("OCTET STRING", BER::readUtf8NoTag);
+        put.apply(BER.SEQUENCE).accept("SEQUENCE", null);
         put.apply(Ldap.FILTER_AND).accept("LDAP and filter?", null);
         put.apply(Ldap.FILTER_PRESENT).accept("LDAP present filter?", null);
         put.apply(Ldap.MESSAGE_CONTROLS).accept("LDAP message controls?", null);
@@ -113,7 +113,7 @@ public class DERDump {
         ByteBuffer read(InputStream stream) throws Throwable;
     }
 
-    private static void derDump(
+    private static void berDump(
             @NotNull ByteBuffer byteBuffer, @NotNull String indent, int maxBytesPerLine,
             int maxCharactersPerLine, int minBytesPerLine, int offset, String path,
             boolean printAscii, boolean printOffset, PrintWriter writer) throws Throwable {
@@ -126,32 +126,32 @@ public class DERDump {
             ByteBuffer.Reader reader=byteBuffer.reader();
             for (int element=0; reader.hasRemainingBytes(); ++element) {
                 writer.printf("%s%sElement: %s/%,d%n", indent, INDENT_ELEMENT, path, element);
-                byte tag=DER.readTag(reader);
+                byte tag=BER.readTag(reader);
                 Pair<String, Function<ByteBuffer.Reader, Object>> tagType=TAGS.get(tag);
                 writer.printf(
                         "%sTag: 0x%02x, class: %s, %s, type: 0x%02x%s%n",
                         indent2,
                         tag,
-                        switch (DER.getTagClass(tag)) {
+                        switch (BER.getTagClass(tag)) {
                             case APPLICATION -> "application";
                             case CONTEXT_SPECIFIC -> "context-specific";
                             case PRIVATE -> "private";
                             case UNIVERSAL -> "universal";
                         },
-                        DER.isTagConstructed(tag) ? "constructed" : "primitive",
-                        DER.getTagType(tag),
+                        BER.isTagConstructed(tag) ? "constructed" : "primitive",
+                        BER.getTagType(tag),
                         (null==tagType) ? "" : (", %s".formatted(tagType.first())));
-                int length=DER.readLength(reader);
+                int length=BER.readLength(reader);
                 writer.printf("%sLength: %,d bytes%n", indent2, length);
                 int offset2=offset+reader.offset();
                 ByteBuffer byteBuffer2=reader.readByteBuffer(length);
-                if (DER.isTagConstructed(tag)) {
-                    derDump(
+                if (BER.isTagConstructed(tag)) {
+                    berDump(
                             byteBuffer2, indent2, maxBytesPerLine, maxCharactersPerLine, minBytesPerLine,
                             offset2, path+"/"+element, printAscii, printOffset, writer);
                 }
                 else {
-                    if (DER.TagClass.UNIVERSAL.equals(DER.getTagClass(tag))
+                    if (BER.TagClass.UNIVERSAL.equals(BER.getTagClass(tag))
                             && (null!=tagType)
                             && (null!=tagType.second())) {
                         ByteBuffer.Reader reader2=byteBuffer2.reader();
@@ -291,8 +291,8 @@ public class DERDump {
         hexDump(
                 byteBuffer, "", MAX_BYTES_PER_LINE, MAX_CHARACTERS_PER_LINE,
                 8, PRINT_ASCII, PRINT_OFFSET, writer);
-        writer.printf("DER dump:%n");
-        derDump(
+        writer.printf("BER dump:%n");
+        berDump(
                 byteBuffer, "", MAX_BYTES_PER_LINE, MAX_CHARACTERS_PER_LINE,
                 4, 0, "root", PRINT_ASCII, PRINT_OFFSET, writer);
         writer.flush();
@@ -313,7 +313,7 @@ public class DERDump {
     }
 
     private static void printUsage() {
-        System.out.printf("usage: DERDump bin|hex filename%n");
+        System.out.printf("usage: BERDump bin|hex filename%n");
         System.exit(1);
     }
 }

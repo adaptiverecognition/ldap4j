@@ -47,15 +47,15 @@ public record SearchRequest(
 
     @Override
     public @NotNull ByteBuffer write() throws Throwable {
-        return DER.writeTag(
+        return BER.writeTag(
                 Ldap.PROTOCOL_OP_SEARCH_REQUEST,
-                DER.writeUtf8Tag(baseObject)
+                BER.writeUtf8Tag(baseObject)
                         .append(scope.write())
                         .append(derefAliases.write())
-                        .append(DER.writeIntegerTag(sizeLimitEntries))
-                        .append(DER.writeIntegerTag(timeLimitSeconds))
-                        .append(DER.writeBooleanTag(typesOnly))
+                        .append(BER.writeIntegerTag(sizeLimitEntries))
+                        .append(BER.writeIntegerTag(timeLimitSeconds))
+                        .append(BER.writeBooleanTag(typesOnly))
                         .append(filter.write())
-                        .append(DER.writeSequence(DER.writeIterable(DER::writeUtf8Tag, attributes))));
+                        .append(BER.writeSequence(BER.writeIterable(BER::writeUtf8Tag, attributes))));
     }
 }

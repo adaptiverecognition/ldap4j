@@ -19,7 +19,7 @@ public record CompareResponse(
         @Override
         public @NotNull CompareResponse read(ByteBuffer.@NotNull Reader reader) throws Throwable {
             return new CompareResponse(
-                    DER.readTag(
+                    BER.readTag(
                             LdapResult::read,
                             reader,
                             Ldap.PROTOCOL_OP_COMPARE_RESPONSE));

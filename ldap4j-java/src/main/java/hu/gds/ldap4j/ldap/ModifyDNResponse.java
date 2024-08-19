@@ -19,7 +19,7 @@ public record ModifyDNResponse(
         @Override
         public @NotNull ModifyDNResponse read(ByteBuffer.@NotNull Reader reader) throws Throwable {
             return new ModifyDNResponse(
-                    DER.readTag(
+                    BER.readTag(
                             LdapResult::read,
                             reader,
                             Ldap.PROTOCOL_OP_MODIFY_DN_RESPONSE));

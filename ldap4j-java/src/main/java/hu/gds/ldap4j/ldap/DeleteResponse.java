@@ -19,7 +19,7 @@ public record DeleteResponse(
         @Override
         public @NotNull DeleteResponse read(ByteBuffer.@NotNull Reader reader) throws Throwable {
             return new DeleteResponse(
-                    DER.readTag(
+                    BER.readTag(
                             LdapResult::read,
                             reader,
                             Ldap.PROTOCOL_OP_DELETE_RESPONSE));

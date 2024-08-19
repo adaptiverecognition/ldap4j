@@ -35,10 +35,10 @@ public record AddRequest(
         for (PartialAttribute attribute: attributes) {
             attributesBuffer=attributesBuffer.append(attribute.write());
         }
-        return DER.writeTag(
+        return BER.writeTag(
                 Ldap.PROTOCOL_OP_ADD_REQUEST,
-                DER.writeUtf8Tag(entry)
-                        .append(DER.writeSequence(
+                BER.writeUtf8Tag(entry)
+                        .append(BER.writeSequence(
                                 attributesBuffer)));
     }
 }

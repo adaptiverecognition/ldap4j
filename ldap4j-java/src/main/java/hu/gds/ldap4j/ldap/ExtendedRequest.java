@@ -24,14 +24,14 @@ public record ExtendedRequest(
 
         @Override
         public @NotNull ExtendedRequest read(ByteBuffer.@NotNull Reader reader) throws Throwable {
-            return DER.readTag(
+            return BER.readTag(
                     (reader2)->{
-                        @NotNull String requestName=DER.readTag(
-                                DER::readUtf8NoTag,
+                        @NotNull String requestName=BER.readTag(
+                                BER::readUtf8NoTag,
                                 reader2,
                                 Ldap.PROTOCOL_OP_EXTENDED_REQUEST_NAME);
-                        byte@Nullable[] requestValue=DER.readOptionalTag(
-                                DER::readOctetStringNoTag,
+                        byte@Nullable[] requestValue=BER.readOptionalTag(
+                                BER::readOctetStringNoTag,
                                 reader2,
                                 ()->null,
                                 Ldap.PROTOCOL_OP_EXTENDED_REQUEST_VALUE);
@@ -61,8 +61,8 @@ public record ExtendedRequest(
     public static @NotNull ExtendedRequest cancel(int messageId) {
         return new ExtendedRequest(
                 Ldap.EXTENDED_REQUEST_CANCEL_OP_OID,
-                DER.writeSequence(
-                                DER.writeIntegerTag(messageId))
+                BER.writeSequence(
+                                BER.writeIntegerTag(messageId))
                         .arrayCopy(),
                 ExtendedResponse.READER_CANCEL);
     }
@@ -79,15 +79,15 @@ public record ExtendedRequest(
 
     @Override
     public @NotNull ByteBuffer write() {
-        ByteBuffer byteBuffer=DER.writeTag(
+        ByteBuffer byteBuffer=BER.writeTag(
                 Ldap.PROTOCOL_OP_EXTENDED_REQUEST_NAME,
-                DER.writeUtf8NoTag(requestName));
+                BER.writeUtf8NoTag(requestName));
         if (null!=requestValue) {
             byteBuffer=byteBuffer.append(
-                    DER.writeTag(
+                    BER.writeTag(
                             Ldap.PROTOCOL_OP_EXTENDED_REQUEST_VALUE,
                             ByteBuffer.create(requestValue)));
         }
-        return DER.writeTag(Ldap.PROTOCOL_OP_EXTENDED_REQUEST, byteBuffer);
+        return BER.writeTag(Ldap.PROTOCOL_OP_EXTENDED_REQUEST, byteBuffer);
     }
 }

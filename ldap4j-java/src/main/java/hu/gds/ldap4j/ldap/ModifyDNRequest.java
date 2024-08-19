@@ -39,16 +39,16 @@ public record ModifyDNRequest(
 
     @Override
     public @NotNull ByteBuffer write() {
-        ByteBuffer requestBuffer=DER.writeUtf8Tag(entry)
-                .append(DER.writeUtf8Tag(newRDN))
-                .append(DER.writeBooleanTag(deleteOldRDN));
+        ByteBuffer requestBuffer=BER.writeUtf8Tag(entry)
+                .append(BER.writeUtf8Tag(newRDN))
+                .append(BER.writeBooleanTag(deleteOldRDN));
         if (null!=newSuperior) {
             requestBuffer=requestBuffer.append(
-                    DER.writeTag(
+                    BER.writeTag(
                             Ldap.MODIFY_DN_REQUEST_NEW_SUPERIOR,
-                            DER.writeUtf8NoTag(newSuperior)));
+                            BER.writeUtf8NoTag(newSuperior)));
         }
-        return DER.writeTag(
+        return BER.writeTag(
                 Ldap.PROTOCOL_OP_MODIFY_DN_REQUEST,
                 requestBuffer);
     }

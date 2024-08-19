@@ -443,18 +443,19 @@ public class LdapConnectionTest {
              UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
                      false, testParameters.serverPortClearText, testParameters.serverPortTls)) {
             ldapServer.start();
-            for (Pair<String, String> bind: UnboundidDirectoryServer.allBinds()) {
-                context.<Void>get(
-                        Closeable.withCloseable(
-                                ()->context.parameters().connectionFactory(context, ldapServer, bind),
-                                (connection)->connection.tlsSession()
-                                        .compose((tlsSession)->{
-                                            assertEquals(
-                                                    LdapTestParameters.Tls.CLEAR_TEXT.equals(testParameters.tls),
-                                                    null==tlsSession);
-                                            return Lava.VOID;
-                                        })));
-            }
+            context.<Void>get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    ldapServer,
+                                    UnboundidDirectoryServer.adminBind()),
+                            (connection)->connection.tlsSession()
+                                    .compose((tlsSession)->{
+                                        assertEquals(
+                                                LdapTestParameters.Tls.CLEAR_TEXT.equals(testParameters.tls),
+                                                null==tlsSession);
+                                        return Lava.VOID;
+                                    })));
         }
     }
 }

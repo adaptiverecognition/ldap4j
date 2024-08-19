@@ -12,7 +12,7 @@ public record UnbindRequest() implements Message<UnbindRequest> {
 
         @Override
         public @NotNull UnbindRequest read(ByteBuffer.@NotNull Reader reader) throws Throwable {
-            return DER.readTag(
+            return BER.readTag(
                     (reader2)->new UnbindRequest(),
                     reader,
                     Ldap.PROTOCOL_OP_UNBIND_REQUEST);
@@ -28,6 +28,6 @@ public record UnbindRequest() implements Message<UnbindRequest> {
 
     @Override
     public @NotNull ByteBuffer write() {
-        return DER.writeTag(Ldap.PROTOCOL_OP_UNBIND_REQUEST, ByteBuffer.EMPTY);
+        return BER.writeTag(Ldap.PROTOCOL_OP_UNBIND_REQUEST, ByteBuffer.EMPTY);
     }
 }

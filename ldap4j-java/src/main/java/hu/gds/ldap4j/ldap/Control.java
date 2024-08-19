@@ -23,32 +23,32 @@ public record Control(
     }
 
     public static @NotNull Control read(@NotNull ByteBuffer.Reader reader) throws Throwable {
-        return DER.readSequence(
+        return BER.readSequence(
                 (reader2)->{
-                    String controlType=DER.readUtf8Tag(reader2);
-                    boolean criticality=DER.readOptionalTag(
-                            DER::readBooleanNoTag,
+                    String controlType=BER.readUtf8Tag(reader2);
+                    boolean criticality=BER.readOptionalTag(
+                            BER::readBooleanNoTag,
                             reader2,
                             ()->false,
-                            DER.BOOLEAN);
-                    byte@Nullable[] controlValue=DER.readOptionalTag(
-                            DER::readOctetStringNoTag,
+                            BER.BOOLEAN);
+                    byte@Nullable[] controlValue=BER.readOptionalTag(
+                            BER::readOctetStringNoTag,
                             reader2,
                             ()->null,
-                            DER.OCTET_STRING);
+                            BER.OCTET_STRING);
                     return new Control(controlType, controlValue, criticality);
                 },
                 reader);
     }
 
     public @NotNull ByteBuffer write() {
-        ByteBuffer buffer=DER.writeUtf8Tag(controlType);
+        ByteBuffer buffer=BER.writeUtf8Tag(controlType);
         if (criticality || (null!=controlValue)) {
-            buffer=buffer.append(DER.writeBooleanTag(criticality));
+            buffer=buffer.append(BER.writeBooleanTag(criticality));
         }
         if (null!=controlValue) {
-            buffer=buffer.append(DER.writeTag(DER.OCTET_STRING, ByteBuffer.create(controlValue)));
+            buffer=buffer.append(BER.writeTag(BER.OCTET_STRING, ByteBuffer.create(controlValue)));
         }
-        return DER.writeSequence(buffer);
+        return BER.writeSequence(buffer);
     }
 }

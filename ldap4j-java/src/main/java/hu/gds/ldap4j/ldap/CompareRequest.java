@@ -30,9 +30,9 @@ public record CompareRequest(
 
     @Override
     public @NotNull ByteBuffer write() throws Throwable {
-        return DER.writeTag(
+        return BER.writeTag(
                 Ldap.PROTOCOL_OP_COMPARE_REQUEST,
-                DER.writeUtf8Tag(entry)
+                BER.writeUtf8Tag(entry)
                         .append(attributeValueAssertion.write()));
     }
 }

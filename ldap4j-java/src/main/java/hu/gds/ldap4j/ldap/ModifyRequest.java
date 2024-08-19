@@ -16,7 +16,7 @@ public record ModifyRequest(
         }
 
         public @NotNull ByteBuffer write() {
-            return DER.writeSequence(
+            return BER.writeSequence(
                     operation.write()
                             .append(modification.write()));
         }
@@ -34,7 +34,7 @@ public record ModifyRequest(
         }
 
         public @NotNull ByteBuffer write() {
-            return DER.writeEnumeratedTag(value);
+            return BER.writeEnumeratedTag(value);
         }
     }
 
@@ -64,9 +64,9 @@ public record ModifyRequest(
         for (Change change: changes) {
             changesBuffer=changesBuffer.append(change.write());
         }
-        return DER.writeTag(
+        return BER.writeTag(
                 Ldap.PROTOCOL_OP_MODIFY_REQUEST,
-                DER.writeUtf8Tag(object)
-                        .append(DER.writeSequence(changesBuffer)));
+                BER.writeUtf8Tag(object)
+                        .append(BER.writeSequence(changesBuffer)));
     }
 }

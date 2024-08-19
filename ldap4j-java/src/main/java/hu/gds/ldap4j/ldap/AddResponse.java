@@ -19,7 +19,7 @@ public record AddResponse(
         @Override
         public @NotNull AddResponse read(ByteBuffer.@NotNull Reader reader) throws Throwable {
             return new AddResponse(
-                    DER.readTag(
+                    BER.readTag(
                             LdapResult::read,
                             reader,
                             Ldap.PROTOCOL_OP_ADD_RESPONSE));

@@ -15,23 +15,23 @@ public class PasswordModify {
             char @Nullable [] newPasswd, char @Nullable [] oldPasswd, @Nullable String userIdentity) {
         ByteBuffer buffer=ByteBuffer.EMPTY;
         if (null!=userIdentity) {
-            buffer=buffer.append(DER.writeTag(
+            buffer=buffer.append(BER.writeTag(
                     Ldap.PASSWORD_MODIFY_REQUEST_USER_IDENTITY,
-                    DER.writeUtf8NoTag(userIdentity)));
+                    BER.writeUtf8NoTag(userIdentity)));
         }
         if (null!=oldPasswd) {
-            buffer=buffer.append(DER.writeTag(
+            buffer=buffer.append(BER.writeTag(
                     Ldap.PASSWORD_MODIFY_REQUEST_OLD_PASSWD,
-                    DER.writeUtf8NoTag(oldPasswd)));
+                    BER.writeUtf8NoTag(oldPasswd)));
         }
         if (null!=newPasswd) {
-            buffer=buffer.append(DER.writeTag(
+            buffer=buffer.append(BER.writeTag(
                     Ldap.PASSWORD_MODIFY_REQUEST_NEW_PASSWD,
-                    DER.writeUtf8NoTag(newPasswd)));
+                    BER.writeUtf8NoTag(newPasswd)));
         }
         return new ExtendedRequest(
                 Ldap.EXTENDED_REQUEST_PASSWORD_MODIFY,
-                DER.writeSequence(buffer)
+                BER.writeSequence(buffer)
                         .arrayCopy(),
                 ExtendedResponse.READER_SUCCESS)
                 .controlsEmpty();
@@ -44,9 +44,9 @@ public class PasswordModify {
         }
         char @Nullable [] genPasswd=ByteBuffer.create(responseValue)
                 .read(
-                        (reader)->DER.readSequence(
-                                (reader2)->DER.readOptionalTag(
-                                        DER::readUtf8NoTagChars,
+                        (reader)->BER.readSequence(
+                                (reader2)->BER.readOptionalTag(
+                                        BER::readUtf8NoTagChars,
                                         reader2,
                                         ()->null,
                                         Ldap.PASSWORD_MODIFY_RESPONSE_GEN_PASSWD),

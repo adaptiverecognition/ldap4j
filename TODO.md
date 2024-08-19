@@ -1,5 +1,6 @@
 # nice to have
 
+- all String fields -> byte[]
 - java docs / manual / guides
 - netty kqueue
 - tls closure, rfc4511 4.14.3, allow, disallow, initiate

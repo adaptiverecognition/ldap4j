@@ -23,7 +23,7 @@ public record LdapMessage<T>(
     public static @NotNull List<@NotNull Control> controls(@NotNull ByteBuffer.Reader reader) throws Throwable {
         List<@NotNull Control> controls=new ArrayList<>();
         if (reader.hasRemainingBytes()) {
-            DER.readTag(
+            BER.readTag(
                     (reader3)->{
                         while (reader3.hasRemainingBytes()) {
                             controls.add(Control.read(reader3));
@@ -39,9 +39,9 @@ public record LdapMessage<T>(
     public static <T> @NotNull Function<ByteBuffer.Reader, @NotNull Lava<T>> readCheckedParallel(
             @NotNull Function<@NotNull Integer, @Nullable ParallelMessageReader<?, T>> messageReadersByMessageId) {
         Objects.requireNonNull(messageReadersByMessageId, "messageReadersByMessageId");
-        return (reader)->DER.readSequence(
+        return (reader)->BER.readSequence(
                 (reader2)->{
-                    int messageId=DER.readIntegerTag(true, reader2);
+                    int messageId=BER.readIntegerTag(true, reader2);
                     ParallelMessageReader<?, T> messageReader=messageReadersByMessageId.apply(messageId);
                     if (null!=messageReader) {
                         return messageReader.readMessageChecked(messageId, reader2);
@@ -68,10 +68,10 @@ public record LdapMessage<T>(
             for (Control control: controls) {
                 controls3=controls3.append(control.write());
             }
-            controls2=DER.writeTag(Ldap.MESSAGE_CONTROLS, controls3);
+            controls2=BER.writeTag(Ldap.MESSAGE_CONTROLS, controls3);
         }
-        return DER.writeSequence(
-                DER.writeIntegerTag(messageId)
+        return BER.writeSequence(
+                BER.writeIntegerTag(messageId)
                         .append(function.apply(message))
                         .append(controls2));
     }

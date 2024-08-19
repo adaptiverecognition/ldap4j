@@ -81,8 +81,8 @@ public abstract class Filter {
 
         @Override
         protected ByteBuffer writeContent() {
-            return DER.writeUtf8Tag(attributeDescription)
-                    .append(DER.writeUtf8Tag(assertionValue));
+            return BER.writeUtf8Tag(attributeDescription)
+                    .append(BER.writeUtf8Tag(assertionValue));
         }
     }
 
@@ -148,22 +148,22 @@ public abstract class Filter {
         protected ByteBuffer writeContent() {
             ByteBuffer result=ByteBuffer.EMPTY;
             if (null!=matchingRule) {
-                result=result.append(DER.writeTag(
+                result=result.append(BER.writeTag(
                         Ldap.FILTER_EXTENSIBLE_MATCH_MATCHING_RULE,
-                        DER.writeUtf8NoTag(matchingRule)));
+                        BER.writeUtf8NoTag(matchingRule)));
             }
             if (null!=type) {
-                result=result.append(DER.writeTag(
+                result=result.append(BER.writeTag(
                         Ldap.FILTER_EXTENSIBLE_MATCH_TYPE,
-                        DER.writeUtf8NoTag(type)));
+                        BER.writeUtf8NoTag(type)));
             }
-            result=result.append(DER.writeTag(
+            result=result.append(BER.writeTag(
                     Ldap.FILTER_EXTENSIBLE_MATCH_MATCH_VALUE,
-                    DER.writeUtf8NoTag(matchValue)));
+                    BER.writeUtf8NoTag(matchValue)));
             if (dnAttributes) {
-                result=result.append(DER.writeTag(
+                result=result.append(BER.writeTag(
                         Ldap.FILTER_EXTENSIBLE_MATCH_DN_ATTRIBUTES,
-                        DER.writeBooleanNoTag(true)));
+                        BER.writeBooleanNoTag(true)));
             }
             return result;
         }
@@ -278,7 +278,7 @@ public abstract class Filter {
 
         @Override
         protected ByteBuffer writeContent() {
-            return DER.writeUtf8NoTag(attribute);
+            return BER.writeUtf8NoTag(attribute);
         }
     }
 
@@ -319,20 +319,20 @@ public abstract class Filter {
             ByteBuffer substrings=ByteBuffer.EMPTY;
             if (null!=initial) {
                 substrings=substrings.append(
-                        DER.writeTag(Ldap.FILTER_SUBSTRINGS_INITIAL, DER.writeUtf8NoTag(initial)));
+                        BER.writeTag(Ldap.FILTER_SUBSTRINGS_INITIAL, BER.writeUtf8NoTag(initial)));
             }
             if (null!=any) {
                 for (String any2 : any) {
                     substrings=substrings.append(
-                            DER.writeTag(Ldap.FILTER_SUBSTRINGS_ANY, DER.writeUtf8NoTag(any2)));
+                            BER.writeTag(Ldap.FILTER_SUBSTRINGS_ANY, BER.writeUtf8NoTag(any2)));
                 }
             }
             if (null!=final2) {
                 substrings=substrings.append(
-                        DER.writeTag(Ldap.FILTER_SUBSTRINGS_FINAL, DER.writeUtf8NoTag(final2)));
+                        BER.writeTag(Ldap.FILTER_SUBSTRINGS_FINAL, BER.writeUtf8NoTag(final2)));
             }
-            return DER.writeUtf8Tag(type)
-                    .append(DER.writeSequence(substrings));
+            return BER.writeUtf8Tag(type)
+                    .append(BER.writeSequence(substrings));
         }
     }
 
@@ -527,7 +527,7 @@ public abstract class Filter {
     public abstract String toString();
 
     public ByteBuffer write() throws Throwable {
-        return DER.writeTag(tag(), writeContent());
+        return BER.writeTag(tag(), writeContent());
     }
 
     protected abstract ByteBuffer writeContent() throws Throwable;

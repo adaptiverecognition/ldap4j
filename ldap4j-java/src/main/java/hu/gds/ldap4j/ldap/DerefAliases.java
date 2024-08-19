@@ -15,6 +15,6 @@ public enum DerefAliases {
     }
 
     public ByteBuffer write() {
-        return DER.writeEnumeratedTag(value);
+        return BER.writeEnumeratedTag(value);
     }
 }

@@ -31,11 +31,11 @@ public record BindResponse(
 
         @Override
         public @NotNull BindResponse read(ByteBuffer.@NotNull Reader reader) throws Throwable {
-            return DER.readTag(
+            return BER.readTag(
                     (reader2)->{
                         @NotNull LdapResult ldapResult=LdapResult.read(reader2);
-                        byte@Nullable[] serverSaslCredentials=DER.readOptionalTag(
-                                DER::readOctetStringNoTag,
+                        byte@Nullable[] serverSaslCredentials=BER.readOptionalTag(
+                                BER::readOctetStringNoTag,
                                 reader2,
                                 ()->null,
                                 Ldap.BIND_RESPONSE_CREDENTIALS);

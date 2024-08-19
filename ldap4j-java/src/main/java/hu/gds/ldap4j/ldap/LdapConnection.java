@@ -223,7 +223,7 @@ public class LdapConnection implements Connection {
                     catch (Throwable throwable) {
                         try (StringWriter writer=new StringWriter();
                              PrintWriter printWriter=new PrintWriter(writer)) {
-                            DERDump.hexDump(
+                            BERDump.hexDump(
                                     readBuffer,
                                     "        ",
                                     32,

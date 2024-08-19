@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
-public abstract class DER {
+public abstract class BER {
     public static final byte BOOLEAN=0x01;
     public static final byte OCTET_STRING=0x04;
     public static final byte ENUMERATED=0x0a;
@@ -21,7 +21,7 @@ public abstract class DER {
         APPLICATION, CONTEXT_SPECIFIC, PRIVATE, UNIVERSAL
     }
 
-    private DER() {
+    private BER() {
     }
 
     public static @NotNull TagClass getTagClass(byte tag) {
@@ -50,7 +50,7 @@ public abstract class DER {
     }
 
     public static boolean readBooleanTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
-        return DER.readTag(DER::readBooleanNoTag, reader, BOOLEAN);
+        return BER.readTag(BER::readBooleanNoTag, reader, BOOLEAN);
     }
 
     public static int readEnumeratedNoTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
@@ -58,7 +58,7 @@ public abstract class DER {
     }
 
     public static int readEnumeratedTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
-        return readTag(DER::readEnumeratedNoTag, reader, ENUMERATED);
+        return readTag(BER::readEnumeratedNoTag, reader, ENUMERATED);
     }
 
     public static int readIntegerNoTag(boolean nonNegative, @NotNull ByteBuffer.Reader reader) throws Throwable {
@@ -82,7 +82,7 @@ public abstract class DER {
     }
 
     public static int readIntegerTag(boolean nonNegative, @NotNull ByteBuffer.Reader reader) throws Throwable {
-        return readTag((reader2)->DER.readIntegerNoTag(nonNegative, reader2), reader, INTEGER);
+        return readTag((reader2)->BER.readIntegerNoTag(nonNegative, reader2), reader, INTEGER);
     }
 
     public static int readLength(@NotNull ByteBuffer.Reader reader) throws Throwable {
@@ -201,7 +201,7 @@ public abstract class DER {
     }
 
     public static @NotNull String readUtf8Tag(@NotNull ByteBuffer.Reader reader) throws Throwable {
-        return readTag(DER::readUtf8NoTag, reader, OCTET_STRING);
+        return readTag(BER::readUtf8NoTag, reader, OCTET_STRING);
     }
 
     public static @NotNull ByteBuffer writeBooleanNoTag(boolean value) {
@@ -209,7 +209,7 @@ public abstract class DER {
     }
 
     public static @NotNull ByteBuffer writeBooleanTag(boolean value) {
-        return DER.writeTag(BOOLEAN, writeBooleanNoTag(value));
+        return BER.writeTag(BOOLEAN, writeBooleanNoTag(value));
     }
 
     public static @NotNull ByteBuffer writeEnumeratedNoTag(int value) {

@@ -53,15 +53,15 @@ public record LdapResult(
     }
 
     public static @NotNull LdapResult read(@NotNull ByteBuffer.Reader reader) throws Throwable {
-        int resultCode=DER.readEnumeratedTag(reader);
-        String matchedDn=DER.readUtf8Tag(reader);
-        String diagnosticMessage=DER.readUtf8Tag(reader);
+        int resultCode=BER.readEnumeratedTag(reader);
+        String matchedDn=BER.readUtf8Tag(reader);
+        String diagnosticMessage=BER.readUtf8Tag(reader);
         List<@NotNull String> referrals=new ArrayList<>();
         if (reader.hasRemainingBytes() && (Ldap.LDAP_RESULT_REFERRALS==reader.peekByte())) {
-            DER.readTag(
+            BER.readTag(
                     (reader2)->{
                         while (reader2.hasRemainingBytes()) {
-                            referrals.add(DER.readUtf8Tag(reader2));
+                            referrals.add(BER.readUtf8Tag(reader2));
                         }
                         return null;
                     },
@@ -77,15 +77,15 @@ public record LdapResult(
     }
 
     public @NotNull ByteBuffer write() {
-        @NotNull ByteBuffer resultBuffer=DER.writeEnumeratedTag(resultCode)
-                .append(DER.writeUtf8Tag(matchedDn))
-                .append(DER.writeUtf8Tag(diagnosticMessages));
+        @NotNull ByteBuffer resultBuffer=BER.writeEnumeratedTag(resultCode)
+                .append(BER.writeUtf8Tag(matchedDn))
+                .append(BER.writeUtf8Tag(diagnosticMessages));
         if (!referrals.isEmpty()) {
             @NotNull ByteBuffer referralsBuffer=ByteBuffer.EMPTY;
             for (@NotNull String referral: referrals) {
-                referralsBuffer=referralsBuffer.append(DER.writeUtf8Tag(referral));
+                referralsBuffer=referralsBuffer.append(BER.writeUtf8Tag(referral));
             }
-            resultBuffer=resultBuffer.append(DER.writeTag(
+            resultBuffer=resultBuffer.append(BER.writeTag(
                     Ldap.LDAP_RESULT_REFERRALS,
                     referralsBuffer));
         }

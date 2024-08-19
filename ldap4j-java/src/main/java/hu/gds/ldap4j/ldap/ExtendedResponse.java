@@ -32,16 +32,16 @@ public record ExtendedResponse(
 
         @Override
         public @NotNull ExtendedResponse read(@NotNull ByteBuffer.Reader reader) throws Throwable {
-            return DER.readTag(
+            return BER.readTag(
                     (reader2)->{
                         @NotNull LdapResult ldapResult=LdapResult.read(reader2);
-                        @Nullable String responseName=DER.readOptionalTag(
-                                DER::readUtf8NoTag,
+                        @Nullable String responseName=BER.readOptionalTag(
+                                BER::readUtf8NoTag,
                                 reader2,
                                 ()->null,
                                 Ldap.PROTOCOL_OP_EXTENDED_RESPONSE_NAME);
-                        byte@Nullable[] responseValue=DER.readOptionalTag(
-                                DER::readOctetStringNoTag,
+                        byte@Nullable[] responseValue=BER.readOptionalTag(
+                                BER::readOctetStringNoTag,
                                 reader2,
                                 ()->null,
                                 Ldap.PROTOCOL_OP_EXTENDED_RESPONSE_VALUE);
@@ -78,16 +78,16 @@ public record ExtendedResponse(
     public @NotNull ByteBuffer write() {
         ByteBuffer contentBuffer=ldapResult.write();
         if (null!=responseName) {
-            contentBuffer=contentBuffer.append(DER.writeTag(
+            contentBuffer=contentBuffer.append(BER.writeTag(
                     Ldap.PROTOCOL_OP_EXTENDED_RESPONSE_NAME,
-                    DER.writeUtf8NoTag(responseName)));
+                    BER.writeUtf8NoTag(responseName)));
         }
         if (null!=responseValue) {
-            contentBuffer=contentBuffer.append(DER.writeTag(
+            contentBuffer=contentBuffer.append(BER.writeTag(
                     Ldap.PROTOCOL_OP_EXTENDED_RESPONSE_VALUE,
                     ByteBuffer.create(responseValue)));
         }
-        return DER.writeTag(
+        return BER.writeTag(
                 Ldap.PROTOCOL_OP_EXTENDED_RESPONSE,
                 contentBuffer);
     }

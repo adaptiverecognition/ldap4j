@@ -28,8 +28,8 @@ public record DeleteRequest(
 
     @Override
     public @NotNull ByteBuffer write() {
-        return DER.writeTag(
+        return BER.writeTag(
                 Ldap.PROTOCOL_OP_DELETE_REQUEST,
-                DER.writeUtf8NoTag(entry));
+                BER.writeUtf8NoTag(entry));
     }
 }

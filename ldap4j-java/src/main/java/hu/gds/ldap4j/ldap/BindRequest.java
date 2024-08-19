@@ -27,14 +27,14 @@ public record BindRequest(
 
             @Override
             public @NotNull ByteBuffer write() {
-                ByteBuffer saslBuffer=DER.writeUtf8Tag(mechanism);
+                ByteBuffer saslBuffer=BER.writeUtf8Tag(mechanism);
                 if (null!=credentials) {
                     saslBuffer=saslBuffer.append(
-                            DER.writeTag(
-                                    DER.OCTET_STRING,
+                            BER.writeTag(
+                                    BER.OCTET_STRING,
                                     ByteBuffer.create(credentials)));
                 }
-                return DER.writeTag(
+                return BER.writeTag(
                         Ldap.AUTHENTICATION_CHOICE_SASL,
                         saslBuffer);
             }
@@ -54,9 +54,9 @@ public record BindRequest(
 
             @Override
             public @NotNull ByteBuffer write() {
-                return DER.writeTag(
+                return BER.writeTag(
                         Ldap.AUTHENTICATION_CHOICE_SIMPLE,
-                        DER.writeUtf8NoTag(password));
+                        BER.writeUtf8NoTag(password));
             }
         }
 
@@ -106,10 +106,10 @@ public record BindRequest(
 
     @Override
     public @NotNull ByteBuffer write() {
-        return DER.writeTag(
+        return BER.writeTag(
                 Ldap.PROTOCOL_OP_BIND_REQUEST,
-                DER.writeIntegerTag(version)
-                        .append(DER.writeUtf8Tag(name))
+                BER.writeIntegerTag(version)
+                        .append(BER.writeUtf8Tag(name))
                         .append(authentication.write()));
     }
 }

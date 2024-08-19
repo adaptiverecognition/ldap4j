@@ -56,7 +56,7 @@ public sealed interface SearchResult {
         }
 
         public static @NotNull SearchResult.Entry read(@NotNull ByteBuffer.Reader reader) throws Throwable {
-            String objectName=DER.readUtf8Tag(reader);
+            String objectName=BER.readUtf8Tag(reader);
             @NotNull List<@NotNull PartialAttribute> attributes=PartialAttribute.readAttributes(reader);
             return new SearchResult.Entry(attributes, objectName);
         }
@@ -93,7 +93,7 @@ public sealed interface SearchResult {
 
         @Override
         public @NotNull SearchResult read(@NotNull ByteBuffer.Reader reader) throws Throwable {
-            return DER.readTag(
+            return BER.readTag(
                     (tag)->switch (tag) {
                         case Ldap.PROTOCOL_OP_SEARCH_RESULT_DONE -> Either.left(Done::read);
                         case Ldap.PROTOCOL_OP_SEARCH_RESULT_ENTRY -> Either.left(Entry::read);
@@ -129,7 +129,7 @@ public sealed interface SearchResult {
         public static @NotNull SearchResult.Referral read(@NotNull ByteBuffer.Reader reader) throws Throwable {
             List<@NotNull String> uris=new ArrayList<>();
             while (reader.hasRemainingBytes()) {
-                uris.add(DER.readUtf8Tag(reader));
+                uris.add(BER.readUtf8Tag(reader));
             }
             return new SearchResult.Referral(uris);
         }

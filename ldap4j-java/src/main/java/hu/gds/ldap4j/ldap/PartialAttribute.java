@@ -13,26 +13,26 @@ public record PartialAttribute(@NotNull String type, @NotNull List<@NotNull Stri
     }
 
     public static @NotNull PartialAttribute readAttribute(ByteBuffer.Reader reader) throws Throwable {
-        return DER.readSequence(
+        return BER.readSequence(
                 (reader2)->{
-                    String type=DER.readUtf8Tag(reader2);
-                    return DER.readTag(
+                    String type=BER.readUtf8Tag(reader2);
+                    return BER.readTag(
                             (reader3)->{
                                 List<@NotNull String> values=new ArrayList<>();
                                 while (reader3.hasRemainingBytes()) {
-                                    values.add(DER.readUtf8Tag(reader3));
+                                    values.add(BER.readUtf8Tag(reader3));
                                 }
                                 return new PartialAttribute(type, values);
                             },
                             reader2,
-                            DER.SET);
+                            BER.SET);
                 },
                 reader);
     }
 
     public static @NotNull List<@NotNull PartialAttribute> readAttributes(
             ByteBuffer.Reader reader) throws Throwable {
-        return DER.readSequence(
+        return BER.readSequence(
                 (reader2)->{
                     List<@NotNull PartialAttribute> attributes=new ArrayList<>();
                     while (reader2.hasRemainingBytes()) {
@@ -47,12 +47,12 @@ public record PartialAttribute(@NotNull String type, @NotNull List<@NotNull Stri
     public @NotNull ByteBuffer write() {
         ByteBuffer valuesBuffer=ByteBuffer.EMPTY;
         for (String value: values) {
-            valuesBuffer=valuesBuffer.append(DER.writeUtf8Tag(value));
+            valuesBuffer=valuesBuffer.append(BER.writeUtf8Tag(value));
         }
-        return DER.writeSequence(
-                DER.writeUtf8Tag(type)
-                        .append(DER.writeTag(
-                                DER.SET,
+        return BER.writeSequence(
+                BER.writeUtf8Tag(type)
+                        .append(BER.writeTag(
+                                BER.SET,
                                 valuesBuffer)));
     }
 }

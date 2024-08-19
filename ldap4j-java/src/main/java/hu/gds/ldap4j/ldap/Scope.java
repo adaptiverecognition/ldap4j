@@ -14,6 +14,6 @@ public enum Scope {
     }
 
     public ByteBuffer write() {
-        return DER.writeEnumeratedTag(value);
+        return BER.writeEnumeratedTag(value);
     }
 }
