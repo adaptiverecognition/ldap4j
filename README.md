@@ -47,6 +47,7 @@ Ldap4j currently supports:
 - [assertion control](https://www.ietf.org/rfc/rfc4528.txt),
 - [attributes by object class](https://www.ietf.org/rfc/rfc4529.txt),
 - [cancel operation](https://www.ietf.org/rfc/rfc3909.txt),
+- [don't use copy control](https://www.ietf.org/rfc/rfc6171.txt),
 - [fast bind operation](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/58bbd5c4-b5c4-41e2-b12c-cdaad1223d6a),
 - [feature discovery](https://www.ietf.org/rfc/rfc3674.txt),
 - [manage DSA IT control](https://www.ietf.org/rfc/rfc3296.txt),

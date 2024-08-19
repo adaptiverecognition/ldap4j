@@ -5,6 +5,7 @@ import hu.gds.ldap4j.ldap.extension.AllOperationAttributes;
 import hu.gds.ldap4j.ldap.extension.AssertionControl;
 import hu.gds.ldap4j.ldap.extension.AttributesByObjectClass;
 import hu.gds.ldap4j.ldap.extension.Cancel;
+import hu.gds.ldap4j.ldap.extension.DonTUseCopyControl;
 import hu.gds.ldap4j.ldap.extension.FastBind;
 import hu.gds.ldap4j.ldap.extension.ManageDsaIt;
 import hu.gds.ldap4j.ldap.extension.ModifyIncrement;
@@ -216,7 +217,7 @@ public class OID {
                 "1.3.6.1.1.21.3",
                 "End Transactions Request and Response, RFC 5805");
         names.put(
-                "1.3.6.1.1.22",
+                DonTUseCopyControl.CONTROL_OID, // "1.3.6.1.1.22"
                 "Don't Use Copy Control, RFC 6171");
         names.put(
                 "1.3.6.1.4.1.42.2.27.8.5.1",

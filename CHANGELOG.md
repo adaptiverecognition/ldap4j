@@ -5,6 +5,7 @@ Version 1.1.1-SNAPSHOT:
   - all operational attributes
   - assertion control
   - attributes by object class
+  - don't use copy control
   - modify-increment operation
   - password modify operation
   - read entry controls
