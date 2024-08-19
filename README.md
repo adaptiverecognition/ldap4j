@@ -45,6 +45,7 @@ Ldap4j currently supports:
 - [absolute true and false filters](https://www.ietf.org/rfc/rfc4526.txt),
 - [all operational attributes](https://www.ietf.org/rfc/rfc3673.txt),
 - [assertion control](https://www.ietf.org/rfc/rfc4528.txt),
+- [attributes by object class](https://www.ietf.org/rfc/rfc4529.txt),
 - [cancel operation](https://www.ietf.org/rfc/rfc3909.txt),
 - [fast bind operation](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/58bbd5c4-b5c4-41e2-b12c-cdaad1223d6a),
 - [feature discovery](https://www.ietf.org/rfc/rfc3674.txt),

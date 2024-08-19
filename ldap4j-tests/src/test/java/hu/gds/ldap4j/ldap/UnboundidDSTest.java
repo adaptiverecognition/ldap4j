@@ -10,6 +10,7 @@ import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.lava.ThreadPoolContextHolder;
 import hu.gds.ldap4j.ldap.extension.AllOperationAttributes;
 import hu.gds.ldap4j.ldap.extension.AssertionControl;
+import hu.gds.ldap4j.ldap.extension.AttributesByObjectClass;
 import hu.gds.ldap4j.ldap.extension.FeatureDiscovery;
 import hu.gds.ldap4j.ldap.extension.ManageDsaIt;
 import hu.gds.ldap4j.ldap.extension.ModifyIncrement;
@@ -261,6 +262,65 @@ public class UnboundidDSTest {
                                                 preEntry.attributes().get(0).values());
                                         return Lava.VOID;
                                     })));
+        }
+    }
+
+    @Test
+    public void testAttributesByObjectClass() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
+                     false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
+            ldapServer.start();
+            context.get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context, ldapServer, UnboundidDirectoryServer.adminBind()),
+                            new Function<@NotNull LdapConnection, @NotNull Lava<Void>>() {
+                                @Override
+                                public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) throws Throwable {
+                                    return assertAttributes(
+                                            connection,
+                                            "person",
+                                            List.of("objectClass", "cn", "sn", "userPassword"))
+                                            .composeIgnoreResult(()->assertAttributes(
+                                                    connection,
+                                                    "inetOrgPerson",
+                                                    List.of("objectClass", "cn", "sn", "uid", "userPassword")));
+                                }
+
+                                private @NotNull Lava<Void> assertAttributes(
+                                        @NotNull LdapConnection connection,
+                                        @NotNull String objectClass,
+                                        @NotNull List<@NotNull String> types)
+                                        throws Throwable {
+                                    return connection.search(
+                                                    new SearchRequest(
+                                                            List.of(
+                                                                    AttributesByObjectClass.attributesByObjectClass(
+                                                                            objectClass)),
+                                                            "uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                            DerefAliases.NEVER_DEREF_ALIASES,
+                                                            Filter.parse("(objectClass=*)"),
+                                                            Scope.BASE_OBJECT,
+                                                            100,
+                                                            10,
+                                                            true)
+                                                            .controlsEmpty())
+                                            .compose((results)->{
+                                                assertEquals(2, results.size());
+                                                assertEquals(
+                                                        types,
+                                                        results.get(0)
+                                                                .message()
+                                                                .asEntry()
+                                                                .attributes()
+                                                                .stream()
+                                                                .map(PartialAttribute::type)
+                                                                .toList());
+                                                return Lava.VOID;
+                                            });
+                                }
+                            }));
         }
     }
 

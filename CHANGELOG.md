@@ -1,8 +1,10 @@
 Version 1.1.1-SNAPSHOT:
 - add event-driven LDAP engine support classes
 - add extensions
+  - absolute true and false filters
   - all operational attributes
   - assertion control
+  - attributes by object class
   - modify-increment operation
   - password modify operation
   - read entry controls

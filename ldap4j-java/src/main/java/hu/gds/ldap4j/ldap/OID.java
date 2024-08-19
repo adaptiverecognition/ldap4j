@@ -3,6 +3,7 @@ package hu.gds.ldap4j.ldap;
 import hu.gds.ldap4j.ldap.extension.AbsoluteTrueAndFalseFilters;
 import hu.gds.ldap4j.ldap.extension.AllOperationAttributes;
 import hu.gds.ldap4j.ldap.extension.AssertionControl;
+import hu.gds.ldap4j.ldap.extension.AttributesByObjectClass;
 import hu.gds.ldap4j.ldap.extension.Cancel;
 import hu.gds.ldap4j.ldap.extension.FastBind;
 import hu.gds.ldap4j.ldap.extension.ManageDsaIt;
@@ -233,7 +234,7 @@ public class OID {
                 AllOperationAttributes.FEATURE_OID, // "1.3.6.1.4.1.4203.1.5.1"
                 "All Operational Attributes, RFC 3673");
         names.put(
-                "1.3.6.1.4.1.4203.1.5.2",
+                AttributesByObjectClass.FEATURE_OID, //"1.3.6.1.4.1.4203.1.5.2"
                 "Requesting Attributes by Object Class, RFC 4529");
         names.put(
                 AbsoluteTrueAndFalseFilters.FEATURE_OID, // "1.3.6.1.4.1.4203.1.5.3"
