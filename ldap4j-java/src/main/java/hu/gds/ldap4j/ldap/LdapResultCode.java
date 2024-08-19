@@ -54,7 +54,8 @@ public enum LdapResultCode {
     CANCELED(118, "canceled"),
     NO_SUCH_OPERATION(119, "noSuchOperation"),
     TOO_LATE(120, "tooLate"),
-    CANNOT_CANCEL(121, "cannotCancel");
+    CANNOT_CANCEL(121, "cannotCancel"),
+    ASSERTION_FAILED(122, "assertionFailed");
 
     public static final Map<@NotNull Integer, @NotNull LdapResultCode> VALUES;
 

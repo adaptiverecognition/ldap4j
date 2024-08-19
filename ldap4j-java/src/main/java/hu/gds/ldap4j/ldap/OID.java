@@ -2,6 +2,7 @@ package hu.gds.ldap4j.ldap;
 
 import hu.gds.ldap4j.ldap.extension.AbsoluteTrueAndFalseFilters;
 import hu.gds.ldap4j.ldap.extension.AllOperationAttributes;
+import hu.gds.ldap4j.ldap.extension.AssertionControl;
 import hu.gds.ldap4j.ldap.extension.Cancel;
 import hu.gds.ldap4j.ldap.extension.FastBind;
 import hu.gds.ldap4j.ldap.extension.ManageDsaIt;
@@ -193,7 +194,7 @@ public class OID {
                 Cancel.REQUEST_OPERATION_OID, // "1.3.6.1.1.8"
                 "Cancel Operation, RFC 3909");
         names.put(
-                "1.3.6.1.1.12",
+                AssertionControl.CONTROL_OID, // "1.3.6.1.1.12"
                 "Assertion Control, RFC 4528");
         names.put(
                 ReadEntryControls.PRE_READ_CONTROL_OID, // "1.3.6.1.1.13.1"

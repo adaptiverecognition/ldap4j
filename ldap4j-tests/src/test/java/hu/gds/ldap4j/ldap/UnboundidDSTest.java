@@ -9,6 +9,7 @@ import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.lava.ThreadPoolContextHolder;
 import hu.gds.ldap4j.ldap.extension.AllOperationAttributes;
+import hu.gds.ldap4j.ldap.extension.AssertionControl;
 import hu.gds.ldap4j.ldap.extension.FeatureDiscovery;
 import hu.gds.ldap4j.ldap.extension.ManageDsaIt;
 import hu.gds.ldap4j.ldap.extension.ModifyIncrement;
@@ -197,6 +198,69 @@ public class UnboundidDSTest {
                                 }
                             }));
 
+        }
+    }
+
+    @Test
+    public void testAssertionControl() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
+                     false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
+            ldapServer.start();
+            context.get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context, ldapServer, UnboundidDirectoryServer.adminBind()),
+                            (connection)->Lava.catchErrors(
+                                            (throwable)->{
+                                                assertEquals(LdapResultCode.ASSERTION_FAILED, throwable.resultCode2);
+                                                return Lava.VOID;
+                                            },
+                                            ()->connection.writeRequestReadResponseChecked(
+                                                            new ModifyRequest(
+                                                                    List.of(
+                                                                            new ModifyRequest.Change(
+                                                                                    new PartialAttribute(
+                                                                                            "objectClass",
+                                                                                            List.of("extensibleObject")),
+                                                                                    ModifyRequest.OPERATION_ADD)),
+                                                                    "ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu")
+                                                                    .controls(List.of(
+                                                                            AssertionControl.request(Filter.parse(
+                                                                                    "(ou=users)")))))
+                                                    .composeIgnoreResult(()->Lava.fail(
+                                                            new RuntimeException("should have failed"))),
+                                            LdapException.class)
+                                    .composeIgnoreResult(()->connection.writeRequestReadResponseChecked(
+                                            new ModifyRequest(
+                                                    List.of(
+                                                            new ModifyRequest.Change(
+                                                                    new PartialAttribute(
+                                                                            "objectClass",
+                                                                            List.of("extensibleObject")),
+                                                                    ModifyRequest.OPERATION_ADD)),
+                                                    "ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu")
+                                                    .controls(List.of(
+                                                            AssertionControl.request(Filter.parse("(ou=groups)")),
+                                                            ReadEntryControls.postRequest(List.of("objectClass")),
+                                                            ReadEntryControls.preRequest(List.of("objectClass"))))))
+                                    .compose((response)->{
+                                        @NotNull SearchResult.Entry postEntry
+                                                =ReadEntryControls.postResponseCheck(response.controls());
+                                        assertEquals(1, postEntry.attributes().size());
+                                        assertEquals("objectClass", postEntry.attributes().get(0).type());
+                                        assertEquals(
+                                                List.of("top", "organizationalUnit", "extensibleObject"),
+                                                postEntry.attributes().get(0).values());
+                                        @NotNull SearchResult.Entry preEntry
+                                                =ReadEntryControls.preResponseCheck(response.controls());
+                                        assertEquals(1, preEntry.attributes().size());
+                                        assertEquals("objectClass", preEntry.attributes().get(0).type());
+                                        assertEquals(
+                                                List.of("top", "organizationalUnit"),
+                                                preEntry.attributes().get(0).values());
+                                        return Lava.VOID;
+                                    })));
         }
     }
 
