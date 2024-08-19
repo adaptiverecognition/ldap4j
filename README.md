@@ -42,6 +42,7 @@ It's fully non-blocking, and supports timeouts on all operations.
 
 Ldap4j currently supports:
 - all operations defined in [LDAP v3](https://www.ietf.org/rfc/rfc4511.txt), except removal of the TLS Layer,
+- [absolute true and false filters](https://www.ietf.org/rfc/rfc4526.txt),
 - [all operational attributes](https://www.ietf.org/rfc/rfc3673.txt),
 - [cancel operation](https://www.ietf.org/rfc/rfc3909.txt),
 - [fast bind operation](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/58bbd5c4-b5c4-41e2-b12c-cdaad1223d6a),

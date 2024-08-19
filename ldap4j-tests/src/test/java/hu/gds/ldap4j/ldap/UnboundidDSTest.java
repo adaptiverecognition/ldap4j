@@ -60,6 +60,49 @@ public class UnboundidDSTest {
             LdapTestParameters.Tls.START_TLS);
 
     @Test
+    public void testAbsoluteTrueAndFalseFilters() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
+                     false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
+            ldapServer.start();
+            context.<Void>get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    ldapServer,
+                                    UnboundidDirectoryServer.adminBind()),
+                            new Function<@NotNull LdapConnection, @NotNull Lava<Void>>() {
+                                @Override
+                                public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) throws Throwable {
+                                    return search(connection, false)
+                                            .composeIgnoreResult(()->search(connection, true));
+                                }
+
+                                private @NotNull Lava<Void> search(
+                                        @NotNull LdapConnection connection, boolean enabled) throws Throwable {
+                                    return connection.search(
+                                                    new SearchRequest(
+                                                            List.of(),
+                                                            "ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                            DerefAliases.DEREF_ALWAYS,
+                                                            Filter.parse(enabled?"(&)":"(|)"),
+                                                            Scope.BASE_OBJECT,
+                                                            100,
+                                                            10,
+                                                            true)
+                                                            .controlsEmpty())
+                                            .compose((results)->{
+                                                assertEquals(
+                                                        enabled?2:1,
+                                                        results.size());
+                                                return Lava.VOID;
+                                            });
+                                }
+                            }));
+        }
+    }
+
+    @Test
     public void testAddDelete() throws Throwable {
         try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
              UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(

@@ -1,5 +1,6 @@
 package hu.gds.ldap4j.ldap;
 
+import hu.gds.ldap4j.ldap.extension.AbsoluteTrueAndFalseFilters;
 import hu.gds.ldap4j.ldap.extension.AllOperationAttributes;
 import hu.gds.ldap4j.ldap.extension.Cancel;
 import hu.gds.ldap4j.ldap.extension.FastBind;
@@ -227,13 +228,13 @@ public class OID {
                 StartTls.REQUEST_OID, // "1.3.6.1.4.1.1466.20037"
                 "StartTLS Request, RFC 4511");
         names.put(
-                AllOperationAttributes.FEATURE_OID, // "1.3.6.1.4.1.4203.1.5.1",
+                AllOperationAttributes.FEATURE_OID, // "1.3.6.1.4.1.4203.1.5.1"
                 "All Operational Attributes, RFC 3673");
         names.put(
                 "1.3.6.1.4.1.4203.1.5.2",
                 "Requesting Attributes by Object Class, RFC 4529");
         names.put(
-                "1.3.6.1.4.1.4203.1.5.3",
+                AbsoluteTrueAndFalseFilters.FEATURE_OID, // "1.3.6.1.4.1.4203.1.5.3"
                 "Absolute True and False Filters, RFC 4526");
         names.put(
                 "1.3.6.1.4.1.4203.1.5.4",
