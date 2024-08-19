@@ -7,6 +7,7 @@ import hu.gds.ldap4j.ldap.extension.FastBind;
 import hu.gds.ldap4j.ldap.extension.ManageDsaIt;
 import hu.gds.ldap4j.ldap.extension.ModifyIncrement;
 import hu.gds.ldap4j.ldap.extension.PasswordModify;
+import hu.gds.ldap4j.ldap.extension.ReadEntryControls;
 import hu.gds.ldap4j.ldap.extension.ServerSideSorting;
 import hu.gds.ldap4j.ldap.extension.SimplePagedResults;
 import java.math.BigInteger;
@@ -189,19 +190,19 @@ public class OID {
                 "1.2.840.113556.1.4.2354",
                 "Thread Trace Override Control, MS AD");
         names.put(
-                Cancel.REQUEST_OPERATION_OID, // "1.3.6.1.1.8",
+                Cancel.REQUEST_OPERATION_OID, // "1.3.6.1.1.8"
                 "Cancel Operation, RFC 3909");
         names.put(
                 "1.3.6.1.1.12",
                 "Assertion Control, RFC 4528");
         names.put(
-                "1.3.6.1.1.13.1",
+                ReadEntryControls.PRE_READ_CONTROL_OID, // "1.3.6.1.1.13.1"
                 "Pre-read entry control, RFC 4527");
         names.put(
-                "1.3.6.1.1.13.2",
+                ReadEntryControls.POST_READ_CONTROL_OID, // "1.3.6.1.1.13.2"
                 "Post-read entry control, RFC 4527");
         names.put(
-                ModifyIncrement.FEATURE_OID, //"1.3.6.1.1.14",
+                ModifyIncrement.FEATURE_OID, //"1.3.6.1.1.14"
                 "Modify-Increment Extension, RFC 4525");
         names.put(
                 "1.3.6.1.1.21.1",

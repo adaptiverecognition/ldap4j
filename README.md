@@ -50,6 +50,7 @@ Ldap4j currently supports:
 - [manage DSA IT control](https://www.ietf.org/rfc/rfc3296.txt),
 - [modify-increment operation](https://www.ietf.org/rfc/rfc4525.txt),
 - [password modify operation](https://www.ietf.org/rfc/rfc3062.txt),
+- [read entry controls](https://www.ietf.org/rfc/rfc4527.txt),
 - [server side sorting control](https://www.ietf.org/rfc/rfc2891.txt),
 - [simple paged results control](https://www.ietf.org/rfc/rfc2696.txt),
 - ["Who am I?" operation](https://www.ietf.org/rfc/rfc4532.txt).

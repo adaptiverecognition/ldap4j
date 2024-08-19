@@ -4,6 +4,7 @@ Version 1.1.1-SNAPSHOT:
 - add Netty codec
 - add optional TLS handshake executor
 - add password modify operation
+- add read entry controls
 - add server feature discovery
 - add server side sorting controls
 - add simple paged results control

@@ -27,10 +27,12 @@ public record Control(
         @Nullable T result=null;
         for (@NotNull Control control: controls) {
             @Nullable T value=function.apply(control);
-            if (null!=result) {
-                throw new RuntimeException("more than one matching control");
+            if (null!=value) {
+                if (null!=result) {
+                    throw new RuntimeException("more than one matching control");
+                }
+                result=value;
             }
-            result=value;
         }
         return result;
     }

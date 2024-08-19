@@ -25,7 +25,7 @@ public sealed interface SearchResult {
             return true;
         }
 
-        public static @NotNull SearchResult.Done read(@NotNull ByteBuffer.Reader reader) throws Throwable {
+        public static @NotNull SearchResult.Done readNoTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
             LdapResult ldapResult=LdapResult.read(reader);
             return new SearchResult.Done(ldapResult);
         }
@@ -55,7 +55,7 @@ public sealed interface SearchResult {
             return true;
         }
 
-        public static @NotNull SearchResult.Entry read(@NotNull ByteBuffer.Reader reader) throws Throwable {
+        public static @NotNull SearchResult.Entry readNoTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
             String objectName=BER.readUtf8Tag(reader);
             @NotNull List<@NotNull PartialAttribute> attributes=PartialAttribute.readAttributes(reader);
             return new SearchResult.Entry(attributes, objectName);
@@ -95,9 +95,9 @@ public sealed interface SearchResult {
         public @NotNull SearchResult read(@NotNull ByteBuffer.Reader reader) throws Throwable {
             return BER.readTag(
                     (tag)->switch (tag) {
-                        case RESULT_DONE_TAG -> Either.left(Done::read);
-                        case RESULT_ENTRY_TAG -> Either.left(Entry::read);
-                        case RESULT_REFERRAL_TAG -> Either.left(Referral::read);
+                        case RESULT_DONE_TAG -> Either.left(Done::readNoTag);
+                        case RESULT_ENTRY_TAG -> Either.left(Entry::readNoTag);
+                        case RESULT_REFERRAL_TAG -> Either.left(Referral::readNoTag);
                         default -> throw new RuntimeException(
                                 "unexpected tag 0x%x, expected 0x%x, 0x%x, or 0x%x".formatted(
                                         tag,
@@ -126,7 +126,7 @@ public sealed interface SearchResult {
             return true;
         }
 
-        public static @NotNull SearchResult.Referral read(@NotNull ByteBuffer.Reader reader) throws Throwable {
+        public static @NotNull SearchResult.Referral readNoTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
             List<@NotNull String> uris=new ArrayList<>();
             while (reader.hasRemainingBytes()) {
                 uris.add(BER.readUtf8Tag(reader));
