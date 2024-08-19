@@ -2,6 +2,7 @@ package hu.gds.ldap4j.ldap;
 
 import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.net.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
@@ -11,6 +12,8 @@ public record Control(
         @NotNull String controlType,
         byte@Nullable[] controlValue,
         boolean criticality) {
+    public static final byte CONTROLS_TAG=(byte)0xa0;
+
     public Control(
             @NotNull String controlType,
             byte@Nullable[] controlValue,
@@ -56,6 +59,22 @@ public record Control(
                 reader);
     }
 
+    public static @NotNull List<@NotNull Control> readControls(@NotNull ByteBuffer.Reader reader) throws Throwable {
+        List<@NotNull Control> controls=new ArrayList<>();
+        if (reader.hasRemainingBytes()) {
+            BER.readTag(
+                    (reader3)->{
+                        while (reader3.hasRemainingBytes()) {
+                            controls.add(Control.read(reader3));
+                        }
+                        return null;
+                    },
+                    reader,
+                    CONTROLS_TAG);
+        }
+        return controls;
+    }
+
     public @NotNull ByteBuffer write() {
         ByteBuffer buffer=BER.writeUtf8Tag(controlType);
         if (criticality || (null!=controlValue)) {
@@ -65,5 +84,16 @@ public record Control(
             buffer=buffer.append(BER.writeTag(BER.OCTET_STRING, ByteBuffer.create(controlValue)));
         }
         return BER.writeSequence(buffer);
+    }
+
+    public static @NotNull ByteBuffer writeControls(@NotNull List<@NotNull Control> controls) {
+        if (controls.isEmpty()) {
+            return ByteBuffer.EMPTY;
+        }
+        ByteBuffer buffer=ByteBuffer.EMPTY;
+        for (Control control: controls) {
+            buffer=buffer.append(control.write());
+        }
+        return BER.writeTag(CONTROLS_TAG, buffer);
     }
 }

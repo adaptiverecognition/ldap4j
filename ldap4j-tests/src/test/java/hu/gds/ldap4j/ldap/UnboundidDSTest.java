@@ -19,6 +19,7 @@ import hu.gds.ldap4j.ldap.extension.PasswordModify;
 import hu.gds.ldap4j.ldap.extension.ReadEntryControls;
 import hu.gds.ldap4j.ldap.extension.ServerSideSorting;
 import hu.gds.ldap4j.ldap.extension.SimplePagedResults;
+import hu.gds.ldap4j.ldap.extension.Transactions;
 import hu.gds.ldap4j.ldap.extension.WhoAmI;
 import hu.gds.ldap4j.net.ByteBuffer;
 import hu.gds.ldap4j.net.NetworkConnectionFactory;
@@ -38,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -1528,6 +1530,132 @@ public class UnboundidDSTest {
                                             assertEquals(2, pageControl.size());
                                             return Lava.VOID;
                                         });
+                            }));
+        }
+    }
+
+    @Test
+    public void testTransaction() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
+                     false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
+            ldapServer.start();
+            context.<Void>get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    ldapServer,
+                                    UnboundidDirectoryServer.adminBind()),
+                            new Function<@NotNull LdapConnection, @NotNull Lava<Void>>() {
+                                private @NotNull Lava<Void> add(
+                                        @NotNull LdapConnection connection,
+                                        @NotNull String object,
+                                        byte @NotNull [] transactionId) {
+                                    return connection.writeRequestReadResponseChecked(
+                                                    new ModifyRequest(
+                                                            List.of(
+                                                                    new ModifyRequest.Change(
+                                                                            new PartialAttribute(
+                                                                                    "objectClass",
+                                                                                    List.of("extensibleObject")),
+                                                                            ModifyRequest.OPERATION_ADD)),
+                                                            object)
+                                                            .controls(List.of(
+                                                                    ReadEntryControls.postRequest(
+                                                                            List.of("objectClass")),
+                                                                    ReadEntryControls.preRequest(
+                                                                            List.of("objectClass")),
+                                                                    Transactions.transactionSpecificationControl(
+                                                                            transactionId))))
+                                            .composeIgnoreResult(()->Lava.VOID);
+                                }
+
+                                private void assertControls(
+                                        boolean first,
+                                        @NotNull Transactions.UpdateControls updateControls)
+                                        throws Throwable {
+                                    assertEquals(4+(first?0:1), updateControls.messageId());
+                                    assertEquals(2, updateControls.controls().size());
+                                    assertEntry(
+                                            ReadEntryControls.postResponseCheck(updateControls.controls()),
+                                            first,
+                                            true);
+                                    assertEntry(
+                                            ReadEntryControls.preResponseCheck(updateControls.controls()),
+                                            first,
+                                            false);
+                                }
+
+                                private void assertEntry(
+                                        @NotNull SearchResult.Entry entry,
+                                        boolean first,
+                                        boolean post) {
+                                    assertEquals(
+                                            first
+                                                    ?"uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu"
+                                                    :"uid=user1,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                            entry.objectName());
+                                    assertEquals(1, entry.attributes().size());
+                                    assertEquals("objectClass", entry.attributes().get(0).type());
+                                    assertEquals(
+                                            post
+                                                    ?List.of(
+                                                    "top",
+                                                    "person",
+                                                    "organizationalPerson",
+                                                    "inetOrgPerson",
+                                                    "extensibleObject")
+                                                    :List.of(
+                                                    "top",
+                                                    "person",
+                                                    "organizationalPerson",
+                                                    "inetOrgPerson"),
+                                            entry.attributes().get(0).values());
+                                }
+
+                                @Override
+                                public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) {
+                                    return connection.writeRequestReadResponseChecked(
+                                                    Transactions.startTransactionRequest()
+                                                            .controlsEmpty())
+                                            .compose((startResponse)->{
+                                                assertEquals(
+                                                        LdapResultCode.SUCCESS,
+                                                        startResponse.message().ldapResult().resultCode2());
+                                                byte @NotNull [] transactionId
+                                                        =Transactions.startTransactionResponseTransactionId(
+                                                        startResponse);
+                                                assertNotNull(transactionId);
+                                                return add(
+                                                        connection,
+                                                        "uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                        transactionId)
+                                                        .composeIgnoreResult(()->add(
+                                                                connection,
+                                                                "uid=user1,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                                transactionId))
+                                                        .composeIgnoreResult(
+                                                                ()->connection.writeRequestReadResponseChecked(
+                                                                        Transactions.endTransactionRequest(
+                                                                                        true,
+                                                                                        transactionId)
+                                                                                .controlsEmpty()))
+                                                        .compose((endResponse)->{
+                                                            @NotNull Transactions.EndResponse endResponse2
+                                                                    =Transactions.endTransactionResponseCheck(
+                                                                    endResponse);
+                                                            assertNull(endResponse2.messageId());
+                                                            assertEquals(2, endResponse2.updatesControls().size());
+                                                            assertControls(
+                                                                    true,
+                                                                    endResponse2.updatesControls().get(0));
+                                                            assertControls(
+                                                                    false,
+                                                                    endResponse2.updatesControls().get(1));
+                                                            return Lava.VOID;
+                                                        });
+                                            });
+                                }
                             }));
         }
     }

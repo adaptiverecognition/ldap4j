@@ -12,6 +12,7 @@ Version 1.1.1-SNAPSHOT:
   - server feature discovery
   - server side sorting controls
   - simple paged results control
+  - transactions
   - "Who am I?" operation
 - add Netty codec
 - add optional TLS handshake executor

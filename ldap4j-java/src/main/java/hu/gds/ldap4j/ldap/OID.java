@@ -13,6 +13,7 @@ import hu.gds.ldap4j.ldap.extension.PasswordModify;
 import hu.gds.ldap4j.ldap.extension.ReadEntryControls;
 import hu.gds.ldap4j.ldap.extension.ServerSideSorting;
 import hu.gds.ldap4j.ldap.extension.SimplePagedResults;
+import hu.gds.ldap4j.ldap.extension.Transactions;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Comparator;
@@ -208,13 +209,13 @@ public class OID {
                 ModifyIncrement.FEATURE_OID, //"1.3.6.1.1.14"
                 "Modify-Increment Extension, RFC 4525");
         names.put(
-                "1.3.6.1.1.21.1",
+                Transactions.START_TRANSACTION_OID, // "1.3.6.1.1.21.1"
                 "Start Transaction Request and Response, RFC 5805");
         names.put(
-                "1.3.6.1.1.21.2",
+                Transactions.TRANSACTION_SPECIFICATIONS_CONTROL_OID, // "1.3.6.1.1.21.2"
                 "Transaction Specification Control, RFC 5805");
         names.put(
-                "1.3.6.1.1.21.3",
+                Transactions.END_TRANSACTION_OID, // "1.3.6.1.1.21.3"
                 "End Transactions Request and Response, RFC 5805");
         names.put(
                 DonTUseCopyControl.CONTROL_OID, // "1.3.6.1.1.22"

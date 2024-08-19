@@ -56,6 +56,7 @@ Ldap4j currently supports:
 - [read entry controls](https://www.ietf.org/rfc/rfc4527.txt),
 - [server side sorting control](https://www.ietf.org/rfc/rfc2891.txt),
 - [simple paged results control](https://www.ietf.org/rfc/rfc2696.txt),
+- [transactions](https://www.ietf.org/rfc/rfc5805.txt),
 - ["Who am I?" operation](https://www.ietf.org/rfc/rfc4532.txt).
 
 Ldap4j supports TLS, through the standard StartTLS operation, and it also supports the non-standard LDAPS protocol.

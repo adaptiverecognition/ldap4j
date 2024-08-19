@@ -22,7 +22,7 @@ public record ParallelMessageReader<T, U>(
      */
     public @NotNull Lava<U> readMessageChecked(int messageId, @NotNull ByteBuffer.Reader reader) throws Throwable {
         @NotNull T message=messageReader.read(reader);
-        @NotNull List<@NotNull Control> controls=LdapMessage.controls(reader);
+        @NotNull List<@NotNull Control> controls=Control.readControls(reader);
         return Lava.supplier(()->{
             messageReader.check(controls, message, messageId);
             @NotNull LdapMessage<T> ldapMessage=new LdapMessage<>(controls, message, messageId);

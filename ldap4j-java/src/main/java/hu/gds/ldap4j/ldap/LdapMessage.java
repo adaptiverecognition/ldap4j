@@ -3,7 +3,6 @@ package hu.gds.ldap4j.ldap;
 import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.net.ByteBuffer;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
@@ -13,29 +12,11 @@ public record LdapMessage<T>(
         @NotNull List<@NotNull Control> controls,
         @NotNull T message,
         int messageId) {
-    public static final byte CONTROLS_TAG=(byte)0xa0;
-
     public LdapMessage(
             @NotNull List<@NotNull Control> controls, @NotNull T message, int messageId) {
         this.controls=Objects.requireNonNull(controls, "controls");
         this.message=Objects.requireNonNull(message, "message");
         this.messageId=messageId;
-    }
-
-    public static @NotNull List<@NotNull Control> controls(@NotNull ByteBuffer.Reader reader) throws Throwable {
-        List<@NotNull Control> controls=new ArrayList<>();
-        if (reader.hasRemainingBytes()) {
-            BER.readTag(
-                    (reader3)->{
-                        while (reader3.hasRemainingBytes()) {
-                            controls.add(Control.read(reader3));
-                        }
-                        return null;
-                    },
-                    reader,
-                    CONTROLS_TAG);
-        }
-        return controls;
     }
 
     public static <T> @NotNull Function<ByteBuffer.Reader, @NotNull Lava<T>> readCheckedParallel(
@@ -50,7 +31,7 @@ public record LdapMessage<T>(
                     }
                     else if (0==messageId) {
                         ExtendedResponse response=ExtendedResponse.READER_SUCCESS.read(reader2);
-                        @NotNull List<@NotNull Control> controls=controls(reader2);
+                        @NotNull List<@NotNull Control> controls=Control.readControls(reader2);
                         throw new ExtendedLdapException(new LdapMessage<>(controls, response, messageId));
                     }
                     else {
@@ -61,20 +42,9 @@ public record LdapMessage<T>(
     }
 
     public @NotNull ByteBuffer write(@NotNull Function<@NotNull T, ByteBuffer> function) throws Throwable {
-        ByteBuffer controls2;
-        if (controls.isEmpty()) {
-            controls2=ByteBuffer.EMPTY;
-        }
-        else {
-            ByteBuffer controls3=ByteBuffer.EMPTY;
-            for (Control control: controls) {
-                controls3=controls3.append(control.write());
-            }
-            controls2=BER.writeTag(CONTROLS_TAG, controls3);
-        }
         return BER.writeSequence(
                 BER.writeIntegerTag(messageId)
                         .append(function.apply(message))
-                        .append(controls2));
+                        .append(Control.writeControls(controls)));
     }
 }
