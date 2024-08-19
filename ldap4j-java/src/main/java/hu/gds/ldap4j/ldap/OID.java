@@ -1,19 +1,7 @@
 package hu.gds.ldap4j.ldap;
 
-import hu.gds.ldap4j.ldap.extension.AbsoluteTrueAndFalseFilters;
-import hu.gds.ldap4j.ldap.extension.AllOperationAttributes;
-import hu.gds.ldap4j.ldap.extension.AssertionControl;
-import hu.gds.ldap4j.ldap.extension.AttributesByObjectClass;
-import hu.gds.ldap4j.ldap.extension.Cancel;
-import hu.gds.ldap4j.ldap.extension.DonTUseCopyControl;
-import hu.gds.ldap4j.ldap.extension.FastBind;
-import hu.gds.ldap4j.ldap.extension.ManageDsaIt;
-import hu.gds.ldap4j.ldap.extension.ModifyIncrement;
-import hu.gds.ldap4j.ldap.extension.PasswordModify;
-import hu.gds.ldap4j.ldap.extension.ReadEntryControls;
-import hu.gds.ldap4j.ldap.extension.ServerSideSorting;
-import hu.gds.ldap4j.ldap.extension.SimplePagedResults;
-import hu.gds.ldap4j.ldap.extension.Transactions;
+import hu.gds.ldap4j.ldap.extension.*;
+
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Comparator;
@@ -53,7 +41,7 @@ public class OID {
     static {
         @NotNull Map<@NotNull String, @NotNull String> names=new HashMap<>();
         names.put(
-                "1.2.826.0.1.3344810.2.3",
+                MatchedValuesControl.CONTROL_OID, // "1.2.826.0.1.3344810.2.3"
                 "Returning Matched Values Control, RFC 3876");
         names.put(
                 SimplePagedResults.CONTROL_OID,

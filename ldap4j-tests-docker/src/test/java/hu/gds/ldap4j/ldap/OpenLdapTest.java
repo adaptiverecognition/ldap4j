@@ -8,6 +8,7 @@ import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.lava.ThreadPoolContextHolder;
 import hu.gds.ldap4j.ldap.extension.FeatureDiscovery;
+import hu.gds.ldap4j.ldap.extension.MatchedValuesControl;
 import hu.gds.ldap4j.net.NetworkConnectionFactory;
 import hu.gds.ldap4j.net.TlsConnection;
 import org.jetbrains.annotations.NotNull;
@@ -162,6 +163,65 @@ public class OpenLdapTest {
                                         assertTrue(featureDiscovery.supportedSaslMechanisms.contains("GSSAPI"));
                                         return Lava.VOID;
                                     })));
+        }
+    }
+
+    @Test
+    public void testMatchedValuesControl() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS)) {
+            context.get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    TlsConnection.DEFAULT_EXPLICIT_TLS_RENEGOTIATION,
+                                    ()->new InetSocketAddress(InetAddress.getLoopbackAddress(), 389),
+                                    ()->new InetSocketAddress(InetAddress.getLoopbackAddress(), 636),
+                                    ADMIN_BIND),
+                            new Function<@NotNull LdapConnection, @NotNull Lava<Void>>() {
+                                @Override
+                                public @NotNull Lava<Void> apply(@NotNull LdapConnection connection) throws Throwable {
+                                    return assertValues(connection, false)
+                                            .composeIgnoreResult(()->assertValues(connection, true));
+                                }
+
+                                private @NotNull Lava<Void> assertValues(
+                                        @NotNull LdapConnection connection, boolean matchValues) throws Throwable {
+                                    @NotNull List<@NotNull Control> controls;
+                                    if (matchValues) {
+                                        controls=List.of(
+                                                MatchedValuesControl.requestControl(
+                                                        List.of(
+                                                                Filter.parse("(objectClass=organization)"))));
+                                    }
+                                    else {
+                                        controls=List.of();
+                                    }
+                                    return connection.search(
+                                                    new SearchRequest(
+                                                            List.of("objectClass"),
+                                                            "dc=example,dc=org",
+                                                            DerefAliases.NEVER_DEREF_ALIASES,
+                                                            Filter.parse("(objectClass=*)"),
+                                                            Scope.BASE_OBJECT,
+                                                            100,
+                                                            10,
+                                                            false)
+                                                            .controls(controls))
+                                            .compose((results)->{
+                                                assertEquals(2, results.size());
+                                                SearchResult.Entry entry=results.get(0).message().asEntry();
+                                                assertEquals(1, entry.attributes().size());
+                                                PartialAttribute attribute=entry.attributes().get(0);
+                                                assertEquals("objectClass", attribute.type());
+                                                assertEquals(
+                                                        matchValues
+                                                        ?List.of("organization")
+                                                        :List.of("top", "dcObject", "organization"),
+                                                        attribute.values());
+                                                return Lava.VOID;
+                                            });
+                                }
+                            }));
         }
     }
 }
