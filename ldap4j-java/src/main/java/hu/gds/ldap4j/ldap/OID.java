@@ -6,6 +6,7 @@ import hu.gds.ldap4j.ldap.extension.FastBind;
 import hu.gds.ldap4j.ldap.extension.ManageDsaIt;
 import hu.gds.ldap4j.ldap.extension.PasswordModify;
 import hu.gds.ldap4j.ldap.extension.ServerSideSorting;
+import hu.gds.ldap4j.ldap.extension.SimplePagedResults;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Comparator;
@@ -48,7 +49,7 @@ public class OID {
                 "1.2.826.0.1.3344810.2.3",
                 "Returning Matched Values Control, RFC 3876");
         names.put(
-                "1.2.840.113556.1.4.319",
+                SimplePagedResults.CONTROL_OID,
                 "Simple Paged Results Control, RFC 2696");
         names.put(
                 "1.2.840.113556.1.4.417",

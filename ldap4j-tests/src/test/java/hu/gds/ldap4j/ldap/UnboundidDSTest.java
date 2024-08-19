@@ -13,6 +13,7 @@ import hu.gds.ldap4j.ldap.extension.FeatureDiscovery;
 import hu.gds.ldap4j.ldap.extension.ManageDsaIt;
 import hu.gds.ldap4j.ldap.extension.PasswordModify;
 import hu.gds.ldap4j.ldap.extension.ServerSideSorting;
+import hu.gds.ldap4j.ldap.extension.SimplePagedResults;
 import hu.gds.ldap4j.ldap.extension.WhoAmI;
 import hu.gds.ldap4j.net.ByteBuffer;
 import hu.gds.ldap4j.net.NetworkConnectionFactory;
@@ -1141,6 +1142,64 @@ public class UnboundidDSTest {
                                                 return Lava.VOID;
                                             });
                                 }
+                            }));
+        }
+    }
+
+    @Test
+    public void testSimplePagedResults() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS);
+             UnboundidDirectoryServer ldapServer=new UnboundidDirectoryServer(
+                     false, TEST_PARAMETERS.serverPortClearText, TEST_PARAMETERS.serverPortTls)) {
+            ldapServer.start();
+            context.<Void>get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    ldapServer,
+                                    UnboundidDirectoryServer.adminBind()),
+                            (connection)->{
+                                @NotNull Control sortControl=ServerSideSorting.requestControl(
+                                        true,
+                                        List.of(new ServerSideSorting.SortKey("uid", null, false)));
+                                @NotNull SearchRequest searchRequest=new SearchRequest(
+                                        List.of(),
+                                        "ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                        DerefAliases.DEREF_ALWAYS,
+                                        Filter.parse("(objectClass=person)"),
+                                        Scope.WHOLE_SUBTREE,
+                                        100,
+                                        10,
+                                        true);
+                                return connection.search(searchRequest.controls(List.of(
+                                                sortControl,
+                                                SimplePagedResults.startRequest(1))))
+                                        .compose((results)->{
+                                            assertEquals(2, results.size());
+                                            assertEquals(
+                                                    "uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                    results.get(0).message().asEntry().objectName());
+                                            assertTrue(results.get(1).message().isDone());
+                                            @NotNull SimplePagedResults.SearchControlValue pageControl
+                                                    =SimplePagedResults.responseControlCheck(results.get(1).controls());
+                                            assertFalse(pageControl.cookie().isEmpty());
+                                            assertEquals(2, pageControl.size());
+                                            return connection.search(searchRequest.controls(List.of(
+                                                    sortControl,
+                                                    pageControl.continueRequest(1))));
+                                        })
+                                        .compose((results)->{
+                                            assertEquals(2, results.size());
+                                            assertEquals(
+                                                    "uid=user1,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
+                                                    results.get(0).message().asEntry().objectName());
+                                            assertTrue(results.get(1).message().isDone());
+                                            @NotNull SimplePagedResults.SearchControlValue pageControl
+                                                    =SimplePagedResults.responseControlCheck(results.get(1).controls());
+                                            assertTrue(pageControl.cookie().isEmpty());
+                                            assertEquals(2, pageControl.size());
+                                            return Lava.VOID;
+                                        });
                             }));
         }
     }

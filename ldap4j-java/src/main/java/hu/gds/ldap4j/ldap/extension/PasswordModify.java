@@ -19,6 +19,18 @@ public class PasswordModify {
     public static final byte RESPONSE_GEN_PASSWD_TAG=(byte)0x80;
     
     public record Response(char @Nullable [] genPasswd) {
+        public static @NotNull Response read(@NotNull ByteBuffer.Reader reader) throws Throwable {
+            return BER.readSequence(
+                    (reader2)->{
+                        char @Nullable [] genPasswd=BER.readOptionalTag(
+                                BER::readUtf8NoTagChars,
+                                reader2,
+                                ()->null,
+                                RESPONSE_GEN_PASSWD_TAG);
+                        return new Response(genPasswd);
+                    },
+                    reader);
+        }
     }
 
     private PasswordModify() {
@@ -55,15 +67,7 @@ public class PasswordModify {
         if (null==responseValue) {
             return null;
         }
-        char @Nullable [] genPasswd=ByteBuffer.create(responseValue)
-                .read(
-                        (reader)->BER.readSequence(
-                                (reader2)->BER.readOptionalTag(
-                                        BER::readUtf8NoTagChars,
-                                        reader2,
-                                        ()->null,
-                                        RESPONSE_GEN_PASSWD_TAG),
-                                reader));
-        return new Response(genPasswd);
+        return ByteBuffer.create(responseValue)
+                .read(Response::read);
     }
 }

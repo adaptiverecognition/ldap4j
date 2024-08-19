@@ -5,6 +5,7 @@ Version 1.1.1-SNAPSHOT:
 - add password modify operation
 - add server feature discovery
 - add server side sorting controls
+- add simple paged results control
 - add thread-local executor
 - add "Who am I?" operation
 - receive and send TLS renegotiations

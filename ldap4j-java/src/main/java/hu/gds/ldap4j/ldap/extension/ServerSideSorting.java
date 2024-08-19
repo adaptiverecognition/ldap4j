@@ -2,6 +2,7 @@ package hu.gds.ldap4j.ldap.extension;
 
 import hu.gds.ldap4j.ldap.BER;
 import hu.gds.ldap4j.ldap.Control;
+import hu.gds.ldap4j.ldap.NoSuchControlException;
 import hu.gds.ldap4j.net.ByteBuffer;
 import java.io.Serial;
 import java.util.Collections;
@@ -70,16 +71,27 @@ public class ServerSideSorting {
             @Nullable String attributeType,
             int sortResult,
             @Nullable SortResultCode sortResultCode) {
-        public SortResult(@Nullable String attributeType, int sortResult, @Nullable SortResultCode sortResultCode) {
-            this.attributeType=attributeType;
-            this.sortResult=sortResult;
-            this.sortResultCode=sortResultCode;
-        }
-
         public void checkSuccess() {
             if (SortResultCode.SUCCESS.code!=sortResult) {
                 throw new SortingException(attributeType, "sort not succeeded", sortResult, sortResultCode);
             }
+        }
+
+        public static @NotNull SortResult read(@NotNull ByteBuffer.Reader reader) throws Throwable {
+            return BER.readSequence(
+                    (reader2)->{
+                        int sortResult=BER.readEnumeratedTag(reader2);
+                        @Nullable String attributeType=BER.readOptionalTag(
+                                BER::readUtf8NoTag,
+                                reader2,
+                                ()->null,
+                                SORT_RESULT_ATTRIBUTE_TYPE_TAG);
+                        return new SortResult(
+                                attributeType,
+                                sortResult,
+                                SortResultCode.sortResultCode(sortResult));
+                    },
+                    reader);
         }
     }
 
@@ -151,20 +163,7 @@ public class ServerSideSorting {
                         return null;
                     }
                     return ByteBuffer.create(control.controlValue())
-                            .read((reader)->BER.readSequence(
-                                    (reader2)->{
-                                        int sortResult=BER.readEnumeratedTag(reader2);
-                                        @Nullable String attributeType=BER.readOptionalTag(
-                                                BER::readUtf8NoTag,
-                                                reader2,
-                                                ()->null,
-                                                SORT_RESULT_ATTRIBUTE_TYPE_TAG);
-                                        return new SortResult(
-                                                attributeType,
-                                                sortResult,
-                                                SortResultCode.sortResultCode(sortResult));
-                                    },
-                                    reader));
+                            .read(SortResult::read);
                 }
         );
     }
@@ -173,11 +172,7 @@ public class ServerSideSorting {
             @NotNull List<@NotNull Control> controls) throws Throwable {
         @Nullable SortResult sortResult=responseControl(controls);
         if (null==sortResult) {
-            throw new SortingException(
-                    null,
-                    "no sort response control",
-                    SortResultCode.OPERATION_ERROR.code,
-                    SortResultCode.OPERATION_ERROR);
+            throw new NoSuchControlException();
         }
         sortResult.checkSuccess();
         return sortResult;
