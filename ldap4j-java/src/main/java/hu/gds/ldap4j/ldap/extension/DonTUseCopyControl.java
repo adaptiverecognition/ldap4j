@@ -17,6 +17,6 @@ public class DonTUseCopyControl {
     }
 
     public static @NotNull Control request(boolean criticality) {
-        return new Control(CONTROL_OID, null, criticality);
+        return Control.create(CONTROL_OID, null, criticality);
     }
 }

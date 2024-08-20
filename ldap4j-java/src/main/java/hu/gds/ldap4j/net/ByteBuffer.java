@@ -2,6 +2,8 @@ package hu.gds.ldap4j.net;
 
 import hu.gds.ldap4j.Function;
 import java.io.EOFException;
+import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.LinkedList;
@@ -107,7 +109,7 @@ public sealed abstract class ByteBuffer {
         private final @NotNull java.nio.ByteBuffer buffer;
 
         public NioBuffer(@NotNull java.nio.ByteBuffer buffer, int from, int to) {
-            super(from, hashCode(buffer), buffer.capacity(), to);
+            super(from, hashCode(buffer, from, to), buffer.capacity(), to);
             this.buffer=Objects.requireNonNull(buffer, "buffer");
         }
 
@@ -116,9 +118,9 @@ public sealed abstract class ByteBuffer {
             return buffer.get(index);
         }
 
-        public static int hashCode(@NotNull java.nio.ByteBuffer buffer) {
+        public static int hashCode(@NotNull java.nio.ByteBuffer buffer, int from, int to) {
             int result=0;
-            for (int ii=buffer.limit()-1; buffer.position()<=ii; --ii) {
+            for (int ii=to-1; from<=ii; --ii) {
                 result=HASHCODE_MULTIPLIER*result+(buffer.get(ii)&255);
             }
             return result;
@@ -369,6 +371,10 @@ public sealed abstract class ByteBuffer {
         return create(array, 0, array.length);
     }
 
+    public static @NotNull ByteBuffer create(char @NotNull ... array) {
+        return create(array, 0, array.length);
+    }
+
     public static @NotNull ByteBuffer create(byte @NotNull [] array, int from, int to) {
         if (from>=to) {
             return empty();
@@ -376,8 +382,19 @@ public sealed abstract class ByteBuffer {
         return new Array(array, from, to);
     }
 
+    public static @NotNull ByteBuffer create(char @NotNull [] array, int from, int to) {
+        if (from>=to) {
+            return empty();
+        }
+        return create(StandardCharsets.UTF_8.encode(CharBuffer.wrap(array, from, to-from)));
+    }
+
     public static @NotNull ByteBuffer create(@NotNull java.nio.ByteBuffer buffer) {
         return new NioBuffer(buffer, buffer.position(), buffer.limit());
+    }
+
+    public static @NotNull ByteBuffer create(@NotNull String string) {
+        return create(string.getBytes(StandardCharsets.UTF_8));
     }
 
     public static @NotNull ByteBuffer createCopy(byte @NotNull [] array, int from, int to) {
@@ -395,6 +412,27 @@ public sealed abstract class ByteBuffer {
         array[6]=(byte)(value >>> 8);
         array[7]=(byte)value;
         return create(array);
+    }
+
+    public static @Nullable ByteBuffer createNull(byte @Nullable ... array) {
+        if (null==array) {
+            return null;
+        }
+        return create(array);
+    }
+
+    public static @Nullable ByteBuffer createNull(char @Nullable ... array) {
+        if (null==array) {
+            return null;
+        }
+        return create(array);
+    }
+
+    public static @Nullable ByteBuffer createNull(@Nullable String string) {
+        if (null==string) {
+            return null;
+        }
+        return create(string);
     }
 
     @Override
@@ -505,6 +543,10 @@ public sealed abstract class ByteBuffer {
 
     public int size() {
         return size;
+    }
+
+    public @NotNull String utf8() {
+        return new String(arrayCopy(), StandardCharsets.UTF_8);
     }
 
     public void write(@NotNull Write write) {

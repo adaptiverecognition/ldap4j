@@ -13,6 +13,7 @@ import hu.gds.ldap4j.ldap.SearchResult;
 import hu.gds.ldap4j.ldap.extension.FastBind;
 import hu.gds.ldap4j.ldap.extension.FeatureDiscovery;
 import hu.gds.ldap4j.ldap.extension.ManageDsaIt;
+import hu.gds.ldap4j.net.ByteBuffer;
 import hu.gds.ldap4j.net.CryptoUtil;
 import hu.gds.ldap4j.net.TlsSettings;
 import hu.gds.ldap4j.trampoline.Trampoline;
@@ -189,10 +190,10 @@ public class Ldap4jCommand {
                 break;
             }
         }
-        @NotNull String entry=arguments.removeFirst("missing entry");
-        @NotNull String attribute=arguments.removeFirst("missing attribute");
+        @NotNull ByteBuffer entry=ByteBuffer.create(arguments.removeFirst("missing entry"));
+        @NotNull ByteBuffer attribute=ByteBuffer.create(arguments.removeFirst("missing attribute"));
         @NotNull String assertion=arguments.removeFirst("missing assertion");
-        @NotNull String value=arguments.removeFirst("missing value");
+        @NotNull ByteBuffer value=ByteBuffer.create(arguments.removeFirst("missing value"));
         @NotNull Filter.AttributeValueAssertion assertion2=switch (assertion) {
             case Filter.ApproxMatch.RELATION_STRING -> new Filter.ApproxMatch(value, attribute);
             case Filter.EqualityMatch.RELATION_STRING -> new Filter.EqualityMatch(value, attribute);
@@ -288,7 +289,14 @@ public class Ldap4jCommand {
         @NotNull String baseObject=arguments.removeFirst("missing base object");
         @NotNull Filter filter=Filter.parse(arguments.removeFirst("missing filter"));
         SearchRequest searchRequest=new SearchRequest(
-                attributes, baseObject, derefAliases, filter, scope, sizeLimitEntries, timeLimitSeconds, typesOnly);
+                attributes,
+                baseObject,
+                derefAliases,
+                filter,
+                scope,
+                sizeLimitEntries,
+                timeLimitSeconds,
+                typesOnly);
         System.out.printf("search%n");
         System.out.printf("%sattributes: %s%n", INDENT, searchRequest.attributes());
         System.out.printf("%sbase object: %s%n", INDENT, searchRequest.baseObject());
@@ -323,8 +331,8 @@ public class Ldap4jCommand {
                 @Override
                 public Void referral(@NotNull SearchResult.Referral referral) {
                     System.out.printf("search referral%n");
-                    for (String uri: referral.uris()) {
-                        System.out.printf("%suri: %s%n", INDENT, uri);
+                    for (@NotNull ByteBuffer uri: referral.uris()) {
+                        System.out.printf("%suri: %s%n", INDENT, uri.utf8());
                     }
                     return null;
                 }

@@ -82,7 +82,7 @@ public class NettyLdapCodecSample {
                                 .filter(SearchResult::isEntry)
                                 .map(SearchResult::asEntry)
                                 .flatMap((entry)->entry.attributes().stream())
-                                .filter((attribute)->"uniqueMember".equals(attribute.type()))
+                                .filter((attribute)->"uniqueMember".equals(attribute.type().utf8()))
                                 .flatMap((attribute)->attribute.values().stream())
                                 .forEach(System.out::println);
                         // closing connection

@@ -19,13 +19,23 @@ public class ReadEntryControls {
     private ReadEntryControls() {
     }
 
-    public static @NotNull Control postRequest(@NotNull List<@NotNull String> attributeSelections) {
+    private static @NotNull List<@NotNull ByteBuffer> fromStrings(@NotNull List<@NotNull String> list) {
+        return list.stream()
+                .map(ByteBuffer::create)
+                .toList();
+    }
+
+    public static @NotNull Control postRequest(@NotNull List<@NotNull ByteBuffer> attributeSelections) {
         return postRequest(attributeSelections, true);
     }
 
     public static @NotNull Control postRequest(
-            @NotNull List<@NotNull String> attributeSelections, boolean criticality) {
-        return request(attributeSelections, POST_READ_CONTROL_OID, criticality);
+            @NotNull List<@NotNull ByteBuffer> attributeSelections, boolean criticality) {
+        return request(attributeSelections, ByteBuffer.create(POST_READ_CONTROL_OID), criticality);
+    }
+
+    public static @NotNull Control postRequestString(@NotNull List<@NotNull String> attributeSelections) {
+        return postRequest(fromStrings(attributeSelections));
     }
 
     public static @NotNull SearchResult.Entry postResponseCheck(
@@ -33,13 +43,17 @@ public class ReadEntryControls {
         return responseCheck(controls, POST_READ_CONTROL_OID);
     }
 
-    public static @NotNull Control preRequest(@NotNull List<@NotNull String> attributeSelections) {
+    public static @NotNull Control preRequest(@NotNull List<@NotNull ByteBuffer> attributeSelections) {
         return preRequest(attributeSelections, true);
     }
 
     public static @NotNull Control preRequest(
-            @NotNull List<@NotNull String> attributeSelections, boolean criticality) {
-        return request(attributeSelections, PRE_READ_CONTROL_OID, criticality);
+            @NotNull List<@NotNull ByteBuffer> attributeSelections, boolean criticality) {
+        return request(attributeSelections, ByteBuffer.create(PRE_READ_CONTROL_OID), criticality);
+    }
+
+    public static @NotNull Control preRequestString(@NotNull List<@NotNull String> attributeSelections) {
+        return preRequest(fromStrings(attributeSelections));
     }
 
     public static @NotNull SearchResult.Entry preResponseCheck(
@@ -48,15 +62,16 @@ public class ReadEntryControls {
     }
 
     public static @NotNull Control request(
-            @NotNull List<@NotNull String> attributeSelections, @NotNull String controlType, boolean criticality) {
+            @NotNull List<@NotNull ByteBuffer> attributeSelections,
+            @NotNull ByteBuffer controlType,
+            boolean criticality) {
         @NotNull ByteBuffer buffer=ByteBuffer.empty();
-        for (@NotNull String attributeSelection: attributeSelections) {
-            buffer=buffer.append(BER.writeUtf8Tag(attributeSelection));
+        for (@NotNull ByteBuffer attributeSelection: attributeSelections) {
+            buffer=buffer.append(BER.writeOctetStringTag(attributeSelection));
         }
-        return new Control(
+        return Control.create(
                 controlType,
-                BER.writeSequence(buffer)
-                        .arrayCopy(),
+                BER.writeSequence(buffer),
                 criticality);
     }
 
@@ -65,13 +80,13 @@ public class ReadEntryControls {
         return Control.findOne(
                 controls,
                 (control)->{
-                    if (!controlType.equals(control.controlType())) {
+                    if (!controlType.equals(control.controlType().utf8())) {
                         return null;
                     }
                     if (null==control.controlValue()) {
                         return null;
                     }
-                    return ByteBuffer.create(control.controlValue())
+                    return control.controlValue()
                             .read((reader)->BER.readTag(
                                     SearchResult.Entry::readNoTag,
                                     reader,

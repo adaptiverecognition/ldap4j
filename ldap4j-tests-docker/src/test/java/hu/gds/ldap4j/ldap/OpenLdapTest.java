@@ -9,6 +9,7 @@ import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.lava.ThreadPoolContextHolder;
 import hu.gds.ldap4j.ldap.extension.FeatureDiscovery;
 import hu.gds.ldap4j.ldap.extension.MatchedValuesControl;
+import hu.gds.ldap4j.net.ByteBuffer;
 import hu.gds.ldap4j.net.NetworkConnectionFactory;
 import hu.gds.ldap4j.net.TlsConnection;
 import org.jetbrains.annotations.NotNull;
@@ -111,12 +112,13 @@ public class OpenLdapTest {
                                                             "dc=example,dc=org",
                                                             DerefAliases.DEREF_ALWAYS,
                                                             new Filter.And(List.of(
-                                                                    new Filter.Present("objectClass"),
+                                                                    new Filter.Present(
+                                                                            ByteBuffer.create("objectClass")),
                                                                     new Filter.ExtensibleMatch(
                                                                             true,
-                                                                            matchingRule,
-                                                                            matchValue,
-                                                                            type))),
+                                                                            ByteBuffer.createNull(matchingRule),
+                                                                            ByteBuffer.create(matchValue),
+                                                                            ByteBuffer.create(type)))),
                                                             Scope.BASE_OBJECT,
                                                             100,
                                                             10,
@@ -128,7 +130,7 @@ public class OpenLdapTest {
                                                     assertTrue(results.get(0).message().isEntry());
                                                     assertEquals(
                                                             "dc=example,dc=org",
-                                                            results.get(0).message().asEntry().objectName());
+                                                            results.get(0).message().asEntry().objectName().utf8());
                                                     assertTrue(results.get(1).message().isDone());
                                                 }
                                                 else {
@@ -212,12 +214,12 @@ public class OpenLdapTest {
                                                 SearchResult.Entry entry=results.get(0).message().asEntry();
                                                 assertEquals(1, entry.attributes().size());
                                                 PartialAttribute attribute=entry.attributes().get(0);
-                                                assertEquals("objectClass", attribute.type());
+                                                assertEquals("objectClass", attribute.type().utf8());
                                                 assertEquals(
                                                         matchValues
                                                         ?List.of("organization")
                                                         :List.of("top", "dcObject", "organization"),
-                                                        attribute.values());
+                                                        attribute.valuesUtf8());
                                                 return Lava.VOID;
                                             });
                                 }

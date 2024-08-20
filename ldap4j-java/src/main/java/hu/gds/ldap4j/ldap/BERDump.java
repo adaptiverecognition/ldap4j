@@ -47,7 +47,7 @@ public class BERDump {
         put.apply(BER.BOOLEAN).accept("BOOLEAN", BER::readBooleanNoTag);
         put.apply(BER.ENUMERATED).accept("ENUMERATED", BER::readEnumeratedNoTag);
         put.apply(BER.INTEGER).accept("INTEGER", (reader)->BER.readIntegerNoTag(false, reader));
-        put.apply(BER.OCTET_STRING).accept("OCTET STRING", BER::readUtf8NoTag);
+        put.apply(BER.OCTET_STRING).accept("OCTET STRING", BER::readOctetStringNoTag);
         put.apply(BER.SEQUENCE).accept("SEQUENCE", null);
         put.apply(Control.CONTROLS_TAG).accept("LDAP message controls?", null);
         put.apply(Filter.AND_TAG).accept("LDAP and filter?", null);

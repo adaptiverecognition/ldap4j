@@ -6,8 +6,8 @@ import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
 public record SearchRequest(
-        @NotNull List<@NotNull String> attributes,
-        @NotNull String baseObject,
+        @NotNull List<@NotNull ByteBuffer> attributes,
+        @NotNull ByteBuffer baseObject,
         @NotNull DerefAliases derefAliases,
         @NotNull Filter filter,
         @NotNull Scope scope,
@@ -20,8 +20,8 @@ public record SearchRequest(
     public static final byte REQUEST_TAG=0x63;
 
     public SearchRequest(
-            @NotNull List<@NotNull String> attributes,
-            @NotNull String baseObject,
+            @NotNull List<@NotNull ByteBuffer> attributes,
+            @NotNull ByteBuffer baseObject,
             @NotNull DerefAliases derefAliases,
             @NotNull Filter filter,
             @NotNull Scope scope,
@@ -43,6 +43,28 @@ public record SearchRequest(
         this.timeLimitSeconds=timeLimitSeconds;
         this.typesOnly=typesOnly;
     }
+    
+    public SearchRequest(
+            @NotNull List<@NotNull String> attributes,
+            @NotNull String baseObject,
+            @NotNull DerefAliases derefAliases,
+            @NotNull Filter filter,
+            @NotNull Scope scope,
+            int sizeLimitEntries,
+            int timeLimitSeconds,
+            boolean typesOnly) {
+        this(
+                attributes.stream()
+                        .map(ByteBuffer::create)
+                        .toList(),
+                ByteBuffer.create(baseObject),
+                derefAliases,
+                filter,
+                scope,
+                sizeLimitEntries,
+                timeLimitSeconds,
+                typesOnly);
+    }
 
     @Override
     public @NotNull SearchRequest self() {
@@ -53,13 +75,13 @@ public record SearchRequest(
     public @NotNull ByteBuffer write() throws Throwable {
         return BER.writeTag(
                 REQUEST_TAG,
-                BER.writeUtf8Tag(baseObject)
+                BER.writeOctetStringTag(baseObject)
                         .append(scope.write())
                         .append(derefAliases.write())
                         .append(BER.writeIntegerTag(sizeLimitEntries))
                         .append(BER.writeIntegerTag(timeLimitSeconds))
                         .append(BER.writeBooleanTag(typesOnly))
                         .append(filter.write())
-                        .append(BER.writeSequence(BER.writeIterable(BER::writeUtf8Tag, attributes))));
+                        .append(BER.writeSequence(BER.writeIterable(BER::writeOctetStringTag, attributes))));
     }
 }

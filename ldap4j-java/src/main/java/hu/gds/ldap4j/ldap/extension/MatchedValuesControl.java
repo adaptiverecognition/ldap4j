@@ -25,10 +25,9 @@ public class MatchedValuesControl {
         for (@NotNull Filter filter: filters) {
             buffer=buffer.append(filter.write());
         }
-        return new Control(
+        return Control.create(
                 CONTROL_OID,
-                BER.writeSequence(buffer)
-                        .arrayCopy(),
+                BER.writeSequence(buffer),
                 criticality);
     }
 

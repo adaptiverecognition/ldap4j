@@ -23,7 +23,7 @@ public abstract class Filter {
         }
 
         @Override
-        protected String toStringRelation() {
+        protected @NotNull String toStringRelation() {
             return "&";
         }
     }
@@ -31,7 +31,7 @@ public abstract class Filter {
     public static class ApproxMatch extends AttributeValueAssertion {
         public static final String RELATION_STRING="~";
 
-        public ApproxMatch(@NotNull String assertionValue, @NotNull String attributeDescription) {
+        public ApproxMatch(@NotNull ByteBuffer assertionValue, @NotNull ByteBuffer attributeDescription) {
             super(assertionValue, attributeDescription);
         }
 
@@ -41,7 +41,7 @@ public abstract class Filter {
         }
 
         @Override
-        protected String toStringRelation() {
+        protected @NotNull String toStringRelation() {
             return RELATION_STRING;
         }
     }
@@ -57,17 +57,17 @@ public abstract class Filter {
         }
 
         @Override
-        protected String toStringRelation() {
+        protected @NotNull String toStringRelation() {
             return "|";
         }
     }
 
     public static abstract class AttributeValueAssertion extends Filter {
-        public final @NotNull String assertionValue;
-        public final @NotNull String attributeDescription;
+        public final @NotNull ByteBuffer assertionValue;
+        public final @NotNull ByteBuffer attributeDescription;
 
         public AttributeValueAssertion(
-                @NotNull String assertionValue, @NotNull String attributeDescription) {
+                @NotNull ByteBuffer assertionValue, @NotNull ByteBuffer attributeDescription) {
             this.assertionValue=Objects.requireNonNull(assertionValue, "assertionValue");
             this.attributeDescription=Objects.requireNonNull(attributeDescription, "attributeDescription");
         }
@@ -77,19 +77,19 @@ public abstract class Filter {
             return "("+attributeDescription+toStringRelation()+assertionValue+")";
         }
 
-        protected abstract String toStringRelation();
+        protected abstract @NotNull String toStringRelation();
 
         @Override
-        protected ByteBuffer writeContent() {
-            return BER.writeUtf8Tag(attributeDescription)
-                    .append(BER.writeUtf8Tag(assertionValue));
+        protected @NotNull ByteBuffer writeContent() {
+            return BER.writeOctetStringTag(attributeDescription)
+                    .append(BER.writeOctetStringTag(assertionValue));
         }
     }
 
     public static class EqualityMatch extends AttributeValueAssertion {
         public static final String RELATION_STRING="=";
 
-        public EqualityMatch(@NotNull String assertionValue, @NotNull String attributeDescription) {
+        public EqualityMatch(@NotNull ByteBuffer assertionValue, @NotNull ByteBuffer attributeDescription) {
             super(assertionValue, attributeDescription);
         }
 
@@ -99,20 +99,22 @@ public abstract class Filter {
         }
 
         @Override
-        protected String toStringRelation() {
+        protected @NotNull String toStringRelation() {
             return RELATION_STRING;
         }
     }
 
     public static class ExtensibleMatch extends Filter {
         public final boolean dnAttributes;
-        public final @Nullable String matchingRule;
-        public final @NotNull String matchValue;
-        public final @Nullable String type;
+        public final @Nullable ByteBuffer matchingRule;
+        public final @NotNull ByteBuffer matchValue;
+        public final @Nullable ByteBuffer type;
 
         public ExtensibleMatch(
-                boolean dnAttributes, @Nullable String matchingRule,
-                @NotNull String matchValue, @Nullable String type) {
+                boolean dnAttributes,
+                @Nullable ByteBuffer matchingRule,
+                @NotNull ByteBuffer matchValue,
+                @Nullable ByteBuffer type) {
             this.dnAttributes=dnAttributes;
             this.matchingRule=matchingRule;
             this.matchValue=Objects.requireNonNull(matchValue, "matchValue");
@@ -145,21 +147,21 @@ public abstract class Filter {
         }
 
         @Override
-        protected ByteBuffer writeContent() {
+        protected @NotNull ByteBuffer writeContent() {
             ByteBuffer result=ByteBuffer.empty();
             if (null!=matchingRule) {
                 result=result.append(BER.writeTag(
                         EXTENSIBLE_MATCH_MATCHING_RULE_TAG,
-                        BER.writeUtf8NoTag(matchingRule)));
+                        BER.writeOctetStringNoTag(matchingRule)));
             }
             if (null!=type) {
                 result=result.append(BER.writeTag(
                         EXTENSIBLE_MATCH_TYPE_TAG,
-                        BER.writeUtf8NoTag(type)));
+                        BER.writeOctetStringNoTag(type)));
             }
             result=result.append(BER.writeTag(
                     EXTENSIBLE_MATCH_MATCH_VALUE_TAG,
-                    BER.writeUtf8NoTag(matchValue)));
+                    BER.writeOctetStringNoTag(matchValue)));
             if (dnAttributes) {
                 result=result.append(BER.writeTag(
                         EXTENSIBLE_MATCH_DN_ATTRIBUTES_TAG,
@@ -172,7 +174,7 @@ public abstract class Filter {
     public static class GreaterOrEqual extends AttributeValueAssertion {
         public static final String RELATION_STRING=">=";
 
-        public GreaterOrEqual(@NotNull String assertionValue, @NotNull String attributeDescription) {
+        public GreaterOrEqual(@NotNull ByteBuffer assertionValue, @NotNull ByteBuffer attributeDescription) {
             super(assertionValue, attributeDescription);
         }
 
@@ -182,7 +184,7 @@ public abstract class Filter {
         }
 
         @Override
-        protected String toStringRelation() {
+        protected @NotNull String toStringRelation() {
             return RELATION_STRING;
         }
     }
@@ -190,7 +192,7 @@ public abstract class Filter {
     public static class LessOrEqual extends AttributeValueAssertion {
         public static final String RELATION_STRING="<=";
 
-        public LessOrEqual(@NotNull String assertionValue, @NotNull String attributeDescription) {
+        public LessOrEqual(@NotNull ByteBuffer assertionValue, @NotNull ByteBuffer attributeDescription) {
             super(assertionValue, attributeDescription);
         }
 
@@ -200,7 +202,7 @@ public abstract class Filter {
         }
 
         @Override
-        protected String toStringRelation() {
+        protected @NotNull String toStringRelation() {
             return RELATION_STRING;
         }
     }
@@ -224,10 +226,10 @@ public abstract class Filter {
             return sb.toString();
         }
 
-        protected abstract String toStringRelation();
+        protected abstract @NotNull String toStringRelation();
 
         @Override
-        protected ByteBuffer writeContent() throws Throwable {
+        protected @NotNull ByteBuffer writeContent() throws Throwable {
             ByteBuffer result=ByteBuffer.empty();
             for (Filter filter : filters) {
                 result=result.append(filter.write());
@@ -254,15 +256,15 @@ public abstract class Filter {
         }
 
         @Override
-        protected ByteBuffer writeContent() throws Throwable {
+        protected @NotNull ByteBuffer writeContent() throws Throwable {
             return filter.write();
         }
     }
 
     public static class Present extends Filter {
-        public final @NotNull String attribute;
+        public final @NotNull ByteBuffer attribute;
 
-        public Present(@NotNull String attribute) {
+        public Present(@NotNull ByteBuffer attribute) {
             this.attribute=Objects.requireNonNull(attribute, "attribute");
         }
 
@@ -277,20 +279,22 @@ public abstract class Filter {
         }
 
         @Override
-        protected ByteBuffer writeContent() {
-            return BER.writeUtf8NoTag(attribute);
+        protected @NotNull ByteBuffer writeContent() {
+            return BER.writeOctetStringNoTag(attribute);
         }
     }
 
     public static class Substrings extends Filter {
-        public final @Nullable List<@NotNull String> any;
-        public final @Nullable String final2;
-        public final @Nullable String initial;
-        public final @NotNull String type;
+        public final @Nullable List<@NotNull ByteBuffer> any;
+        public final @Nullable ByteBuffer final2;
+        public final @Nullable ByteBuffer initial;
+        public final @NotNull ByteBuffer type;
 
         public Substrings(
-                @Nullable List<@NotNull String> any, @Nullable String final2,
-                @Nullable String initial, @NotNull String type) {
+                @Nullable List<@NotNull ByteBuffer> any,
+                @Nullable ByteBuffer final2,
+                @Nullable ByteBuffer initial,
+                @NotNull ByteBuffer type) {
             this.any=any;
             this.final2=final2;
             this.initial=initial;
@@ -304,34 +308,42 @@ public abstract class Filter {
 
         @Override
         public String toString() {
-            String final3=(null==final2) ? "" : final2;
-            String initial3=(null==initial) ? "" : initial;
+            String final3=(null==final2) ? "" : final2.toString();
+            String initial3=(null==initial) ? "" : initial.toString();
             if (null==any) {
                 return "(%s=%s*%s)".formatted(type, initial3, final3);
             }
             else {
-                return "(%s=%s*%s*%s)".formatted(type, initial3, String.join("*", any), final3);
+                return "(%s=%s*%s*%s)".formatted(
+                        type,
+                        initial3,
+                        String.join(
+                                "*",
+                                any.stream()
+                                        .map(Object::toString)
+                                        .toList()),
+                        final3);
             }
         }
 
         @Override
-        protected ByteBuffer writeContent() {
+        protected @NotNull ByteBuffer writeContent() {
             ByteBuffer substrings=ByteBuffer.empty();
             if (null!=initial) {
                 substrings=substrings.append(
-                        BER.writeTag(SUBSTRINGS_INITIAL_TAG, BER.writeUtf8NoTag(initial)));
+                        BER.writeTag(SUBSTRINGS_INITIAL_TAG, BER.writeOctetStringNoTag(initial)));
             }
             if (null!=any) {
-                for (String any2 : any) {
+                for (@NotNull ByteBuffer any2: any) {
                     substrings=substrings.append(
-                            BER.writeTag(SUBSTRINGS_ANY_TAG, BER.writeUtf8NoTag(any2)));
+                            BER.writeTag(SUBSTRINGS_ANY_TAG, BER.writeOctetStringNoTag(any2)));
                 }
             }
             if (null!=final2) {
                 substrings=substrings.append(
-                        BER.writeTag(SUBSTRINGS_FINAL_TAG, BER.writeUtf8NoTag(final2)));
+                        BER.writeTag(SUBSTRINGS_FINAL_TAG, BER.writeOctetStringNoTag(final2)));
             }
-            return BER.writeUtf8Tag(type)
+            return BER.writeOctetStringTag(type)
                     .append(BER.writeSequence(substrings));
         }
     }
@@ -424,12 +436,12 @@ public abstract class Filter {
                 if (0<index) {
                     char dd=string2.charAt(index-1);
                     String left=string2.substring(0, index-1).trim();
-                    String right=string2.substring(index+1).trim();
+                    @NotNull ByteBuffer right=ByteBuffer.create(string2.substring(index+1).trim());
                     Filter filter=switch (dd) {
                         case ':' -> {
                             boolean dnAttributes=false;
-                            String matchingRule=null;
-                            String type=null;
+                            ByteBuffer matchingRule=null;
+                            ByteBuffer type=null;
                             int index2=left.lastIndexOf(':');
                             if (0<=index2) {
                                 String part=left.substring(index2+1);
@@ -438,7 +450,7 @@ public abstract class Filter {
                                     dnAttributes=true;
                                 }
                                 else {
-                                    matchingRule=part;
+                                    matchingRule=ByteBuffer.create(part);
                                 }
                             }
                             if (!dnAttributes) {
@@ -456,56 +468,56 @@ public abstract class Filter {
                                 }
                             }
                             if (!left.isEmpty()) {
-                                type=left;
+                                type=ByteBuffer.create(left);
                             }
                             yield new ExtensibleMatch(dnAttributes, matchingRule, right, type);
                         }
-                        case '>' -> new GreaterOrEqual(right, left);
-                        case '<' -> new LessOrEqual(right, left);
-                        case '~' -> new ApproxMatch(right, left);
+                        case '>' -> new GreaterOrEqual(right, ByteBuffer.create(left));
+                        case '<' -> new LessOrEqual(right, ByteBuffer.create(left));
+                        case '~' -> new ApproxMatch(right, ByteBuffer.create(left));
                         default -> null;
                     };
                     if (null!=filter) {
                         yield filter;
                     }
                 }
-                String left=string2.substring(0, index).trim();
+                @NotNull ByteBuffer left=ByteBuffer.create(string2.substring(0, index).trim());
                 String right=string2.substring(index+1).trim();
                 if ("*".equals(right)) {
                     yield new Present(left);
                 }
                 int index2=right.indexOf('*');
                 if (0>index2) {
-                    yield new EqualityMatch(right, left);
+                    yield new EqualityMatch(ByteBuffer.create(right), left);
                 }
-                String initial=null;
+                ByteBuffer initial=null;
                 if (0<index2) {
-                    initial=right.substring(0, index2);
+                    initial=ByteBuffer.create(right.substring(0, index2));
                 }
                 right=right.substring(index2+1);
-                String final2=null;
+                ByteBuffer final2=null;
                 index2=right.lastIndexOf('*');
                 if (0>index2) {
-                    final2=right;
+                    final2=ByteBuffer.create(right);
                     right="";
                 }
                 else {
                     if (right.length()>index2+1) {
-                        final2=right.substring(index2+1);
+                        final2=ByteBuffer.create(right.substring(index2+1));
                     }
                     right=right.substring(0, index2);
                 }
-                List<@NotNull String> any=null;
+                List<@NotNull ByteBuffer> any=null;
                 if (!right.isEmpty()) {
                     any=new ArrayList<>();
                     while (!right.isEmpty()) {
                         int index3=right.indexOf('*');
                         if (0>index3) {
-                            any.add(right);
+                            any.add(ByteBuffer.create(right));
                             right="";
                         }
                         else {
-                            any.add(right.substring(0, index3));
+                            any.add(ByteBuffer.create(right.substring(0, index3)));
                             right=right.substring(index3+1);
                         }
                     }
@@ -544,9 +556,9 @@ public abstract class Filter {
     @Override
     public abstract String toString();
 
-    public ByteBuffer write() throws Throwable {
+    public @NotNull ByteBuffer write() throws Throwable {
         return BER.writeTag(tag(), writeContent());
     }
 
-    protected abstract ByteBuffer writeContent() throws Throwable;
+    protected abstract @NotNull ByteBuffer writeContent() throws Throwable;
 }

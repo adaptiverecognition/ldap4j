@@ -9,18 +9,32 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public record Control(
-        @NotNull String controlType,
-        byte@Nullable[] controlValue,
+        @NotNull ByteBuffer controlType,
+        @Nullable ByteBuffer controlValue,
         boolean criticality) {
     public static final byte CONTROLS_TAG=(byte)0xa0;
 
     public Control(
-            @NotNull String controlType,
-            byte@Nullable[] controlValue,
+            @NotNull ByteBuffer controlType,
+            @Nullable ByteBuffer controlValue,
             boolean criticality) {
         this.controlType=Objects.requireNonNull(controlType, "controlType");
         this.controlValue=controlValue;
         this.criticality=criticality;
+    }
+
+    public static @NotNull Control create(
+            @NotNull ByteBuffer controlType,
+            @Nullable ByteBuffer controlValue,
+            boolean criticality) {
+        return new Control(controlType, controlValue, criticality);
+    }
+
+    public static @NotNull Control create(
+            @NotNull String controlType,
+            @Nullable ByteBuffer controlValue,
+            boolean criticality) {
+        return create(ByteBuffer.create(controlType), controlValue, criticality);
     }
 
     public static <T> @Nullable T findOne(
@@ -43,13 +57,13 @@ public record Control(
     public static @NotNull Control read(@NotNull ByteBuffer.Reader reader) throws Throwable {
         return BER.readSequence(
                 (reader2)->{
-                    String controlType=BER.readUtf8Tag(reader2);
+                    @NotNull ByteBuffer controlType=BER.readOctetStringTag(reader2);
                     boolean criticality=BER.readOptionalTag(
                             BER::readBooleanNoTag,
                             reader2,
                             ()->false,
                             BER.BOOLEAN);
-                    byte@Nullable[] controlValue=BER.readOptionalTag(
+                    @Nullable ByteBuffer controlValue=BER.readOptionalTag(
                             BER::readOctetStringNoTag,
                             reader2,
                             ()->null,
@@ -76,12 +90,12 @@ public record Control(
     }
 
     public @NotNull ByteBuffer write() {
-        ByteBuffer buffer=BER.writeUtf8Tag(controlType);
+        ByteBuffer buffer=BER.writeOctetStringTag(controlType);
         if (criticality || (null!=controlValue)) {
             buffer=buffer.append(BER.writeBooleanTag(criticality));
         }
         if (null!=controlValue) {
-            buffer=buffer.append(BER.writeTag(BER.OCTET_STRING, ByteBuffer.create(controlValue)));
+            buffer=buffer.append(BER.writeOctetStringTag(controlValue));
         }
         return BER.writeSequence(buffer);
     }

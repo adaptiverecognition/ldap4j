@@ -7,11 +7,13 @@ import org.jetbrains.annotations.NotNull;
 
 public record AddRequest(
         @NotNull List<@NotNull PartialAttribute> attributes,
-        @NotNull String entry)
+        @NotNull ByteBuffer entry)
         implements Request<AddRequest, AddResponse> {
     public static final byte REQUEST_TAG=0x68;
 
-    public AddRequest(@NotNull List<@NotNull PartialAttribute> attributes, @NotNull String entry) {
+    public AddRequest(
+            @NotNull List<@NotNull PartialAttribute> attributes,
+            @NotNull ByteBuffer entry) {
         this.attributes=Objects.requireNonNull(attributes, "attributes");
         this.entry=Objects.requireNonNull(entry, "entry");
     }
@@ -39,7 +41,7 @@ public record AddRequest(
         }
         return BER.writeTag(
                 REQUEST_TAG,
-                BER.writeUtf8Tag(entry)
+                BER.writeOctetStringTag(entry)
                         .append(BER.writeSequence(
                                 attributesBuffer)));
     }

@@ -14,7 +14,7 @@ public class ManageDsaIt {
     }
 
     public static @NotNull Control requestControl(boolean criticality) {
-        return new Control(REQUEST_CONTROL_OID, null, criticality);
+        return Control.create(REQUEST_CONTROL_OID, null, criticality);
     }
 
     public static @NotNull List<@NotNull Control> requestControls(boolean criticality, boolean manageDsaIt) {

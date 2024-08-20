@@ -1,5 +1,6 @@
 package hu.gds.ldap4j.ldap;
 
+import hu.gds.ldap4j.net.ByteBuffer;
 import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
@@ -12,7 +13,7 @@ public class LdapException extends Exception {
 
     public final @NotNull List<@NotNull Control> controls;
     public final int messageId;
-    public final @NotNull List<@NotNull String> referrals;
+    public final @NotNull List<@NotNull ByteBuffer> referrals;
     public final int resultCode;
     public final @Nullable LdapResultCode resultCode2;
 
@@ -20,7 +21,7 @@ public class LdapException extends Exception {
             @NotNull List<@NotNull Control> controls,
             String message,
             int messageId,
-            @NotNull List<@NotNull String> referrals,
+            @NotNull List<@NotNull ByteBuffer> referrals,
             int resultCode,
             @Nullable LdapResultCode resultCode2) {
         super(
@@ -31,5 +32,11 @@ public class LdapException extends Exception {
         this.referrals=Objects.requireNonNull(referrals, "referrals");
         this.resultCode=resultCode;
         this.resultCode2=resultCode2;
+    }
+
+    public @NotNull List<@NotNull String> referralsUtf8() {
+        return referrals.stream()
+                .map(ByteBuffer::utf8)
+                .toList();
     }
 }

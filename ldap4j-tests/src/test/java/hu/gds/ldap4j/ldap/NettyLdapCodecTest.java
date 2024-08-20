@@ -148,14 +148,14 @@ public class NettyLdapCodecTest {
                                 .map((entry)->{
                                     PartialAttribute uidAttribute=null;
                                     for (PartialAttribute attribute: entry.attributes()) {
-                                        if ("uid".equals(attribute.type())) {
+                                        if ("uid".equals(attribute.type().utf8())) {
                                             assertNull(uidAttribute);
                                             uidAttribute=attribute;
                                         }
                                     }
                                     assertNotNull(uidAttribute);
                                     assertEquals(1, uidAttribute.values().size());
-                                    return uidAttribute.values().get(0);
+                                    return uidAttribute.valuesUtf8().get(0);
                                 })
                                 .sorted()
                                 .toList();

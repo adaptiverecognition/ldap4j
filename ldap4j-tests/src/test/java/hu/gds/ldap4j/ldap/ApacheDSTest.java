@@ -118,7 +118,7 @@ public class ApacheDSTest {
                             assertTrue(results.get(0).isEntry());
                             assertEquals(
                                     "cn=User 0,ou=Users,dc=test,dc=ldap4j,dc=gds,dc=hu",
-                                    results.get(0).asEntry().objectName());
+                                    results.get(0).asEntry().objectName().utf8());
                             return Lava.VOID;
                         }),
                 serverAddress);
@@ -146,7 +146,8 @@ public class ApacheDSTest {
                                                                     password)
                                                                     .evaluateChallenge(
                                                                             bindResponse.message()
-                                                                                    .serverSaslCredentials()),
+                                                                                    .serverSaslCredentials()
+                                                                                    .arrayCopy()),
                                                             SupportedSaslMechanisms.CRAM_MD5,
                                                             "")
                                                     .controlsEmpty());
@@ -167,7 +168,7 @@ public class ApacheDSTest {
                                             assertEquals(LdapResultCode.INVALID_CREDENTIALS, exception.resultCode2);
                                             return Lava.VOID;
                                         },
-                                        ()->bind(connection, "secretx")
+                                        ()->bind(connection, "secretX")
                                                 .composeIgnoreResult(()->{
                                                     fail("should have failed");
                                                     return Lava.VOID;
@@ -213,7 +214,7 @@ public class ApacheDSTest {
                                     assertTrue(results.get(0).isEntry());
                                     assertEquals(
                                             "cn=User 0,ou=Users,dc=test,dc=ldap4j,dc=gds,dc=hu",
-                                            results.get(0).asEntry().objectName());
+                                            results.get(0).asEntry().objectName().utf8());
                                     return loop(connection, iterator);
                                 });
                     }
@@ -279,7 +280,7 @@ public class ApacheDSTest {
                                     assertTrue(results.get(0).isEntry());
                                     assertEquals(
                                             "cn=User 0,ou=Users,dc=test,dc=ldap4j,dc=gds,dc=hu",
-                                            results.get(0).asEntry().objectName());
+                                            results.get(0).asEntry().objectName().utf8());
                                     return loop(connection, iterator);
                                 });
                     }
@@ -300,10 +301,10 @@ public class ApacheDSTest {
                         SearchResult.Entry entry=result.asEntry();
                         assertEquals(
                                 "cn=Referral 0,ou=Referrals,dc=test,dc=ldap4j,dc=gds,dc=hu",
-                                entry.objectName());
+                                entry.objectName().utf8());
                         PartialAttribute refAttribute=null;
                         for (PartialAttribute partialAttribute: entry.attributes()) {
-                            if ("ref".equals(partialAttribute.type())) {
+                            if ("ref".equals(partialAttribute.type().utf8())) {
                                 refAttribute=partialAttribute;
                                 break;
                             }
@@ -311,10 +312,10 @@ public class ApacheDSTest {
                         assertNotNull(refAttribute);
                         assertEquals(2, refAttribute.values().size());
                         assertTrue(
-                                refAttribute.values()
+                                refAttribute.valuesUtf8()
                                         .contains("ldap://test.example.org:10389/dc=test,dc=example,dc=org"));
                         assertTrue(
-                                refAttribute.values()
+                                refAttribute.valuesUtf8()
                                         .contains("ldap:///dc=foobar"));
                     }
 
@@ -322,7 +323,7 @@ public class ApacheDSTest {
                         assertTrue(result.isEntry());
                         assertEquals(
                                 "ou=Referrals,dc=test,dc=ldap4j,dc=gds,dc=hu",
-                                result.asEntry().objectName());
+                                result.asEntry().objectName().utf8());
                     }
 
                     public @NotNull Lava<Void> testBaseFalseDsaFalse(@NotNull LdapConnection connection) {
@@ -334,9 +335,9 @@ public class ApacheDSTest {
                                     assertEquals(LdapResultCode.REFERRAL, ldapException.resultCode2);
                                     assertNotNull(ldapException.referrals);
                                     assertEquals(2, ldapException.referrals.size());
-                                    assertTrue(ldapException.referrals.contains(
+                                    assertTrue(ldapException.referralsUtf8().contains(
                                             "ldap://test.example.org:10389/dc=test,dc=example,dc=org?ref,*?sub"));
-                                    assertTrue(ldapException.referrals.contains("ldap:///dc=foobar?ref,*?sub"));
+                                    assertTrue(ldapException.referralsUtf8().contains("ldap:///dc=foobar?ref,*?sub"));
                                     return testBaseFalseDsaTrue(connection);
                                 },
                                 ()->testSearch(
@@ -383,9 +384,12 @@ public class ApacheDSTest {
                                     assertEquals(2, results.size());
                                     assertTrue(results.get(0).isReferral());
                                     assertEquals(2, results.get(0).asReferral().uris().size());
-                                    assertTrue(results.get(0).asReferral().uris().contains(
-                                            "ldap://test.example.org:10389/dc=test,dc=example,dc=org??sub"));
-                                    assertTrue(results.get(0).asReferral().uris().contains("ldap:///dc=foobar??sub"));
+                                    assertTrue(
+                                            results.get(0).asReferral().urisUtf8().contains(
+                                                    "ldap://test.example.org:10389/dc=test,dc=example,dc=org??sub"));
+                                    assertTrue(
+                                            results.get(0).asReferral().urisUtf8()
+                                                    .contains("ldap:///dc=foobar??sub"));
                                     assertReferralsEntry(results.get(1));
                                     return testBaseTrueDsaTrue(connection);
                                 });
@@ -436,8 +440,8 @@ public class ApacheDSTest {
                             Comparator.<ControlsMessage<SearchResult>, Integer>comparing(
                                             (result)->result.message().isReferral()?0:1)
                                     .thenComparing((result)->result.message().isReferral()
-                                            ?result.message().asReferral().uris().toString()
-                                            :result.message().asEntry().objectName()));
+                                            ?result.message().asReferral().urisUtf8().toString()
+                                            :result.message().asEntry().objectName().utf8()));
                     return Lava.complete(results.stream()
                             .map(ControlsMessage::message)
                             .toList());
@@ -478,7 +482,7 @@ public class ApacheDSTest {
                                     assertTrue(results.get(0).isEntry());
                                     assertEquals(
                                             "cn=User 0,ou=Users,dc=test,dc=ldap4j,dc=gds,dc=hu",
-                                            results.get(0).asEntry().objectName());
+                                            results.get(0).asEntry().objectName().utf8());
                                     return loop(connection, iterator);
                                 });
                     }

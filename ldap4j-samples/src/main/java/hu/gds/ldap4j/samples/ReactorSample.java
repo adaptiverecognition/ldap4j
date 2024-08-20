@@ -107,7 +107,7 @@ public class ReactorSample {
                                 .filter(SearchResult::isEntry)
                                 .map(SearchResult::asEntry)
                                 .flatMap((entry)->entry.attributes().stream())
-                                .filter((attribute)->"uniqueMember".equals(attribute.type()))
+                                .filter((attribute)->"uniqueMember".equals(attribute.type().utf8()))
                                 .flatMap((attribute)->attribute.values().stream())
                                 .forEach((value)->{
                                     output.append(value);

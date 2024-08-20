@@ -6,21 +6,35 @@ import java.util.List;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
-public record PartialAttribute(@NotNull String type, @NotNull List<@NotNull String> values) {
-    public PartialAttribute(@NotNull String type, @NotNull List<@NotNull String> values) {
+public record PartialAttribute(
+        @NotNull ByteBuffer type,
+        @NotNull List<@NotNull ByteBuffer> values) {
+    public PartialAttribute(
+            @NotNull ByteBuffer type,
+            @NotNull List<@NotNull ByteBuffer> values) {
         this.type=Objects.requireNonNull(type, "type");
         this.values=Objects.requireNonNull(values, "values");
+    }
+
+    public PartialAttribute(
+            @NotNull String type,
+            @NotNull List<@NotNull String> values) {
+        this(
+                ByteBuffer.create(type),
+                values.stream()
+                        .map(ByteBuffer::create)
+                        .toList());
     }
 
     public static @NotNull PartialAttribute readAttribute(ByteBuffer.Reader reader) throws Throwable {
         return BER.readSequence(
                 (reader2)->{
-                    String type=BER.readUtf8Tag(reader2);
+                    @NotNull ByteBuffer type=BER.readOctetStringTag(reader2);
                     return BER.readTag(
                             (reader3)->{
-                                List<@NotNull String> values=new ArrayList<>();
+                                @NotNull List<@NotNull ByteBuffer> values=new ArrayList<>();
                                 while (reader3.hasRemainingBytes()) {
-                                    values.add(BER.readUtf8Tag(reader3));
+                                    values.add(BER.readOctetStringTag(reader3));
                                 }
                                 return new PartialAttribute(type, values);
                             },
@@ -44,13 +58,20 @@ public record PartialAttribute(@NotNull String type, @NotNull List<@NotNull Stri
                 reader);
     }
 
+    public @NotNull List<@NotNull String> valuesUtf8() {
+        return values()
+                .stream()
+                .map(ByteBuffer::utf8)
+                .toList();
+    }
+
     public @NotNull ByteBuffer write() {
-        ByteBuffer valuesBuffer=ByteBuffer.empty();
-        for (String value: values) {
-            valuesBuffer=valuesBuffer.append(BER.writeUtf8Tag(value));
+        @NotNull ByteBuffer valuesBuffer=ByteBuffer.empty();
+        for (ByteBuffer value: values) {
+            valuesBuffer=valuesBuffer.append(BER.writeOctetStringTag(value));
         }
         return BER.writeSequence(
-                BER.writeUtf8Tag(type)
+                BER.writeOctetStringTag(type)
                         .append(BER.writeTag(
                                 BER.SET,
                                 valuesBuffer)));

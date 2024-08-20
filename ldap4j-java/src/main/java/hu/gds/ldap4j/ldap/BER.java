@@ -4,8 +4,6 @@ import hu.gds.ldap4j.Either;
 import hu.gds.ldap4j.Function;
 import hu.gds.ldap4j.Supplier;
 import hu.gds.ldap4j.net.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
@@ -47,10 +45,6 @@ public abstract class BER {
             result|=reader.readByte();
         }
         return 0!=result;
-    }
-
-    public static boolean readBooleanTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
-        return BER.readTag(BER::readBooleanNoTag, reader, BOOLEAN);
     }
 
     public static int readEnumeratedNoTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
@@ -107,8 +101,12 @@ public abstract class BER {
         return result;
     }
 
-    public static byte@NotNull[] readOctetStringNoTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
-        return reader.readReaminingByteBuffer().arrayCopy();
+    public static @NotNull ByteBuffer readOctetStringNoTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
+        return reader.readReaminingByteBuffer();
+    }
+
+    public static @NotNull ByteBuffer readOctetStringTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
+        return readTag(BER::readOctetStringNoTag, reader, OCTET_STRING);
     }
 
     public static <T> T readOptionalTag(
@@ -187,22 +185,6 @@ public abstract class BER {
                     return Either.left(function);
                 },
                 reader);
-    }
-
-    public static @NotNull String readUtf8NoTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
-        return new String(readUtf8NoTagChars(reader));
-    }
-
-    public static char@NotNull[] readUtf8NoTagChars(@NotNull ByteBuffer.Reader reader) throws Throwable {
-        @NotNull CharBuffer chars=StandardCharsets.UTF_8.decode(
-                reader.readReaminingByteBuffer().nioByteBufferCopy());
-        char@NotNull[] chars2=new char[chars.remaining()];
-        chars.get(chars2);
-        return chars2;
-    }
-
-    public static @NotNull String readUtf8Tag(@NotNull ByteBuffer.Reader reader) throws Throwable {
-        return readTag(BER::readUtf8NoTag, reader, OCTET_STRING);
     }
 
     public static @NotNull ByteBuffer writeBooleanNoTag(boolean value) {
@@ -294,6 +276,14 @@ public abstract class BER {
         }
     }
 
+    public static @NotNull ByteBuffer writeOctetStringNoTag(@NotNull ByteBuffer value) {
+        return value;
+    }
+
+    public static @NotNull ByteBuffer writeOctetStringTag(@NotNull ByteBuffer value) {
+        return writeTag(OCTET_STRING, writeOctetStringNoTag(value));
+    }
+
     public static @NotNull ByteBuffer writeSequence(@NotNull ByteBuffer byteBuffer) {
         return writeTag(SEQUENCE, byteBuffer);
     }
@@ -309,17 +299,5 @@ public abstract class BER {
         return writeTag(tag)
                 .append(writeLength(byteBuffer.size()))
                 .append(byteBuffer);
-    }
-
-    public static @NotNull ByteBuffer writeUtf8NoTag(char[] value) {
-        return ByteBuffer.create(StandardCharsets.UTF_8.encode(CharBuffer.wrap(value)));
-    }
-
-    public static @NotNull ByteBuffer writeUtf8NoTag(@NotNull String value) {
-        return writeUtf8NoTag(value.toCharArray());
-    }
-
-    public static @NotNull ByteBuffer writeUtf8Tag(@NotNull String value) {
-        return writeTag(OCTET_STRING, writeUtf8NoTag(value));
     }
 }

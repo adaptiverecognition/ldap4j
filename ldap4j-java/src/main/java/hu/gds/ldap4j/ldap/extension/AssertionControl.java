@@ -14,10 +14,9 @@ public class AssertionControl {
     }
 
     public static @NotNull Control request(boolean criticality, @NotNull Filter filter) throws Throwable {
-        return new Control(
+        return Control.create(
                 CONTROL_OID,
-                filter.write()
-                        .arrayCopy(),
+                filter.write(),
                 criticality);
     }
 

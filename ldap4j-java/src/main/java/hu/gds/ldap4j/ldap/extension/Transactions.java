@@ -78,13 +78,12 @@ public class Transactions {
     }
 
     public static @NotNull ExtendedRequest endTransactionRequest(
-            boolean commit, byte @NotNull [] transactionId) {
+            boolean commit, @NotNull ByteBuffer transactionId) {
         return new ExtendedRequest(
-                END_TRANSACTION_OID,
+                ByteBuffer.create(END_TRANSACTION_OID),
                 BER.writeSequence(
                                 BER.writeBooleanTag(commit)
-                                        .append(BER.writeTag(BER.OCTET_STRING, ByteBuffer.create(transactionId))))
-                        .arrayCopy(),
+                                        .append(BER.writeTag(BER.OCTET_STRING, transactionId))),
                 ExtendedResponse.READER_SUCCESS);
     }
 
@@ -93,15 +92,18 @@ public class Transactions {
         if (null==response.message().responseValue()) {
             throw new RuntimeException("no end transaction response");
         }
-        return ByteBuffer.create(response.message().responseValue())
+        return response.message().responseValue()
                 .read(EndResponse::read);
     }
 
     public static @NotNull ExtendedRequest startTransactionRequest() {
-        return new ExtendedRequest(START_TRANSACTION_OID, null, ExtendedResponse.READER_SUCCESS);
+        return new ExtendedRequest(
+                ByteBuffer.create(START_TRANSACTION_OID),
+                null,
+                ExtendedResponse.READER_SUCCESS);
     }
 
-    public static byte @NotNull [] startTransactionResponseTransactionId(
+    public static @NotNull ByteBuffer startTransactionResponseTransactionId(
             @NotNull ControlsMessage<ExtendedResponse> response) {
         if (null==response.message().responseValue()) {
             throw new RuntimeException("missing transaction id");
@@ -109,7 +111,7 @@ public class Transactions {
         return response.message().responseValue();
     }
 
-    public static @NotNull Control transactionSpecificationControl(byte @NotNull [] transactionId) {
-        return new Control(TRANSACTION_SPECIFICATIONS_CONTROL_OID, transactionId, true);
+    public static @NotNull Control transactionSpecificationControl(@NotNull ByteBuffer transactionId) {
+        return Control.create(TRANSACTION_SPECIFICATIONS_CONTROL_OID, transactionId, true);
     }
 }

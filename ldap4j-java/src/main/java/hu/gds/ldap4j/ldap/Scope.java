@@ -1,6 +1,7 @@
 package hu.gds.ldap4j.ldap;
 
 import hu.gds.ldap4j.net.ByteBuffer;
+import org.jetbrains.annotations.NotNull;
 
 public enum Scope {
     BASE_OBJECT(0),
@@ -13,7 +14,7 @@ public enum Scope {
         this.value=value;
     }
 
-    public ByteBuffer write() {
+    public @NotNull ByteBuffer write() {
         return BER.writeEnumeratedTag(value);
     }
 }

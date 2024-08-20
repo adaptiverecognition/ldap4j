@@ -21,12 +21,12 @@ public class ServerSideSorting {
         @Serial
         private static final long serialVersionUID=0L;
 
-        public final @Nullable String attributeType;
+        public final @Nullable ByteBuffer attributeType;
         public final int sortResult;
         public final @Nullable SortResultCode sortResultCode;
 
         public SortingException(
-                @Nullable String attributeType,
+                @Nullable ByteBuffer attributeType,
                 @NotNull String message,
                 int sortResult,
                 @Nullable SortResultCode sortResultCode) {
@@ -40,35 +40,35 @@ public class ServerSideSorting {
     }
 
     public record SortKey(
-            @NotNull String attributeType,
-            @Nullable String orderingRule,
+            @NotNull ByteBuffer attributeType,
+            @Nullable ByteBuffer orderingRule,
             boolean reverseOrder) {
-        public SortKey(@NotNull String attributeType, @Nullable String orderingRule, boolean reverseOrder) {
+        public SortKey(@NotNull ByteBuffer attributeType, @Nullable ByteBuffer orderingRule, boolean reverseOrder) {
             this.attributeType=Objects.requireNonNull(attributeType, "attributeType");
             this.orderingRule=orderingRule;
             this.reverseOrder=reverseOrder;
         }
 
         public @NotNull ByteBuffer write() {
-            @NotNull ByteBuffer buffer=BER.writeUtf8Tag(attributeType);
+            @NotNull ByteBuffer buffer=BER.writeOctetStringTag(attributeType);
             if (null!=orderingRule) {
                 buffer=buffer.append(
                         BER.writeTag(
                                 SORT_KEY_ORDERING_RULE_TAG,
-                                BER.writeUtf8NoTag(orderingRule)));
+                                BER.writeOctetStringNoTag(orderingRule)));
             }
             if (reverseOrder) {
                 buffer=buffer.append(
                         BER.writeTag(
                                 SORT_KEY_REVERSE_ORDER_TAG,
-                                BER.writeBooleanNoTag(reverseOrder)));
+                                BER.writeBooleanNoTag(true)));
             }
             return BER.writeSequence(buffer);
         }
     }
 
     public record SortResult(
-            @Nullable String attributeType,
+            @Nullable ByteBuffer attributeType,
             int sortResult,
             @Nullable SortResultCode sortResultCode) {
         public void checkSuccess() {
@@ -81,8 +81,8 @@ public class ServerSideSorting {
             return BER.readSequence(
                     (reader2)->{
                         int sortResult=BER.readEnumeratedTag(reader2);
-                        @Nullable String attributeType=BER.readOptionalTag(
-                                BER::readUtf8NoTag,
+                        @Nullable ByteBuffer attributeType=BER.readOptionalTag(
+                                BER::readOctetStringNoTag,
                                 reader2,
                                 ()->null,
                                 SORT_RESULT_ATTRIBUTE_TYPE_TAG);
@@ -145,10 +145,9 @@ public class ServerSideSorting {
         for (@NotNull SortKey sortKey: sortKeyList) {
             buffer=buffer.append(sortKey.write());
         }
-        return new Control(
+        return Control.create(
                 REQUEST_CONTROL_OID,
-                BER.writeSequence(buffer)
-                        .arrayCopy(),
+                BER.writeSequence(buffer),
                 criticality);
     }
 
@@ -156,13 +155,13 @@ public class ServerSideSorting {
         return Control.findOne(
                 controls,
                 (control)->{
-                    if (!RESPONSE_CONTROL_OID.equals(control.controlType())) {
+                    if (!RESPONSE_CONTROL_OID.equals(control.controlType().utf8())) {
                         return null;
                     }
                     if (null==control.controlValue()) {
                         return null;
                     }
-                    return ByteBuffer.create(control.controlValue())
+                    return control.controlValue()
                             .read(SortResult::read);
                 }
         );
@@ -176,5 +175,22 @@ public class ServerSideSorting {
         }
         sortResult.checkSuccess();
         return sortResult;
+    }
+
+    public static @NotNull SortKey sortKey(
+            @NotNull ByteBuffer attributeType,
+            @Nullable ByteBuffer orderingRule,
+            boolean reverseOrder) {
+        return new SortKey(attributeType, orderingRule, reverseOrder);
+    }
+
+    public static @NotNull SortKey sortKey(
+            @NotNull String attributeType,
+            @Nullable String orderingRule,
+            boolean reverseOrder) {
+        return sortKey(
+                ByteBuffer.create(attributeType),
+                ByteBuffer.createNull(orderingRule),
+                reverseOrder);
     }
 }

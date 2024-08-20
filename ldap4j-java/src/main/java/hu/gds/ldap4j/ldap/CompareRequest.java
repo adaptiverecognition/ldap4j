@@ -6,11 +6,11 @@ import org.jetbrains.annotations.NotNull;
 
 public record CompareRequest(
         @NotNull Filter.AttributeValueAssertion attributeValueAssertion,
-        @NotNull String entry)
+        @NotNull ByteBuffer entry)
         implements Request<CompareRequest, CompareResponse> {
     public static final byte REQUEST_TAG=0x6e;
 
-    public CompareRequest(@NotNull Filter.AttributeValueAssertion attributeValueAssertion, @NotNull String entry) {
+    public CompareRequest(@NotNull Filter.AttributeValueAssertion attributeValueAssertion, @NotNull ByteBuffer entry) {
         this.attributeValueAssertion=Objects.requireNonNull(attributeValueAssertion, "attributeValueAssertion");
         this.entry=Objects.requireNonNull(entry, "entry");
     }
@@ -34,7 +34,7 @@ public record CompareRequest(
     public @NotNull ByteBuffer write() throws Throwable {
         return BER.writeTag(
                 REQUEST_TAG,
-                BER.writeUtf8Tag(entry)
+                BER.writeOctetStringTag(entry)
                         .append(attributeValueAssertion.write()));
     }
 }

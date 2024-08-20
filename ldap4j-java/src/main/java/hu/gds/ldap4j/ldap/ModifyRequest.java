@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 
 public record ModifyRequest(
         @NotNull List<@NotNull Change> changes,
-        @NotNull String object)
+        @NotNull ByteBuffer object)
         implements Request<ModifyRequest, ModifyResponse> {
     public record Change(
             @NotNull PartialAttribute modification,
@@ -31,7 +31,9 @@ public record ModifyRequest(
     public static final int OPERATION_REPLACE=2;
     public static final byte REQUEST_TAG=0x66;
 
-    public ModifyRequest(@NotNull List<@NotNull Change> changes, @NotNull String object) {
+    public ModifyRequest(
+            @NotNull List<@NotNull Change> changes,
+            @NotNull ByteBuffer object) {
         this.changes=Objects.requireNonNull(changes, "changes");
         this.object=Objects.requireNonNull(object, "object");
     }
@@ -59,7 +61,7 @@ public record ModifyRequest(
         }
         return BER.writeTag(
                 REQUEST_TAG,
-                BER.writeUtf8Tag(object)
+                BER.writeOctetStringTag(object)
                         .append(BER.writeSequence(changesBuffer)));
     }
 }

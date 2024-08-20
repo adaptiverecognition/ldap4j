@@ -7,8 +7,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public record ExtendedRequest(
-        @NotNull String requestName,
-        byte@Nullable[] requestValue,
+        @NotNull ByteBuffer requestName,
+        @Nullable ByteBuffer requestValue,
         @NotNull MessageReader<ExtendedResponse> responseReader)
         implements Request<ExtendedRequest, ExtendedResponse> {
     public static class Reader implements MessageReader<ExtendedRequest> {
@@ -26,11 +26,11 @@ public record ExtendedRequest(
         public @NotNull ExtendedRequest read(ByteBuffer.@NotNull Reader reader) throws Throwable {
             return BER.readTag(
                     (reader2)->{
-                        @NotNull String requestName=BER.readTag(
-                                BER::readUtf8NoTag,
+                        @NotNull ByteBuffer requestName=BER.readTag(
+                                BER::readOctetStringNoTag,
                                 reader2,
                                 REQUEST_NAME_TAG);
-                        byte@Nullable[] requestValue=BER.readOptionalTag(
+                        @Nullable ByteBuffer requestValue=BER.readOptionalTag(
                                 BER::readOctetStringNoTag,
                                 reader2,
                                 ()->null,
@@ -47,8 +47,8 @@ public record ExtendedRequest(
     public static final byte REQUEST_VALUE_TAG=(byte)0x81;
 
     public ExtendedRequest(
-            @NotNull String requestName,
-            byte@Nullable[] requestValue,
+            @NotNull ByteBuffer requestName,
+            @Nullable ByteBuffer requestValue,
             @NotNull MessageReader<ExtendedResponse> responseReader) {
         this.requestName=Objects.requireNonNull(requestName, "requestName");
         this.requestValue=requestValue;
@@ -67,14 +67,14 @@ public record ExtendedRequest(
 
     @Override
     public @NotNull ByteBuffer write() {
-        ByteBuffer byteBuffer=BER.writeTag(
+        @NotNull ByteBuffer byteBuffer=BER.writeTag(
                 REQUEST_NAME_TAG,
-                BER.writeUtf8NoTag(requestName));
+                BER.writeOctetStringNoTag(requestName));
         if (null!=requestValue) {
             byteBuffer=byteBuffer.append(
                     BER.writeTag(
                             REQUEST_VALUE_TAG,
-                            ByteBuffer.create(requestValue)));
+                            BER.writeOctetStringNoTag(requestValue)));
         }
         return BER.writeTag(REQUEST_TAG, byteBuffer);
     }

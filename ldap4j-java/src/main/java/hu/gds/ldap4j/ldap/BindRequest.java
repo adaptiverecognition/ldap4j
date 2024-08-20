@@ -7,15 +7,15 @@ import org.jetbrains.annotations.Nullable;
 
 public record BindRequest(
         @NotNull AuthenticationChoice authentication,
-        @NotNull String name,
+        @NotNull ByteBuffer name,
         int version)
         implements Request<BindRequest, BindResponse> {
     public sealed interface AuthenticationChoice {
         record SASL(
-                byte@Nullable [] credentials,
-                @NotNull String mechanism)
+                @Nullable ByteBuffer credentials,
+                @NotNull ByteBuffer mechanism)
                 implements AuthenticationChoice {
-            public SASL(byte@Nullable[] credentials, @NotNull String mechanism) {
+            public SASL(@Nullable ByteBuffer credentials, @NotNull ByteBuffer mechanism) {
                 this.credentials=credentials;
                 this.mechanism=Objects.requireNonNull(mechanism, "mechanism");
             }
@@ -27,12 +27,9 @@ public record BindRequest(
 
             @Override
             public @NotNull ByteBuffer write() {
-                ByteBuffer saslBuffer=BER.writeUtf8Tag(mechanism);
+                ByteBuffer saslBuffer=BER.writeOctetStringTag(mechanism);
                 if (null!=credentials) {
-                    saslBuffer=saslBuffer.append(
-                            BER.writeTag(
-                                    BER.OCTET_STRING,
-                                    ByteBuffer.create(credentials)));
+                    saslBuffer=saslBuffer.append(BER.writeOctetStringTag(credentials));
                 }
                 return BER.writeTag(
                         AUTHENTICATION_CHOICE_SASL_TAG,
@@ -41,9 +38,9 @@ public record BindRequest(
         }
 
         record Simple(
-                char@NotNull[] password)
+                @NotNull ByteBuffer password)
                 implements AuthenticationChoice {
-            public Simple(char @NotNull [] password) {
+            public Simple(@NotNull ByteBuffer password) {
                 this.password=Objects.requireNonNull(password, "password");
             }
 
@@ -56,7 +53,7 @@ public record BindRequest(
             public @NotNull ByteBuffer write() {
                 return BER.writeTag(
                         AUTHENTICATION_CHOICE_SIMPLE_TAG,
-                        BER.writeUtf8NoTag(password));
+                        BER.writeOctetStringNoTag(password));
             }
         }
 
@@ -72,7 +69,7 @@ public record BindRequest(
 
     public BindRequest(
             @NotNull AuthenticationChoice authentication,
-            @NotNull String name,
+            @NotNull ByteBuffer name,
             int version) {
         this.authentication=Objects.requireNonNull(authentication, "authentication");
         this.name=Objects.requireNonNull(name, "name");
@@ -85,11 +82,19 @@ public record BindRequest(
     }
 
     public static @NotNull BindRequest sasl(
-            byte[] credentials, @NotNull String mechanism, @NotNull String name) {
+            @Nullable ByteBuffer credentials, @NotNull ByteBuffer mechanism, @NotNull ByteBuffer name) {
         return new BindRequest(
                 new AuthenticationChoice.SASL(credentials, mechanism),
                 name,
                 VERSION_3);
+    }
+
+    public static @NotNull BindRequest sasl(
+            byte @Nullable [] credentials, @NotNull String mechanism, @NotNull String name) {
+        return sasl(
+                ByteBuffer.createNull(credentials),
+                ByteBuffer.create(mechanism),
+                ByteBuffer.create(name));
     }
 
     @Override
@@ -97,11 +102,17 @@ public record BindRequest(
         return this;
     }
 
-    public static @NotNull BindRequest simple(@NotNull String name, char[] password) {
+    public static @NotNull BindRequest simple(@NotNull ByteBuffer name, @NotNull ByteBuffer password) {
         return new BindRequest(
                 new AuthenticationChoice.Simple(password),
                 name,
                 VERSION_3);
+    }
+
+    public static @NotNull BindRequest simple(@NotNull String name, char @NotNull [] password) {
+        return simple(
+                ByteBuffer.create(name),
+                ByteBuffer.create(password));
     }
 
     @Override
@@ -114,7 +125,7 @@ public record BindRequest(
         return BER.writeTag(
                 REQUEST_TAG,
                 BER.writeIntegerTag(version)
-                        .append(BER.writeUtf8Tag(name))
+                        .append(BER.writeOctetStringTag(name))
                         .append(authentication.write()));
     }
 }

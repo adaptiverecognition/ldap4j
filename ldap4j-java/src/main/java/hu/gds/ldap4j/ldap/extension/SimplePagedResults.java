@@ -13,8 +13,8 @@ import org.jetbrains.annotations.Nullable;
  * RFC 2696
  */
 public class SimplePagedResults {
-    public record SearchControlValue(@NotNull String cookie, int size) {
-        public SearchControlValue(@NotNull String cookie, int size) {
+    public record SearchControlValue(@NotNull ByteBuffer cookie, int size) {
+        public SearchControlValue(@NotNull ByteBuffer cookie, int size) {
             this.cookie=Objects.requireNonNull(cookie, "cookie");
             this.size=size;
         }
@@ -34,7 +34,7 @@ public class SimplePagedResults {
             return BER.readSequence(
                     (reader2)->{
                         int size=BER.readIntegerTag(true, reader2);
-                        @NotNull String cookie=BER.readUtf8Tag(reader2);
+                        @NotNull ByteBuffer cookie=BER.readOctetStringTag(reader2);
                         return new SearchControlValue(cookie, size);
                     },
                     reader);
@@ -43,7 +43,7 @@ public class SimplePagedResults {
         public @NotNull ByteBuffer write() {
             return BER.writeSequence(
                     BER.writeIntegerTag(size)
-                            .append(BER.writeUtf8Tag(cookie)));
+                            .append(BER.writeOctetStringTag(cookie)));
         }
     }
 
@@ -53,12 +53,11 @@ public class SimplePagedResults {
     private SimplePagedResults() {
     }
 
-    public static @NotNull Control control(@NotNull String cookie, boolean criticality, int size) {
-        return new Control(
+    public static @NotNull Control control(@NotNull ByteBuffer cookie, boolean criticality, int size) {
+        return Control.create(
                 CONTROL_OID,
                 new SearchControlValue(cookie, size)
-                        .write()
-                        .arrayCopy(),
+                        .write(),
                 criticality);
     }
 
@@ -67,13 +66,13 @@ public class SimplePagedResults {
         return Control.findOne(
                 controls,
                 (control)->{
-                    if (!CONTROL_OID.equals(control.controlType())) {
+                    if (!CONTROL_OID.equals(control.controlType().utf8())) {
                         return null;
                     }
                     if (null==control.controlValue()) {
                         return null;
                     }
-                    return ByteBuffer.create(control.controlValue())
+                    return control.controlValue()
                             .read(SearchControlValue::read);
                 });
     }
@@ -88,7 +87,7 @@ public class SimplePagedResults {
     }
 
     public static @NotNull Control startRequest(boolean criticality, int size) {
-        return control(START_COOKIE, criticality, size);
+        return control(ByteBuffer.create(START_COOKIE), criticality, size);
     }
 
     public static @NotNull Control startRequest(int size) {

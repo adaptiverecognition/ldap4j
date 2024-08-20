@@ -38,9 +38,9 @@ public sealed interface SearchResult {
 
     record Entry(
             @NotNull List<@NotNull PartialAttribute> attributes,
-            @NotNull String objectName)
+            @NotNull ByteBuffer objectName)
             implements SearchResult {
-        public Entry(@NotNull List<@NotNull PartialAttribute> attributes, @NotNull String objectName) {
+        public Entry(@NotNull List<@NotNull PartialAttribute> attributes, @NotNull ByteBuffer objectName) {
             this.attributes=Objects.requireNonNull(attributes, "attributes");
             this.objectName=Objects.requireNonNull(objectName, "objectName");
         }
@@ -56,7 +56,7 @@ public sealed interface SearchResult {
         }
 
         public static @NotNull SearchResult.Entry readNoTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
-            String objectName=BER.readUtf8Tag(reader);
+            @NotNull ByteBuffer objectName=BER.readOctetStringTag(reader);
             @NotNull List<@NotNull PartialAttribute> attributes=PartialAttribute.readAttributes(reader);
             return new SearchResult.Entry(attributes, objectName);
         }
@@ -110,9 +110,9 @@ public sealed interface SearchResult {
     }
 
     record Referral(
-            @NotNull List<@NotNull String> uris)
+            @NotNull List<@NotNull ByteBuffer> uris)
             implements SearchResult {
-        public Referral(@NotNull List<@NotNull String> uris) {
+        public Referral(@NotNull List<@NotNull ByteBuffer> uris) {
             this.uris=Objects.requireNonNull(uris, "uris");
         }
 
@@ -127,11 +127,18 @@ public sealed interface SearchResult {
         }
 
         public static @NotNull SearchResult.Referral readNoTag(@NotNull ByteBuffer.Reader reader) throws Throwable {
-            List<@NotNull String> uris=new ArrayList<>();
+            List<@NotNull ByteBuffer> uris=new ArrayList<>();
             while (reader.hasRemainingBytes()) {
-                uris.add(BER.readUtf8Tag(reader));
+                uris.add(BER.readOctetStringTag(reader));
             }
             return new SearchResult.Referral(uris);
+        }
+
+        public @NotNull List<@NotNull String> urisUtf8() {
+            return uris()
+                    .stream()
+                    .map(ByteBuffer::utf8)
+                    .toList();
         }
 
         @Override

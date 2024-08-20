@@ -7,6 +7,7 @@ import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.ldap.extension.Cancel;
 import hu.gds.ldap4j.ldap.extension.FastBind;
+import hu.gds.ldap4j.net.ByteBuffer;
 import hu.gds.ldap4j.net.DuplexConnection;
 import hu.gds.ldap4j.net.JavaAsyncChannelConnection;
 import hu.gds.ldap4j.net.TlsConnection;
@@ -106,7 +107,7 @@ public class LdapConnectionTest {
                                                 assertTrue(results.get(0).message().isEntry());
                                                 assertEquals(
                                                         "cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
-                                                        results.get(0).message().asEntry().objectName());
+                                                        results.get(0).message().asEntry().objectName().utf8());
                                                 assertTrue(results.get(1).message().isDone());
                                                 return loop(connection, iterator);
                                             });
@@ -233,7 +234,7 @@ public class LdapConnectionTest {
                 assertSame(results.get(results.size()-1).message(), results.get(results.size()-1).message().asDone());
                 results=new ArrayList<>(results);
                 results.remove(results.size()-1);
-                results.sort(Comparator.comparing((result)->result.message().asEntry().objectName()));
+                results.sort(Comparator.comparing((result)->result.message().asEntry().objectName().utf8()));
                 List<String> groups=new ArrayList<>();
                 UnboundidDirectoryServer.GROUPS.forEach((group, users)->{
                     if (users.contains(user)) {
@@ -254,7 +255,7 @@ public class LdapConnectionTest {
                                                             "objectClass",
                                                             List.of("top", "groupOfNames")),
                                                     new PartialAttribute("cn", List.of(cn))),
-                                            group)),
+                                            ByteBuffer.create(group))),
                             results.get(ii));
                 }
             }
@@ -294,13 +295,13 @@ public class LdapConnectionTest {
                                     assertTrue(request.controls().isEmpty());
                                     assertEquals(
                                             StartTls.REQUEST_OID,
-                                            request.message().requestName());
+                                            request.message().requestName().utf8());
                                     assertNull(request.message().requestValue());
                                     return ldapConnection.writeMessage(
                                             new ExtendedResponse(
                                                     new LdapResult(
-                                                            "",
-                                                            "",
+                                                            ByteBuffer.empty(),
+                                                            ByteBuffer.empty(),
                                                             List.of(),
                                                             LdapResultCode.SUCCESS.code,
                                                             LdapResultCode.SUCCESS),
@@ -330,17 +331,17 @@ public class LdapConnectionTest {
                                         .parallel(Function::identity);
                             }))
                             .compose((request)->{
-                                assertEquals(Cancel.REQUEST_OPERATION_OID, request.message().requestName());
+                                assertEquals(Cancel.REQUEST_OPERATION_OID, request.message().requestName().utf8());
                                 return ldapConnection.restartTlsHandshake()
                                         .composeIgnoreResult(()->ldapConnection.writeMessage(
                                                 new ExtendedResponse(
                                                         new LdapResult(
-                                                                "",
-                                                                "",
+                                                                ByteBuffer.empty(),
+                                                                ByteBuffer.empty(),
                                                                 List.of(),
                                                                 LdapResultCode.SUCCESS.code,
                                                                 LdapResultCode.SUCCESS),
-                                                        FastBind.REQUEST_OPERATION_OID,
+                                                        ByteBuffer.create(FastBind.REQUEST_OPERATION_OID),
                                                         null)
                                                         .controlsEmpty(),
                                                 MessageIdGenerator.constant(request.messageId())));
@@ -391,7 +392,7 @@ public class LdapConnectionTest {
                                                 ExtendedResponse.READER_SUCCESS)
                                         .compose((response)->{
                                             assertEquals(
-                                                    FastBind.REQUEST_OPERATION_OID,
+                                                    ByteBuffer.create(FastBind.REQUEST_OPERATION_OID),
                                                     response.message().responseName());
                                             return Lava.VOID;
                                         }));

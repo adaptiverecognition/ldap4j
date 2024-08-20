@@ -164,11 +164,11 @@ public class UnboundidDSTest {
                                                                     new PartialAttribute(
                                                                             attribute,
                                                                             List.of(user0, user1))),
-                                                            object)
+                                                            ByteBuffer.create(object))
                                                             .controlsEmpty()))
                                             .composeIgnoreResult(()->assertMembers(connection, user0, user1))
                                             .composeIgnoreResult(()->connection.writeRequestReadResponseChecked(
-                                                    new DeleteRequest(object)
+                                                    new DeleteRequest(ByteBuffer.create(object))
                                                             .controlsEmpty()))
                                             .composeIgnoreResult(()->assertNoSuchObject(connection));
                                 }
@@ -193,8 +193,10 @@ public class UnboundidDSTest {
                                                                 .filter(SearchResult::isEntry)
                                                                 .map(SearchResult::asEntry)
                                                                 .flatMap((entry)->entry.attributes().stream())
-                                                                .filter((attribute2)->attribute.equals(attribute2.type()))
-                                                                .flatMap((attribute2)->attribute2.values().stream())
+                                                                .filter((attribute2)->attribute.equals(
+                                                                        attribute2.type().utf8()))
+                                                                .flatMap((attribute2)->attribute2.valuesUtf8()
+                                                                        .stream())
                                                                 .toList());
                                                 members.sort(null);
                                                 return Lava.complete(members);
@@ -228,7 +230,8 @@ public class UnboundidDSTest {
                                                                                             "objectClass",
                                                                                             List.of("extensibleObject")),
                                                                                     ModifyRequest.OPERATION_ADD)),
-                                                                    "ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu")
+                                                                    ByteBuffer.create(
+                                                                            "ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu"))
                                                                     .controls(List.of(
                                                                             AssertionControl.request(Filter.parse(
                                                                                     "(ou=users)")))))
@@ -243,26 +246,28 @@ public class UnboundidDSTest {
                                                                             "objectClass",
                                                                             List.of("extensibleObject")),
                                                                     ModifyRequest.OPERATION_ADD)),
-                                                    "ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu")
+                                                    ByteBuffer.create("ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu"))
                                                     .controls(List.of(
                                                             AssertionControl.request(Filter.parse("(ou=groups)")),
-                                                            ReadEntryControls.postRequest(List.of("objectClass")),
-                                                            ReadEntryControls.preRequest(List.of("objectClass"))))))
+                                                            ReadEntryControls.postRequestString(
+                                                                    List.of("objectClass")),
+                                                            ReadEntryControls.preRequestString(
+                                                                    List.of("objectClass"))))))
                                     .compose((response)->{
                                         @NotNull SearchResult.Entry postEntry
                                                 =ReadEntryControls.postResponseCheck(response.controls());
                                         assertEquals(1, postEntry.attributes().size());
-                                        assertEquals("objectClass", postEntry.attributes().get(0).type());
+                                        assertEquals("objectClass", postEntry.attributes().get(0).type().utf8());
                                         assertEquals(
                                                 List.of("top", "organizationalUnit", "extensibleObject"),
-                                                postEntry.attributes().get(0).values());
+                                                postEntry.attributes().get(0).valuesUtf8());
                                         @NotNull SearchResult.Entry preEntry
                                                 =ReadEntryControls.preResponseCheck(response.controls());
                                         assertEquals(1, preEntry.attributes().size());
-                                        assertEquals("objectClass", preEntry.attributes().get(0).type());
+                                        assertEquals("objectClass", preEntry.attributes().get(0).type().utf8());
                                         assertEquals(
                                                 List.of("top", "organizationalUnit"),
-                                                preEntry.attributes().get(0).values());
+                                                preEntry.attributes().get(0).valuesUtf8());
                                         return Lava.VOID;
                                     })));
         }
@@ -319,6 +324,7 @@ public class UnboundidDSTest {
                                                                 .attributes()
                                                                 .stream()
                                                                 .map(PartialAttribute::type)
+                                                                .map(ByteBuffer::utf8)
                                                                 .toList());
                                                 return Lava.VOID;
                                             });
@@ -470,8 +476,10 @@ public class UnboundidDSTest {
                                         @NotNull LdapConnection connection, String value) {
                                     return connection.writeRequestReadResponseChecked(
                                                     new CompareRequest(
-                                                            new Filter.EqualityMatch(value, attribute),
-                                                            object)
+                                                            new Filter.EqualityMatch(
+                                                                    ByteBuffer.create(value),
+                                                                    ByteBuffer.create(attribute)),
+                                                            ByteBuffer.create(object))
                                                             .controlsEmpty())
                                             .compose((response)->Lava.complete(
                                                     LdapResultCode.COMPARE_TRUE.equals(
@@ -531,7 +539,7 @@ public class UnboundidDSTest {
                                                 assertTrue(results.get(0).message().isEntry());
                                                 assertEquals(
                                                         "cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
-                                                        results.get(0).message().asEntry().objectName());
+                                                        results.get(0).message().asEntry().objectName().utf8());
                                                 assertTrue(results.get(1).message().isDone());
                                                 return loop(connection, iterator);
                                             });
@@ -566,7 +574,7 @@ public class UnboundidDSTest {
                                         assertEquals(2, results.size());
                                         assertEquals(
                                                 "uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
-                                                results.get(0).message().asEntry().objectName());
+                                                results.get(0).message().asEntry().objectName().utf8());
                                         return Lava.VOID;
                                     })));
         }
@@ -610,7 +618,7 @@ public class UnboundidDSTest {
             context.get(
                     Lava.catchErrors(
                             (extendedLdapException)->{
-                                if (ExtendedResponse.NOTICE_OF_DISCONNECTION_OID.equals(
+                                if (ByteBuffer.create(ExtendedResponse.NOTICE_OF_DISCONNECTION_OID).equals(
                                         extendedLdapException.response.message().responseName())) {
                                     return Lava.VOID;
                                 }
@@ -707,8 +715,10 @@ public class UnboundidDSTest {
                                                                 .filter(SearchResult::isEntry)
                                                                 .map(SearchResult::asEntry)
                                                                 .flatMap((entry)->entry.attributes().stream())
-                                                                .filter((attribute2)->attribute.equals(attribute2.type()))
-                                                                .flatMap((attribute2)->attribute2.values().stream())
+                                                                .filter((attribute2)->attribute.equals(
+                                                                        attribute2.type().utf8()))
+                                                                .flatMap((attribute2)->attribute2.valuesUtf8()
+                                                                        .stream())
                                                                 .toList());
                                                 members.sort(null);
                                                 return Lava.complete(members);
@@ -718,7 +728,9 @@ public class UnboundidDSTest {
                                 private @NotNull Lava<Void> modify(
                                         @NotNull LdapConnection connection, ModifyRequest.Change... changes) {
                                     return connection.writeRequestReadResponseChecked(
-                                                    new ModifyRequest(List.of(changes), object)
+                                                    new ModifyRequest(
+                                                            List.of(changes),
+                                                            ByteBuffer.create(object))
                                                             .controlsEmpty())
                                             .composeIgnoreResult(()->Lava.VOID);
                                 }
@@ -783,8 +795,8 @@ public class UnboundidDSTest {
                                             .composeIgnoreResult(()->connection.writeRequestReadResponseChecked(
                                                     new ModifyDNRequest(
                                                             false,
-                                                            "%s,%s".formatted(oldRDN, oldParent),
-                                                            newRDN,
+                                                            ByteBuffer.create("%s,%s".formatted(oldRDN, oldParent)),
+                                                            ByteBuffer.create(newRDN),
                                                             null)
                                                             .controlsEmpty()))
                                             .composeIgnoreResult(()->assertNoSuchObject(
@@ -796,9 +808,9 @@ public class UnboundidDSTest {
                                             .composeIgnoreResult(()->connection.writeRequestReadResponseChecked(
                                                     new ModifyDNRequest(
                                                             false,
-                                                            "%s,%s".formatted(newRDN, oldParent),
-                                                            newRDN,
-                                                            newParent)
+                                                            ByteBuffer.create("%s,%s".formatted(newRDN, oldParent)),
+                                                            ByteBuffer.create(newRDN),
+                                                            ByteBuffer.create(newParent))
                                                             .controlsEmpty()))
                                             .composeIgnoreResult(()->assertMembers(
                                                     connection, "%s,%s".formatted(newRDN, newParent), user0, user1))
@@ -809,9 +821,9 @@ public class UnboundidDSTest {
                                             .composeIgnoreResult(()->connection.writeRequestReadResponseChecked(
                                                     new ModifyDNRequest(
                                                             true,
-                                                            "%s,%s".formatted(newRDN, newParent),
-                                                            oldRDN,
-                                                            oldParent)
+                                                            ByteBuffer.create("%s,%s".formatted(newRDN, newParent)),
+                                                            ByteBuffer.create(oldRDN),
+                                                            ByteBuffer.create(oldParent))
                                                             .controlsEmpty()))
                                             .composeIgnoreResult(()->assertNoSuchObject(
                                                     connection, "%s,%s".formatted(newRDN, newParent)))
@@ -841,8 +853,10 @@ public class UnboundidDSTest {
                                                                 .filter(SearchResult::isEntry)
                                                                 .map(SearchResult::asEntry)
                                                                 .flatMap((entry)->entry.attributes().stream())
-                                                                .filter((attribute2)->attribute.equals(attribute2.type()))
-                                                                .flatMap((attribute2)->attribute2.values().stream())
+                                                                .filter((attribute2)->attribute.equals(
+                                                                        attribute2.type().utf8()))
+                                                                .flatMap((attribute2)->attribute2.valuesUtf8()
+                                                                        .stream())
                                                                 .toList());
                                                 members.sort(null);
                                                 return Lava.complete(members);
@@ -879,7 +893,7 @@ public class UnboundidDSTest {
                                                                             "attributeTypes",
                                                                             List.of(type)),
                                                                     ModifyRequest.OPERATION_ADD)),
-                                                            "cn=schema")
+                                                            ByteBuffer.create("cn=schema"))
                                                             .controlsEmpty())
                                             .composeIgnoreResult(()->connection.writeRequestReadResponseChecked(
                                                     new ModifyRequest(
@@ -894,7 +908,8 @@ public class UnboundidDSTest {
                                                                                     "testCounter",
                                                                                     List.of("123")),
                                                                             ModifyRequest.OPERATION_ADD)),
-                                                            "ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu")
+                                                            ByteBuffer.create(
+                                                                    "ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu"))
                                                             .controlsEmpty()))
                                             .composeIgnoreResult(()->assertCounter(connection, 123))
                                             .composeIgnoreResult(()->connection.writeRequestReadResponseChecked(
@@ -905,7 +920,8 @@ public class UnboundidDSTest {
                                                                                     "testCounter",
                                                                                     List.of("456")),
                                                                             ModifyIncrement.OPERATION_INCREMENT)),
-                                                            "ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu")
+                                                            ByteBuffer.create(
+                                                                    "ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu"))
                                                             .controlsEmpty()))
                                             .composeIgnoreResult(()->assertCounter(connection, 579))
                                             .composeIgnoreResult(()->Lava.VOID);
@@ -929,7 +945,7 @@ public class UnboundidDSTest {
                                                 assertEquals(
                                                         List.of(Integer.toString(counter)),
                                                         results.get(0).message().asEntry()
-                                                                .attributes().get(0).values());
+                                                                .attributes().get(0).valuesUtf8());
                                                 return Lava.VOID;
                                             });
                                 }
@@ -988,7 +1004,7 @@ public class UnboundidDSTest {
                                                 if (null==newPassword) {
                                                     assertNotNull(response2);
                                                     assertNotNull(response2.genPasswd());
-                                                    return Lava.complete(response2.genPasswd());
+                                                    return Lava.complete(response2.genPasswd().utf8().toCharArray());
                                                 }
                                                 else {
                                                     assertTrue((null==response2) || (null==response2.genPasswd()));
@@ -1041,25 +1057,27 @@ public class UnboundidDSTest {
                                                                             "objectClass",
                                                                             List.of("extensibleObject")),
                                                                     ModifyRequest.OPERATION_ADD)),
-                                                    "ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu")
+                                                    ByteBuffer.create("ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu"))
                                                     .controls(List.of(
-                                                            ReadEntryControls.postRequest(List.of("objectClass")),
-                                                            ReadEntryControls.preRequest(List.of("objectClass")))))
+                                                            ReadEntryControls.postRequestString(
+                                                                    List.of("objectClass")),
+                                                            ReadEntryControls.preRequestString(
+                                                                    List.of("objectClass")))))
                                     .compose((response)->{
                                         @NotNull SearchResult.Entry postEntry
                                                 =ReadEntryControls.postResponseCheck(response.controls());
                                         assertEquals(1, postEntry.attributes().size());
-                                        assertEquals("objectClass", postEntry.attributes().get(0).type());
+                                        assertEquals("objectClass", postEntry.attributes().get(0).type().utf8());
                                         assertEquals(
                                                 List.of("top", "organizationalUnit", "extensibleObject"),
-                                                postEntry.attributes().get(0).values());
+                                                postEntry.attributes().get(0).valuesUtf8());
                                         @NotNull SearchResult.Entry preEntry
                                                 =ReadEntryControls.preResponseCheck(response.controls());
                                         assertEquals(1, preEntry.attributes().size());
-                                        assertEquals("objectClass", preEntry.attributes().get(0).type());
+                                        assertEquals("objectClass", preEntry.attributes().get(0).type().utf8());
                                         assertEquals(
                                                 List.of("top", "organizationalUnit"),
-                                                preEntry.attributes().get(0).values());
+                                                preEntry.attributes().get(0).valuesUtf8());
                                         return Lava.VOID;
                                     })));
         }
@@ -1093,7 +1111,7 @@ public class UnboundidDSTest {
                                                 response.message().ldapResult().resultCode2());
                                         assertEquals(0, response.messageId());
                                         assertEquals(
-                                                ExtendedResponse.NOTICE_OF_DISCONNECTION_OID,
+                                                ByteBuffer.create(ExtendedResponse.NOTICE_OF_DISCONNECTION_OID),
                                                 response.message().responseName());
                                         return Lava.VOID;
                                     })));
@@ -1167,6 +1185,7 @@ public class UnboundidDSTest {
                             entry.attributes()
                                     .stream()
                                     .map(PartialAttribute::type)
+                                    .map(ByteBuffer::utf8)
                                     .toList());
                     return Lava.VOID;
                 });
@@ -1282,7 +1301,7 @@ public class UnboundidDSTest {
                     for (ControlsMessage<SearchResult> result: searchResult) {
                         assertFalse(result.message().isReferral());
                         if (result.message().isEntry()) {
-                            actualDns.add(result.message().asEntry().objectName());
+                            actualDns.add(result.message().asEntry().objectName().utf8());
                         }
                     }
                     assertEquals(expectedDns, actualDns);
@@ -1337,7 +1356,7 @@ public class UnboundidDSTest {
                                                 assertTrue(results.get(0).message().isEntry());
                                                 assertEquals(
                                                         "cn=group0,ou=groups,ou=test,dc=ldap4j,dc=gds,dc=hu",
-                                                        results.get(0).message().asEntry().objectName());
+                                                        results.get(0).message().asEntry().objectName().utf8());
                                                 assertTrue(results.get(1).message().isDone());
                                                 return loop(connection, iterator);
                                             });
@@ -1379,12 +1398,12 @@ public class UnboundidDSTest {
                     assertEquals(2, result.size());
                     assertTrue(result.get(0).message().isEntry());
                     SearchResult.Entry entry=result.get(0).message().asEntry();
-                    assertEquals("cn=referral0,ou=test,dc=ldap4j,dc=gds,dc=hu", entry.objectName());
+                    assertEquals("cn=referral0,ou=test,dc=ldap4j,dc=gds,dc=hu", entry.objectName().utf8());
                     assertTrue(result.get(1).message().isDone());
                     assertEquals(1, entry.attributes().size());
                     PartialAttribute attribute=entry.attributes().get(0);
-                    assertEquals("ref", attribute.type());
-                    referrals=attribute.values();
+                    assertEquals("ref", attribute.type().utf8());
+                    referrals=attribute.valuesUtf8();
                 }
                 catch (Throwable throwable) {
                     if (manageDsaIt) {
@@ -1393,7 +1412,7 @@ public class UnboundidDSTest {
                     LdapException ldapException=Exceptions.findCauseOrThrow(LdapException.class, throwable);
                     assertEquals(LdapResultCode.REFERRAL, ldapException.resultCode2);
                     assertNotNull(ldapException.referrals);
-                    referrals=ldapException.referrals;
+                    referrals=ldapException.referralsUtf8();
                 }
                 assertEquals(3, referrals.size());
                 assertEquals("ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu", referrals.get(0));
@@ -1442,7 +1461,7 @@ public class UnboundidDSTest {
                                                             true)
                                                             .controls(List.of(ServerSideSorting.requestControl(
                                                                     true,
-                                                                    List.of(new ServerSideSorting.SortKey(
+                                                                    List.of(ServerSideSorting.sortKey(
                                                                             "uid",
                                                                             orderingRule,
                                                                             reverseOrder))))))
@@ -1462,13 +1481,15 @@ public class UnboundidDSTest {
                                                         results.get(reverseOrder?1:0)
                                                                 .message()
                                                                 .asEntry()
-                                                                .objectName());
+                                                                .objectName()
+                                                                .utf8());
                                                 assertEquals(
                                                         "uid=user1,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
                                                         results.get(reverseOrder?0:1)
                                                                 .message()
                                                                 .asEntry()
-                                                                .objectName());
+                                                                .objectName()
+                                                                .utf8());
                                                 return Lava.VOID;
                                             });
                                 }
@@ -1491,7 +1512,7 @@ public class UnboundidDSTest {
                             (connection)->{
                                 @NotNull Control sortControl=ServerSideSorting.requestControl(
                                         true,
-                                        List.of(new ServerSideSorting.SortKey("uid", null, false)));
+                                        List.of(ServerSideSorting.sortKey("uid", null, false)));
                                 @NotNull SearchRequest searchRequest=new SearchRequest(
                                         List.of(),
                                         "ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
@@ -1508,7 +1529,7 @@ public class UnboundidDSTest {
                                             assertEquals(2, results.size());
                                             assertEquals(
                                                     "uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
-                                                    results.get(0).message().asEntry().objectName());
+                                                    results.get(0).message().asEntry().objectName().utf8());
                                             assertTrue(results.get(1).message().isDone());
                                             @NotNull SimplePagedResults.SearchControlValue pageControl
                                                     =SimplePagedResults.responseControlCheck(results.get(1).controls());
@@ -1522,7 +1543,7 @@ public class UnboundidDSTest {
                                             assertEquals(2, results.size());
                                             assertEquals(
                                                     "uid=user1,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
-                                                    results.get(0).message().asEntry().objectName());
+                                                    results.get(0).message().asEntry().objectName().utf8());
                                             assertTrue(results.get(1).message().isDone());
                                             @NotNull SimplePagedResults.SearchControlValue pageControl
                                                     =SimplePagedResults.responseControlCheck(results.get(1).controls());
@@ -1550,7 +1571,7 @@ public class UnboundidDSTest {
                                 private @NotNull Lava<Void> add(
                                         @NotNull LdapConnection connection,
                                         @NotNull String object,
-                                        byte @NotNull [] transactionId) {
+                                        @NotNull ByteBuffer transactionId) {
                                     return connection.writeRequestReadResponseChecked(
                                                     new ModifyRequest(
                                                             List.of(
@@ -1559,11 +1580,11 @@ public class UnboundidDSTest {
                                                                                     "objectClass",
                                                                                     List.of("extensibleObject")),
                                                                             ModifyRequest.OPERATION_ADD)),
-                                                            object)
+                                                            ByteBuffer.create(object))
                                                             .controls(List.of(
-                                                                    ReadEntryControls.postRequest(
+                                                                    ReadEntryControls.postRequestString(
                                                                             List.of("objectClass")),
-                                                                    ReadEntryControls.preRequest(
+                                                                    ReadEntryControls.preRequestString(
                                                                             List.of("objectClass")),
                                                                     Transactions.transactionSpecificationControl(
                                                                             transactionId))))
@@ -1594,9 +1615,9 @@ public class UnboundidDSTest {
                                             first
                                                     ?"uid=user0,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu"
                                                     :"uid=user1,ou=users,ou=test,dc=ldap4j,dc=gds,dc=hu",
-                                            entry.objectName());
+                                            entry.objectName().utf8());
                                     assertEquals(1, entry.attributes().size());
-                                    assertEquals("objectClass", entry.attributes().get(0).type());
+                                    assertEquals("objectClass", entry.attributes().get(0).type().utf8());
                                     assertEquals(
                                             post
                                                     ?List.of(
@@ -1610,7 +1631,7 @@ public class UnboundidDSTest {
                                                     "person",
                                                     "organizationalPerson",
                                                     "inetOrgPerson"),
-                                            entry.attributes().get(0).values());
+                                            entry.attributes().get(0).valuesUtf8());
                                 }
 
                                 @Override
@@ -1622,7 +1643,7 @@ public class UnboundidDSTest {
                                                 assertEquals(
                                                         LdapResultCode.SUCCESS,
                                                         startResponse.message().ldapResult().resultCode2());
-                                                byte @NotNull [] transactionId
+                                                @NotNull ByteBuffer transactionId
                                                         =Transactions.startTransactionResponseTransactionId(
                                                         startResponse);
                                                 assertNotNull(transactionId);
@@ -1677,9 +1698,7 @@ public class UnboundidDSTest {
                                                     LdapResultCode.SUCCESS,
                                                     response.message().ldapResult().resultCode2());
                                             assertNotNull(response.message().responseValue());
-                                            String response2=new String(
-                                                    response.message().responseValue(),
-                                                    StandardCharsets.UTF_8);
+                                            String response2=response.message().responseValue().utf8();
                                             assertEquals("dn:"+bind.first(), response2);
                                             return Lava.VOID;
                                         })));

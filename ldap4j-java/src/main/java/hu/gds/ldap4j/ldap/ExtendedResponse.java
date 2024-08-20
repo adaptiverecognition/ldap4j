@@ -8,8 +8,8 @@ import org.jetbrains.annotations.Nullable;
 
 public record ExtendedResponse(
         @NotNull LdapResult ldapResult,
-        @Nullable String responseName,
-        byte@Nullable[] responseValue)
+        @Nullable ByteBuffer responseName,
+        @Nullable ByteBuffer responseValue)
         implements Message<ExtendedResponse>, Response {
     public static abstract class Reader implements MessageReader<ExtendedResponse> {
         public static class Success extends ExtendedResponse.Reader {
@@ -26,12 +26,12 @@ public record ExtendedResponse(
             return BER.readTag(
                     (reader2)->{
                         @NotNull LdapResult ldapResult=LdapResult.read(reader2);
-                        @Nullable String responseName=BER.readOptionalTag(
-                                BER::readUtf8NoTag,
+                        @Nullable ByteBuffer responseName=BER.readOptionalTag(
+                                BER::readOctetStringNoTag,
                                 reader2,
                                 ()->null,
                                 RESPONSE_NAME_TAG);
-                        byte@Nullable[] responseValue=BER.readOptionalTag(
+                        @Nullable ByteBuffer responseValue=BER.readOptionalTag(
                                 BER::readOctetStringNoTag,
                                 reader2,
                                 ()->null,
@@ -51,8 +51,8 @@ public record ExtendedResponse(
 
     public ExtendedResponse(
             @NotNull LdapResult ldapResult,
-            @Nullable String responseName,
-            byte@Nullable[] responseValue) {
+            @Nullable ByteBuffer responseName,
+            @Nullable ByteBuffer responseValue) {
         this.ldapResult=Objects.requireNonNull(ldapResult, "ldapResult");
         this.responseName=responseName;
         this.responseValue=responseValue;
@@ -74,12 +74,12 @@ public record ExtendedResponse(
         if (null!=responseName) {
             contentBuffer=contentBuffer.append(BER.writeTag(
                     RESPONSE_NAME_TAG,
-                    BER.writeUtf8NoTag(responseName)));
+                    BER.writeOctetStringNoTag(responseName)));
         }
         if (null!=responseValue) {
             contentBuffer=contentBuffer.append(BER.writeTag(
                     RESPONSE_VALUE_TAG,
-                    ByteBuffer.create(responseValue)));
+                    BER.writeOctetStringNoTag(responseValue)));
         }
         return BER.writeTag(
                 RESPONSE_TAG,

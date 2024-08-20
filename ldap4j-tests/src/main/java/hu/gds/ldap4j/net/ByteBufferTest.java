@@ -24,6 +24,7 @@ public class ByteBufferTest {
         assertEquals("DEF", buffer2.toString());
         assertEquals("ABCDEF", concat0.toString());
         assertEquals("ABCDEF", concat1.toString());
+        assertEquals("ABCDEF", concat1.utf8());
 
         ByteBuffer concat2=concat0.append(concat1);
         ByteBuffer concat3=concat1.append(concat0);

@@ -205,7 +205,7 @@ This requires a thread pool.
                                     .filter(SearchResult::isEntry)
                                     .map(SearchResult::asEntry)
                                     .flatMap((entry)->entry.attributes().stream())
-                                    .filter((attribute)->"uniqueMember".equals(attribute.type()))
+                                    .filter((attribute)->"uniqueMember".equals(attribute.type().utf8()))
                                     .flatMap((attribute)->attribute.values().stream())
                                     .forEach(System.out::println);
                             return CompletableFuture.completedFuture(null);
@@ -271,7 +271,7 @@ Lava can be used reactive-style.
                                             .filter(SearchResult::isEntry)
                                             .map(SearchResult::asEntry)
                                             .flatMap((entry)->entry.attributes().stream())
-                                            .filter((attribute)->"uniqueMember".equals(attribute.type()))
+                                            .filter((attribute)->"uniqueMember".equals(attribute.type().utf8()))
                                             .flatMap((attribute)->attribute.values().stream())
                                             .forEach(System.out::println);
                                     return Lava.VOID;
@@ -401,7 +401,7 @@ After starting the sample, the application can be reached [here](http://127.0.0.
                               .filter(SearchResult::isEntry)
                               .map(SearchResult::asEntry)
                               .flatMap((entry)->entry.attributes().stream())
-                              .filter((attribute)->"uniqueMember".equals(attribute.type()))
+                              .filter((attribute)->"uniqueMember".equals(attribute.type().utf8()))
                               .flatMap((attribute)->attribute.values().stream())
                               .forEach((value)->{
                                   output.append(value);
@@ -473,7 +473,7 @@ The transport is hardcoded to Java NIO polling.
             .filter(SearchResult::isEntry)
             .map(SearchResult::asEntry)
             .flatMap((entry)->entry.attributes().stream())
-            .filter((attribute)->"uniqueMember".equals(attribute.type()))
+            .filter((attribute)->"uniqueMember".equals(attribute.type().utf8()))
             .flatMap((attribute)->attribute.values().stream())
             .forEach(System.out::println);
 

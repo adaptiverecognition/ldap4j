@@ -8,6 +8,7 @@ import hu.gds.ldap4j.ldap.LdapException;
 import hu.gds.ldap4j.ldap.LdapResult;
 import hu.gds.ldap4j.ldap.LdapResultCode;
 import hu.gds.ldap4j.ldap.MessageReader;
+import hu.gds.ldap4j.net.ByteBuffer;
 import java.util.List;
 import org.jetbrains.annotations.NotNull;
 
@@ -41,7 +42,7 @@ public class Cancel {
                 && (LdapResultCode.TOO_LATE.code!=result.resultCode())) {
             throw new LdapException(
                     controls,
-                    result.diagnosticMessages(),
+                    result.diagnosticMessages().utf8(),
                     messageId,
                     result.referrals(),
                     result.resultCode(),
@@ -51,10 +52,9 @@ public class Cancel {
 
     public static @NotNull ExtendedRequest request(int messageId) {
         return new ExtendedRequest(
-                REQUEST_OPERATION_OID,
+                ByteBuffer.create(REQUEST_OPERATION_OID),
                 BER.writeSequence(
-                                BER.writeIntegerTag(messageId))
-                        .arrayCopy(),
+                                BER.writeIntegerTag(messageId)),
                 READER);
     }
 }

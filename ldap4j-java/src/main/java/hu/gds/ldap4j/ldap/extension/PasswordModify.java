@@ -18,12 +18,12 @@ public class PasswordModify {
     public static final byte REQUEST_NEW_PASSWD_TAG=(byte)0x82;
     public static final byte RESPONSE_GEN_PASSWD_TAG=(byte)0x80;
     
-    public record Response(char @Nullable [] genPasswd) {
+    public record Response(@Nullable ByteBuffer genPasswd) {
         public static @NotNull Response read(@NotNull ByteBuffer.Reader reader) throws Throwable {
             return BER.readSequence(
                     (reader2)->{
-                        char @Nullable [] genPasswd=BER.readOptionalTag(
-                                BER::readUtf8NoTagChars,
+                        @Nullable ByteBuffer genPasswd=BER.readOptionalTag(
+                                BER::readOctetStringNoTag,
                                 reader2,
                                 ()->null,
                                 RESPONSE_GEN_PASSWD_TAG);
@@ -37,37 +37,43 @@ public class PasswordModify {
     }
 
     public static @NotNull ControlsMessage<ExtendedRequest> request(
-            char @Nullable [] newPasswd, char @Nullable [] oldPasswd, @Nullable String userIdentity) {
+            @Nullable ByteBuffer newPasswd, @Nullable ByteBuffer oldPasswd, @Nullable ByteBuffer userIdentity) {
         ByteBuffer buffer=ByteBuffer.empty();
         if (null!=userIdentity) {
             buffer=buffer.append(BER.writeTag(
                     REQUEST_USER_IDENTITY_TAG,
-                    BER.writeUtf8NoTag(userIdentity)));
+                    BER.writeOctetStringNoTag(userIdentity)));
         }
         if (null!=oldPasswd) {
             buffer=buffer.append(BER.writeTag(
                     REQUEST_OLD_PASSWD_TAG,
-                    BER.writeUtf8NoTag(oldPasswd)));
+                    BER.writeOctetStringNoTag(oldPasswd)));
         }
         if (null!=newPasswd) {
             buffer=buffer.append(BER.writeTag(
                     REQUEST_NEW_PASSWD_TAG,
-                    BER.writeUtf8NoTag(newPasswd)));
+                    BER.writeOctetStringNoTag(newPasswd)));
         }
         return new ExtendedRequest(
-                REQUEST_OPERATION_IOD,
-                BER.writeSequence(buffer)
-                        .arrayCopy(),
+                ByteBuffer.create(REQUEST_OPERATION_IOD),
+                BER.writeSequence(buffer),
                 ExtendedResponse.READER_SUCCESS)
                 .controlsEmpty();
     }
 
+    public static @NotNull ControlsMessage<ExtendedRequest> request(
+            char @Nullable [] newPasswd, char @Nullable [] oldPasswd, @Nullable String userIdentity) {
+        return request(
+                ByteBuffer.createNull(newPasswd),
+                ByteBuffer.createNull(oldPasswd),
+                ByteBuffer.createNull(userIdentity));
+    }
+
     public static @Nullable Response response(@NotNull ControlsMessage<ExtendedResponse> response) throws Throwable {
-        byte @Nullable [] responseValue=response.message().responseValue();
+        @Nullable ByteBuffer responseValue=response.message().responseValue();
         if (null==responseValue) {
             return null;
         }
-        return ByteBuffer.create(responseValue)
-                .read(Response::read);
+        return responseValue.read(Response::read);
     }
 }

@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 public record BindResponse(
         @NotNull LdapResult ldapResult,
-        byte@Nullable[] serverSaslCredentials)
+        @Nullable ByteBuffer serverSaslCredentials)
         implements Response {
     public static abstract class Reader implements MessageReader<BindResponse> {
         public static class SASL extends BindResponse.Reader {
@@ -34,7 +34,7 @@ public record BindResponse(
             return BER.readTag(
                     (reader2)->{
                         @NotNull LdapResult ldapResult=LdapResult.read(reader2);
-                        byte@Nullable[] serverSaslCredentials=BER.readOptionalTag(
+                        @Nullable ByteBuffer serverSaslCredentials=BER.readOptionalTag(
                                 BER::readOctetStringNoTag,
                                 reader2,
                                 ()->null,
@@ -51,7 +51,7 @@ public record BindResponse(
     public static final @NotNull MessageReader<BindResponse> READER_SUCCESS=new Reader.Success();
     public static final byte RESPONSE_TAG=0x61;
 
-    public BindResponse(@NotNull LdapResult ldapResult, byte@Nullable [] serverSaslCredentials) {
+    public BindResponse(@NotNull LdapResult ldapResult, @Nullable ByteBuffer serverSaslCredentials) {
         this.ldapResult=Objects.requireNonNull(ldapResult, "ldapResult");
         this.serverSaslCredentials=serverSaslCredentials;
     }

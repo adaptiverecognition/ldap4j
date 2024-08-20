@@ -44,16 +44,16 @@ public class FeatureDiscovery {
     public final @NotNull Set<@NotNull String> vendorVersions=new TreeSet<>();
 
     private void add(@NotNull PartialAttribute attribute) {
-        switch (attribute.type()) {
-            case NAMING_CONTEXTS -> namingContexts.addAll(attribute.values());
-            case SUPPORTED_CAPABILITIES -> supportedCapabilities.addAll(attribute.values());
-            case SUPPORTED_CONTROL -> supportedControls.addAll(attribute.values());
-            case SUPPORTED_EXTENSION -> supportedExtensions.addAll(attribute.values());
-            case SUPPORTED_FEATURES -> supportedFeatures.addAll(attribute.values());
-            case SUPPORTED_LDAP_VERSION -> supportedLdapVersions.addAll(attribute.values());
-            case SUPPORTED_SASL_MECHANISMS -> supportedSaslMechanisms.addAll(attribute.values());
-            case VENDOR_NAME -> vendorNames.addAll(attribute.values());
-            case VENDOR_VERSION -> vendorVersions.addAll(attribute.values());
+        switch (attribute.type().utf8()) {
+            case NAMING_CONTEXTS -> namingContexts.addAll(attribute.valuesUtf8());
+            case SUPPORTED_CAPABILITIES -> supportedCapabilities.addAll(attribute.valuesUtf8());
+            case SUPPORTED_CONTROL -> supportedControls.addAll(attribute.valuesUtf8());
+            case SUPPORTED_EXTENSION -> supportedExtensions.addAll(attribute.valuesUtf8());
+            case SUPPORTED_FEATURES -> supportedFeatures.addAll(attribute.valuesUtf8());
+            case SUPPORTED_LDAP_VERSION -> supportedLdapVersions.addAll(attribute.valuesUtf8());
+            case SUPPORTED_SASL_MECHANISMS -> supportedSaslMechanisms.addAll(attribute.valuesUtf8());
+            case VENDOR_NAME -> vendorNames.addAll(attribute.valuesUtf8());
+            case VENDOR_VERSION -> vendorVersions.addAll(attribute.valuesUtf8());
             default -> unrecognizedAttributes.add(attribute);
         }
     }
@@ -76,7 +76,7 @@ public class FeatureDiscovery {
 
                     @Override
                     public Void referral(SearchResult.@NotNull Referral referral) {
-                        referralUris.addAll(referral.uris());
+                        referralUris.addAll(referral.urisUtf8());
                         return null;
                     }
                 });

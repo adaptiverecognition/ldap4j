@@ -65,12 +65,12 @@ public class FutureLdapTest {
                                 assertEquals(2, searchResults.size(), searchResults.toString());
                                 assertTrue(searchResults.get(0).message().isEntry());
                                 SearchResult.Entry entry=searchResults.get(0).message().asEntry();
-                                assertEquals(user.getKey(), entry.objectName());
+                                assertEquals(user.getKey(), entry.objectName().utf8());
                                 assertEquals(1, entry.attributes().size());
                                 PartialAttribute attribute2=entry.attributes().get(0);
                                 assertNotNull(attribute2);
-                                assertEquals(attribute, attribute2.type());
-                                assertEquals(List.of(value), attribute2.values());
+                                assertEquals(attribute, attribute2.type().utf8());
+                                assertEquals(List.of(value), attribute2.valuesUtf8());
                                 assertTrue(searchResults.get(1).message().isDone());
                                 return CompletableFuture.completedFuture(null);
                             },

@@ -1,6 +1,7 @@
 package hu.gds.ldap4j.ldap;
 
 import hu.gds.ldap4j.net.ByteBuffer;
+import org.jetbrains.annotations.NotNull;
 
 public enum DerefAliases {
     DEREF_ALWAYS(3),
@@ -14,7 +15,7 @@ public enum DerefAliases {
         this.value=value;
     }
 
-    public ByteBuffer write() {
+    public @NotNull ByteBuffer write() {
         return BER.writeEnumeratedTag(value);
     }
 }
