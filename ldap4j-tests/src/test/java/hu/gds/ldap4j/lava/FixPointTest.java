@@ -9,17 +9,20 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class YCombinatorTest {
+public class FixPointTest {
     private int factorial(@NotNull ContextHolder contextHolder, int value) throws Throwable {
         return contextHolder.getOrTimeoutDelayNanos(AbstractTest.TIMEOUT_NANOS, factorial(value));
     }
 
     private @NotNull Lava<@NotNull Integer> factorial(int value) {
-        return Lava.supplier(()->Lava.<@NotNull Integer>yCombinator(
-                        (recursion)->(value2)->(1>=value2)
-                                ?Lava.complete(1)
-                                :recursion.apply(value2-1)
-                                .compose((result)->Lava.complete(result*value2)))
+        return Lava.supplier(()->Lava.<@NotNull Integer>fixPoint(
+                        (recursion)->(value2)->{
+                            if (1>=value2) {
+                                return Lava.complete(1);
+                            }
+                            return recursion.apply(value2-1)
+                                    .compose((result)->Lava.complete(result*value2));
+                        })
                 .apply(value));
     }
 

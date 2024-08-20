@@ -295,6 +295,15 @@ public interface Lava<T> {
         });
     }
 
+    static <T> @NotNull Function<T, @NotNull Lava<T>> fixPoint(
+            @NotNull Function<
+                    @NotNull Function<T, @NotNull Lava<T>>,
+                    @NotNull Function<T, @NotNull Lava<T>>>
+                    function) {
+        Objects.requireNonNull(function, "function");
+        return (value)->function.apply((value2)->fixPoint(function).apply(value2)).apply(value);
+    }
+
     static <T, U> @NotNull Lava<@NotNull Pair<T, U>> forkJoin(
             @NotNull Supplier<@NotNull Lava<T>> left,
             @NotNull Supplier<@NotNull Lava<U>> right) {
@@ -347,14 +356,5 @@ public interface Lava<T> {
 
     static <T> @NotNull Lava<T> supplier(@NotNull Supplier<@NotNull Lava<T>> supplier) {
         return new SupplierSupplier<>(supplier);
-    }
-    
-    static <T> @NotNull Function<T, @NotNull Lava<T>> yCombinator(
-            @NotNull Function<
-                    @NotNull Function<T, @NotNull Lava<T>>,
-                    @NotNull Function<T, @NotNull Lava<T>>>
-                    function) {
-        Objects.requireNonNull(function, "function");
-        return (value)->function.apply((value2)->yCombinator(function).apply(value2)).apply(value);
     }
 }
