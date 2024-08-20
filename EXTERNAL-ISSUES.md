@@ -78,6 +78,10 @@ There's some integer parsing woes:
 
 Closes socket on unbind without a TLS shutdown.
 
+### OpenLDDAP
+
+Abandon results in a notice of disconnect.
+
 ### Samba
 
 Fast bind is not supported.
@@ -85,7 +89,9 @@ Fast bind is not supported.
 
 Samba refuses to approx match on vanilla attributes.
 
-Version: Samba 4
+Samba closes the connection on abandon.
+
+Version: Samba 4.20.4
 
 ### Unboundid LDAP SDK
 

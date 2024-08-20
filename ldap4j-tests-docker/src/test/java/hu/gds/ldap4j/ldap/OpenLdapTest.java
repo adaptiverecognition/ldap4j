@@ -7,6 +7,7 @@ import hu.gds.ldap4j.TestContext;
 import hu.gds.ldap4j.lava.Closeable;
 import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.lava.ThreadPoolContextHolder;
+import hu.gds.ldap4j.ldap.extension.Cancel;
 import hu.gds.ldap4j.ldap.extension.FeatureDiscovery;
 import hu.gds.ldap4j.ldap.extension.MatchedValuesControl;
 import hu.gds.ldap4j.net.ByteBuffer;
@@ -70,6 +71,29 @@ public class OpenLdapTest {
                 .withStartupTimeout(Duration.of(120L, ChronoUnit.SECONDS));
         container.setPortBindings(List.of("389:389"));
         container.start();
+    }
+
+    @Test
+    public void testCancel() throws Throwable {
+        try (TestContext<LdapTestParameters> context=TestContext.create(TEST_PARAMETERS)) {
+            context.get(
+                    Closeable.withCloseable(
+                            ()->context.parameters().connectionFactory(
+                                    context,
+                                    TlsConnection.DEFAULT_EXPLICIT_TLS_RENEGOTIATION,
+                                    ()->new InetSocketAddress(InetAddress.getLoopbackAddress(), 389),
+                                    ()->new InetSocketAddress(InetAddress.getLoopbackAddress(), 636),
+                                    ADMIN_BIND),
+                            (connection)->connection.writeRequestReadResponseChecked(
+                                            Cancel.request(123)
+                                                    .controlsEmpty())
+                                    .compose((response)->{
+                                        assertEquals(
+                                                LdapResultCode.NO_SUCH_OPERATION,
+                                                response.message().ldapResult().resultCode2());
+                                        return Lava.VOID;
+                                    })));
+        }
     }
 
     @Test

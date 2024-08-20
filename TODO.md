@@ -8,6 +8,5 @@
   - approx match that works differently than equality match
     - compare
     - search filter
-  - cancel
   - fast bind
   - ms domain controller
