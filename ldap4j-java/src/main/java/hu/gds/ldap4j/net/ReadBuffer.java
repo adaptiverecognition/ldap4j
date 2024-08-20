@@ -6,7 +6,7 @@ import java.io.EOFException;
 import org.jetbrains.annotations.NotNull;
 
 public class ReadBuffer {
-    private @NotNull ByteBuffer buffer=ByteBuffer.EMPTY;
+    private @NotNull ByteBuffer buffer=ByteBuffer.empty();
     private boolean endOfStream;
 
     public boolean isEmpty() {

@@ -88,9 +88,9 @@ public record Control(
 
     public static @NotNull ByteBuffer writeControls(@NotNull List<@NotNull Control> controls) {
         if (controls.isEmpty()) {
-            return ByteBuffer.EMPTY;
+            return ByteBuffer.empty();
         }
-        ByteBuffer buffer=ByteBuffer.EMPTY;
+        ByteBuffer buffer=ByteBuffer.empty();
         for (Control control: controls) {
             buffer=buffer.append(control.write());
         }

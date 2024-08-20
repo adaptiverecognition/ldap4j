@@ -330,12 +330,12 @@ public class TlsConnection implements DuplexConnection {
             SSLEngine sslEngine=Objects.requireNonNull(function.apply(remoteAddress), "sslEngine");
             sslEngine.beginHandshake();
             TlsHandshake tlsHandshake=new TlsHandshake(
-                    ByteBuffer.EMPTY,
+                    ByteBuffer.empty(),
                     gettingOpenAndNotFailed,
                     handshakeExecutor,
                     netEndOfStream,
                     netOutputShutDown,
-                    ByteBuffer.EMPTY,
+                    ByteBuffer.empty(),
                     reading,
                     shuttingDownNetOutput,
                     sslEngine,
@@ -451,7 +451,7 @@ public class TlsConnection implements DuplexConnection {
                             if (handshake) {
                                 throw new TimeoutException("handshake timeout");
                             }
-                            return Lava.complete(ByteBuffer.EMPTY);
+                            return Lava.complete(ByteBuffer.empty());
                         }
                         java.nio.ByteBuffer appBuffer
                                 =java.nio.ByteBuffer.allocate(sslEngine.getSession().getApplicationBufferSize());
@@ -463,7 +463,7 @@ public class TlsConnection implements DuplexConnection {
                                         case BUFFER_OVERFLOW -> throw new IllegalStateException();
                                         case BUFFER_UNDERFLOW -> {
                                             if (netEndOfStream) {
-                                                netReadBuffer=ByteBuffer.EMPTY;
+                                                netReadBuffer=ByteBuffer.empty();
                                                 sslEngine.closeInbound();
                                                 yield Lava.complete(null);
                                             }
@@ -587,7 +587,7 @@ public class TlsConnection implements DuplexConnection {
             checkHandshakeLocked();
             if (!appReadBuffer.isEmpty()) {
                 @NotNull ByteBuffer result=appReadBuffer;
-                appReadBuffer=ByteBuffer.EMPTY;
+                appReadBuffer=ByteBuffer.empty();
                 return Lava.complete(result);
             }
             reading=true;
@@ -655,7 +655,7 @@ public class TlsConnection implements DuplexConnection {
                         if (sslEngine.isOutboundDone()) {
                             return lock.leave(connection::shutDownOutputSafe);
                         }
-                        return wrap(true, ByteBuffer.EMPTY)
+                        return wrap(true, ByteBuffer.empty())
                                 .composeIgnoreResult(this::shutDownOutputLoopLocked);
                     });
         }
@@ -784,7 +784,7 @@ public class TlsConnection implements DuplexConnection {
                                         appReadBuffer=appReadBuffer.append(result);
                                         return state.handshakeLoopLocked();
                                     });
-                            case NEED_WRAP -> wrap(true, ByteBuffer.EMPTY)
+                            case NEED_WRAP -> wrap(true, ByteBuffer.empty())
                                     .composeIgnoreResult(()->state.handshakeLoopLocked());
                         };
                     });

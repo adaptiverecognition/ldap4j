@@ -49,7 +49,7 @@ public class ReadEntryControls {
 
     public static @NotNull Control request(
             @NotNull List<@NotNull String> attributeSelections, @NotNull String controlType, boolean criticality) {
-        @NotNull ByteBuffer buffer=ByteBuffer.EMPTY;
+        @NotNull ByteBuffer buffer=ByteBuffer.empty();
         for (@NotNull String attributeSelection: attributeSelections) {
             buffer=buffer.append(BER.writeUtf8Tag(attributeSelection));
         }

@@ -23,7 +23,7 @@ public interface DuplexConnection extends Connection {
     int PAGE_SIZE=1<<14;
 
     class Read extends SynchronizedWork<@Nullable ByteBuffer, @Nullable ByteBuffer> {
-        private @NotNull ByteBuffer buffer=ByteBuffer.EMPTY;
+        private @NotNull ByteBuffer buffer=ByteBuffer.empty();
         private boolean endOfStream;
         private @Nullable Throwable error;
 
@@ -38,7 +38,7 @@ public interface DuplexConnection extends Connection {
                 return null;
             }
             ByteBuffer byteBuffer=buffer;
-            buffer=ByteBuffer.EMPTY;
+            buffer=ByteBuffer.empty();
             return byteBuffer;
         }
 
@@ -69,7 +69,7 @@ public interface DuplexConnection extends Connection {
 
         @Override
         protected @Nullable ByteBuffer timeoutSynchronized() {
-            return ByteBuffer.EMPTY;
+            return ByteBuffer.empty();
         }
     }
 

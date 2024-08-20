@@ -92,6 +92,6 @@ public class SimplePagedResults {
     }
 
     public static @NotNull Control startRequest(int size) {
-        return control(START_COOKIE, true, size);
+        return startRequest(true, size);
     }
 }

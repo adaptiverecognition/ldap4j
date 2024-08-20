@@ -17,7 +17,17 @@ public class NettyBuffers {
 
     public static @NotNull ByteBuf toNetty(@NotNull ByteBuffer byteBuffer) {
         ByteBuf byteBuf=Unpooled.buffer(byteBuffer.size());
-        byteBuffer.write(byteBuf::writeBytes);
+        byteBuffer.write(new ByteBuffer.Write() {
+            @Override
+            public void array(byte @NotNull [] array, int from, int to) {
+                byteBuf.writeBytes(array, from, to-from);
+            }
+
+            @Override
+            public void nioBuffer(java.nio.@NotNull ByteBuffer buffer) {
+                byteBuf.writeBytes(buffer);
+            }
+        });
         return byteBuf;
     }
 }

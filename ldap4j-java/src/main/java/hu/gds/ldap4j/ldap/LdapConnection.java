@@ -33,7 +33,7 @@ public class LdapConnection implements Connection {
     private final boolean ldaps;
     private final Object lock=new Object();
     private final @NotNull MessageIdGenerator messageIdGenerator;
-    private ByteBuffer readBuffer=ByteBuffer.EMPTY;
+    private ByteBuffer readBuffer=ByteBuffer.empty();
     private boolean usingTls;
 
     public LdapConnection(

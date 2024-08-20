@@ -33,7 +33,7 @@ public record AddRequest(
 
     @Override
     public @NotNull ByteBuffer write() {
-        ByteBuffer attributesBuffer=ByteBuffer.EMPTY;
+        ByteBuffer attributesBuffer=ByteBuffer.empty();
         for (PartialAttribute attribute: attributes) {
             attributesBuffer=attributesBuffer.append(attribute.write());
         }

@@ -146,7 +146,7 @@ public abstract class Filter {
 
         @Override
         protected ByteBuffer writeContent() {
-            ByteBuffer result=ByteBuffer.EMPTY;
+            ByteBuffer result=ByteBuffer.empty();
             if (null!=matchingRule) {
                 result=result.append(BER.writeTag(
                         EXTENSIBLE_MATCH_MATCHING_RULE_TAG,
@@ -228,7 +228,7 @@ public abstract class Filter {
 
         @Override
         protected ByteBuffer writeContent() throws Throwable {
-            ByteBuffer result=ByteBuffer.EMPTY;
+            ByteBuffer result=ByteBuffer.empty();
             for (Filter filter : filters) {
                 result=result.append(filter.write());
             }
@@ -316,7 +316,7 @@ public abstract class Filter {
 
         @Override
         protected ByteBuffer writeContent() {
-            ByteBuffer substrings=ByteBuffer.EMPTY;
+            ByteBuffer substrings=ByteBuffer.empty();
             if (null!=initial) {
                 substrings=substrings.append(
                         BER.writeTag(SUBSTRINGS_INITIAL_TAG, BER.writeUtf8NoTag(initial)));

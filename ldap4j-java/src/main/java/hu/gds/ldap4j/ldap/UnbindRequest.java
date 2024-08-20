@@ -29,6 +29,6 @@ public record UnbindRequest() implements Message<UnbindRequest> {
 
     @Override
     public @NotNull ByteBuffer write() {
-        return BER.writeTag(REQUEST_TAG, ByteBuffer.EMPTY);
+        return BER.writeTag(REQUEST_TAG, ByteBuffer.empty());
     }
 }

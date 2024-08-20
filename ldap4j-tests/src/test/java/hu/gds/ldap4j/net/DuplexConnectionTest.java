@@ -286,7 +286,7 @@ public class DuplexConnectionTest {
                         (connection)->Lava.forkJoin(
                                         ()->readFully(
                                                 connection,
-                                                ByteBuffer.EMPTY,
+                                                ByteBuffer.empty(),
                                                 context.networkConnectionFactory().mayCloseOnEof()
                                                         ?serverWriteBuf.length
                                                         :null),
@@ -344,7 +344,7 @@ public class DuplexConnectionTest {
                             })
                             .composeIgnoreResult(()->readFully(
                                     connection,
-                                    ByteBuffer.EMPTY,
+                                    ByteBuffer.empty(),
                                     context.networkConnectionFactory().mayCloseOnEof()
                                             ?response.length
                                             :null))
@@ -400,7 +400,7 @@ public class DuplexConnectionTest {
                                     @Override
                                     public @NotNull Lava<Void> get() throws Throwable {
                                         return loop(
-                                                connection, endNanosHard, endNanosSoft, true, ByteBuffer.EMPTY);
+                                                connection, endNanosHard, endNanosSoft, true, ByteBuffer.empty());
                                     }
 
                                     private @NotNull Lava<Void> loop(
@@ -491,7 +491,9 @@ public class DuplexConnectionTest {
                                             return Lava.addDebugMagic("useless", ()->Lava.VOID);
                                         });
                             }
-                            return connection.write(ByteBuffer.createLong(aa).appendLong(bb))
+                            return connection.write(
+                                            ByteBuffer.createLong(aa)
+                                                    .append(ByteBuffer.createLong(bb)))
                                     .composeIgnoreResult(()->{
                                         context.assertSize(0);
                                         return readBuffer.readLong(connection);
@@ -749,7 +751,7 @@ public class DuplexConnectionTest {
                             TlsConnection tlsConnection=(connection instanceof TlsConnection connection2)
                                     ?connection2
                                     :null;
-                            return readFully(connection, ByteBuffer.EMPTY, 1)
+                            return readFully(connection, ByteBuffer.empty(), 1)
                                     .compose((readResult)->{
                                         assertArrayEquals(new byte[]{-1}, readResult.arrayCopy());
                                         return (null==tlsConnection)
@@ -814,7 +816,7 @@ public class DuplexConnectionTest {
                                 .composeIgnoreResult(()->
                                         readFully(
                                                 connection,
-                                                ByteBuffer.EMPTY,
+                                                ByteBuffer.empty(),
                                                 context.networkConnectionFactory().mayCloseOnEof()
                                                         ?8
                                                         :null))

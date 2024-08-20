@@ -170,7 +170,8 @@ public abstract class BER {
                 =Objects.requireNonNull(either.left(), "either.left()");
         readTag(false, reader);
         int length=readLength(reader);
-        return reader.readBytes(length, function2);
+        return reader.readByteBuffer(length)
+                .read(function2);
     }
 
     public static <T> T readTag(
@@ -261,7 +262,7 @@ public abstract class BER {
 
     public static <T> @NotNull ByteBuffer writeIterable(
             @NotNull Function<T, @NotNull ByteBuffer> function, @NotNull Iterable<T> iterable) throws Throwable {
-        ByteBuffer result=ByteBuffer.EMPTY;
+        ByteBuffer result=ByteBuffer.empty();
         for (T value: iterable) {
             result=result.append(function.apply(value));
         }

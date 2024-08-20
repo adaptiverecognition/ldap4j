@@ -183,7 +183,7 @@ public class JavaChannelPollConnection implements DuplexConnection {
                         }
                         return Either.right(false);
                     },
-                    ()->Lava.complete(ByteBuffer.EMPTY));
+                    ()->Lava.complete(ByteBuffer.empty()));
         });
     }
 

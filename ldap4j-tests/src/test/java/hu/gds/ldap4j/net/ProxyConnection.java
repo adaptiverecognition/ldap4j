@@ -17,11 +17,11 @@ public class ProxyConnection implements DuplexConnection {
 
     public static class Session {
         private final @NotNull AtomicBoolean endOfStream=new AtomicBoolean(false);
-        private final @NotNull AtomicReference<@NotNull ByteBuffer> reads=new AtomicReference<>(ByteBuffer.EMPTY);
+        private final @NotNull AtomicReference<@NotNull ByteBuffer> reads=new AtomicReference<>(ByteBuffer.empty());
         private final @NotNull AtomicReference<@NotNull Mode> mode;
         private final @NotNull AtomicBoolean outputShutDown=new AtomicBoolean(false);
         private final @NotNull AtomicBoolean supportsShutDownOutput=new AtomicBoolean(false);
-        private final @NotNull AtomicReference<@NotNull ByteBuffer> writes=new AtomicReference<>(ByteBuffer.EMPTY);
+        private final @NotNull AtomicReference<@NotNull ByteBuffer> writes=new AtomicReference<>(ByteBuffer.empty());
 
         public Session(@NotNull Mode mode) {
             Objects.requireNonNull(mode, "mode");
@@ -107,7 +107,7 @@ public class ProxyConnection implements DuplexConnection {
         return Lava.supplier(()->{
             session.outputShutDown.set(true);
             return switch (session.mode.get()) {
-                case DROP_WRITE -> connection.write(ByteBuffer.EMPTY);
+                case DROP_WRITE -> connection.write(ByteBuffer.empty());
                 case NORMAL -> connection.shutDownOutput();
                 case TIMEOUT_WRITE -> timeout("shut down output timeout");
             };
@@ -142,7 +142,7 @@ public class ProxyConnection implements DuplexConnection {
         return Lava.supplier(()->{
             session.writes.updateAndGet((buffer)->buffer.append(value));
             return switch (session.mode.get()) {
-                case DROP_WRITE -> connection.write(ByteBuffer.EMPTY);
+                case DROP_WRITE -> connection.write(ByteBuffer.empty());
                 case NORMAL -> connection.write(value);
                 case TIMEOUT_WRITE -> timeout("write timeout");
             };

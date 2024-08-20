@@ -73,7 +73,7 @@ public record LdapResult(
                 .append(BER.writeUtf8Tag(matchedDn))
                 .append(BER.writeUtf8Tag(diagnosticMessages));
         if (!referrals.isEmpty()) {
-            @NotNull ByteBuffer referralsBuffer=ByteBuffer.EMPTY;
+            @NotNull ByteBuffer referralsBuffer=ByteBuffer.empty();
             for (@NotNull String referral: referrals) {
                 referralsBuffer=referralsBuffer.append(BER.writeUtf8Tag(referral));
             }

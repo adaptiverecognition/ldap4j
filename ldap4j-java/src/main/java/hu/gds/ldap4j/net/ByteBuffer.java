@@ -3,208 +3,273 @@ package hu.gds.ldap4j.net;
 import hu.gds.ldap4j.Function;
 import java.io.EOFException;
 import java.util.Arrays;
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public sealed interface ByteBuffer {
-    @NotNull ByteBuffer EMPTY=new ByteArray(new byte[0], 0, 0);
-    int SMALL_BUFFER_SIZE=64;
+public sealed abstract class ByteBuffer {
+    protected static final class Array extends Direct {
+        public static final @NotNull ByteBuffer EMPTY=new ByteBuffer.Array(new byte[0], 0, 0);
 
-    sealed abstract class Abstract implements ByteBuffer {
+        private final byte @NotNull [] array;
+
+        public Array(byte @NotNull [] array, int from, int to) {
+            super(from, hashCode(array, from, to), array.length, to);
+            this.array=Objects.requireNonNull(array, "buffer");
+        }
+
         @Override
-        public String toString() {
-            return "ByteBuffer(size:"+size()+")";
+        protected byte getRaw(int index) {
+            return array[index];
+        }
+
+        public static int hashCode(byte @NotNull [] array, int from, int to) {
+            int result=0;
+            for (int ii=to-1; from<=ii; --ii) {
+                result=HASHCODE_MULTIPLIER*result+(array[ii]&255);
+            }
+            return result;
+        }
+
+        @Override
+        protected @NotNull ByteBuffer subBufferRaw(int from, int to) {
+            return new Array(array, from, to);
+        }
+
+        @Override
+        protected void writeDirect(@NotNull Write write) {
+            write.array(array, from, to);
         }
     }
 
-    final class ByteArray extends Abstract {
-        private final byte[] array;
-        private final int length;
-        private final int offset;
-
-        private ByteArray(byte[] array, int length, int offset) {
-            if (0>length) {
-                throw new IllegalArgumentException("0 > length %d".formatted(length));
-            }
-            if (0<length) {
-                if (0>offset) {
-                    throw new IllegalArgumentException("0 > offset %d".formatted(offset));
-                }
-                if (array.length<offset+length) {
-                    throw new IllegalArgumentException("array.length %d < offset %d + length %d".formatted(
-                            array.length, offset, length));
-                }
-            }
-            this.array=Objects.requireNonNull(array, "array");
-            this.length=length;
-            this.offset=offset;
-        }
-
-        @Override
-        public int size() {
-            return length;
-        }
-
-        @Override
-        public void write(@NotNull Writer writer) {
-            if (0<length) {
-                writer.write(array, offset, length);
-            }
-        }
-    }
-
-    final class Concat extends Abstract {
+    protected static final class Concat extends ByteBuffer {
         private final @NotNull ByteBuffer left;
         private final @NotNull ByteBuffer right;
-        private final int size;
 
-        private Concat(@NotNull ByteBuffer left, @NotNull ByteBuffer right) {
+        public Concat(@NotNull ByteBuffer left, @NotNull ByteBuffer right) {
+            super(
+                    left.hashCode+hashMultiplierPower(left.size())*right.hashCode,
+                    left.size()+right.size());
             this.left=Objects.requireNonNull(left, "left");
             this.right=Objects.requireNonNull(right, "right");
-            size=left.size()+right.size();
         }
 
         @Override
-        public int size() {
-            return size;
-        }
-
-        @Override
-        public void write(@NotNull Writer writer) {
-            left.write(writer);
-            right.write(writer);
+        protected @NotNull ByteBuffer subBufferImpl(int from, int to) throws EOFException {
+            @NotNull Reader reader=reader();
+            reader.dropBytes(from);
+            return reader.readByteBuffer(to-from);
         }
     }
 
-    /**
-     * Read methods throw EOFException on no more bytes.
-     */
-    class Reader {
-        private byte[] firstArray;
-        private int firstLength;
-        private int firstOffset;
-        private int offset;
-        private int remainingBytes;
-        private @NotNull ByteBuffer rest;
+    protected static sealed abstract class Direct extends ByteBuffer {
+        protected final int from;
+        protected final int to;
 
-        private Reader(@NotNull ByteBuffer byteBuffer) {
-            rest=Objects.requireNonNull(byteBuffer, "byteBuffer");
-            remainingBytes=byteBuffer.size();
+        public Direct(int from, int hashCode, int length, int to) {
+            super(hashCode, checkIndicesAndSize(from, length, to));
+            this.from=from;
+            this.to=to;
+        }
+
+        protected static int checkIndicesAndSize(int from, int length, int to) {
+            if (from>to) {
+                throw new IndexOutOfBoundsException("length: %,d, from: %,d, to: %,d".formatted(length, from, to));
+            }
+            if ((from<to) && ((0>from) || (length<to))) {
+                throw new IndexOutOfBoundsException("length: %,d, from: %,d, to: %,d".formatted(length, from, to));
+            }
+            return to-from;
+        }
+
+        protected byte getDirect(int index) {
+            if ((0>index) || (size<index)) {
+                throw new IndexOutOfBoundsException("size: %,d, index: %,d".formatted(size, index));
+            }
+            return getRaw(from+index);
+        }
+
+        protected abstract byte getRaw(int index);
+
+        @Override
+        protected @NotNull ByteBuffer subBufferImpl(int from, int to) {
+            return subBufferRaw(this.from+from, this.from+to);
+        }
+
+        protected abstract @NotNull ByteBuffer subBufferRaw(int from, int to);
+
+        protected abstract void writeDirect(@NotNull Write write);
+    }
+
+    protected static final class NioBuffer extends Direct {
+        private final @NotNull java.nio.ByteBuffer buffer;
+
+        public NioBuffer(@NotNull java.nio.ByteBuffer buffer, int from, int to) {
+            super(from, hashCode(buffer), buffer.capacity(), to);
+            this.buffer=Objects.requireNonNull(buffer, "buffer");
+        }
+
+        @Override
+        protected byte getRaw(int index) {
+            return buffer.get(index);
+        }
+
+        public static int hashCode(@NotNull java.nio.ByteBuffer buffer) {
+            int result=0;
+            for (int ii=buffer.limit()-1; buffer.position()<=ii; --ii) {
+                result=HASHCODE_MULTIPLIER*result+(buffer.get(ii)&255);
+            }
+            return result;
+        }
+
+        @Override
+        protected @NotNull ByteBuffer subBufferRaw(int from, int to) {
+            return new NioBuffer(buffer, from, to);
+        }
+
+        @Override
+        protected void writeDirect(@NotNull Write write) {
+            @NotNull java.nio.ByteBuffer buffer2=this.buffer.duplicate();
+            buffer2.limit(to);
+            buffer2.position(from);
+            write.nioBuffer(buffer2);
+        }
+    }
+
+    public static final class Reader {
+        private @Nullable Direct first;
+        private int offset;
+        private int remainingFirst;
+        private int remaining;
+        private final @NotNull Deque<@NotNull ByteBuffer> rest=new LinkedList<>();
+
+        public Reader(@NotNull ByteBuffer buffer) {
+            Objects.requireNonNull(buffer, "buffer");
+            rest.addLast(buffer);
+            remaining=buffer.size;
         }
 
         public void assertNoRemainingBytes() {
             if (hasRemainingBytes()) {
-                throw new RuntimeException("remainingBytes %d".formatted(remainingBytes()));
+                throw new RuntimeException("remaining bytes %,d".formatted(remainingBytes()));
             }
         }
 
-        private void ensureOneByte() throws Throwable {
-            if (!hasRemainingBytes()) {
-                throw new EOFException("remainingBytes %d".formatted(remainingBytes()));
-            }
-            while (0>=firstLength) {
-                ByteBuffer byteBuffer=rest;
-                rest=ByteBuffer.EMPTY;
-                while (byteBuffer instanceof Concat concat) {
-                    rest=concat.right.append(rest);
-                    byteBuffer=concat.left;
+        public void dropBytes(int bytes) throws EOFException {
+            while (0<bytes) {
+                if (0>=remainingFirst) {
+                    if (rest.isEmpty()) {
+                        throw new EOFException();
+                    }
+                    @NotNull ByteBuffer buffer=rest.removeFirst();
+                    while ((buffer.size>bytes) && (buffer instanceof Concat concat)) {
+                        rest.addFirst(concat.right);
+                        buffer=concat.left;
+                    }
+                    if (buffer.size<=bytes) {
+                        bytes-=buffer.size;
+                        offset+=buffer.size;
+                        remaining-=buffer.size;
+                        continue;
+                    }
+                    first=(Direct)buffer;
+                    remainingFirst=buffer.size;
                 }
-                ByteArray byteArray=(ByteArray)byteBuffer;
-                firstArray=byteArray.array;
-                firstLength=byteArray.length;
-                firstOffset=byteArray.offset;
+                Objects.requireNonNull(first, "first");
+                int size2=Math.min(bytes, remainingFirst);
+                bytes-=size2;
+                offset+=size2;
+                remaining-=size2;
+                remainingFirst-=size2;
+                if (0==remainingFirst) {
+                    first=null;
+                }
+            }
+        }
+
+        private void ensureFirst() throws EOFException {
+            while (0>=remainingFirst) {
+                first=null;
+                if (rest.isEmpty()) {
+                    throw new EOFException();
+                }
+                @NotNull ByteBuffer buffer=rest.removeFirst();
+                while (buffer instanceof Concat concat) {
+                    rest.addFirst(concat.right);
+                    buffer=concat.left;
+                }
+                first=(Direct)buffer;
+                remainingFirst=first.size;
             }
         }
 
         public boolean hasRemainingBytes() {
-            return 0<remainingBytes;
+            return 0<remainingBytes();
         }
 
         public int offset() {
             return offset;
         }
 
-        public byte peekByte() throws Throwable {
-            ensureOneByte();
-            return firstArray[firstOffset];
+        public byte peekByte() throws EOFException {
+            ensureFirst();
+            Objects.requireNonNull(first, "first");
+            return first.getDirect(first.size-remainingFirst);
         }
 
-        public byte readByte() throws Throwable {
-            ensureOneByte();
-            byte result=firstArray[firstOffset];
-            firstLength-=1;
-            firstOffset+=1;
+        public byte readByte() throws EOFException {
+            ensureFirst();
+            Objects.requireNonNull(first, "first");
+            byte result=first.getDirect(first.size-remainingFirst);
             ++offset;
-            --remainingBytes;
-            if (0>=firstLength) {
-                firstArray=null;
+            --remainingFirst;
+            --remaining;
+            if (0>=remainingFirst) {
+                first=null;
             }
             return result;
         }
 
-        public ByteBuffer readByteBuffer(int bytes) throws Throwable {
-            if (remainingBytes()<bytes) {
-                throw new EOFException("remainingBytes %d < bytes %d".formatted(remainingBytes(), bytes));
-            }
-            if (0>=bytes) {
-                return EMPTY;
-            }
-            ByteBuffer result;
-            if (firstLength>=bytes) {
-                if (firstLength==bytes) {
-                    result=create(firstArray, firstOffset, bytes);
-                    firstArray=null;
+        public @NotNull ByteBuffer readByteBuffer(int bytes) throws EOFException {
+            @NotNull ByteBuffer result=empty();
+            while (0<bytes) {
+                if (0>=remainingFirst) {
+                    if (rest.isEmpty()) {
+                        throw new EOFException();
+                    }
+                    @NotNull ByteBuffer buffer=rest.removeFirst();
+                    while ((buffer.size>bytes) && (buffer instanceof Concat concat)) {
+                        rest.addFirst(concat.right);
+                        buffer=concat.left;
+                    }
+                    if (buffer.size<=bytes) {
+                        result=result.append(buffer);
+                        bytes-=buffer.size;
+                        offset+=buffer.size;
+                        remaining-=buffer.size;
+                        continue;
+                    }
+                    first=(Direct)buffer;
+                    remainingFirst=buffer.size;
                 }
-                else {
-                    result=createCopy(firstArray, firstOffset, bytes);
-                    firstOffset+=bytes;
-                }
-                firstLength-=bytes;
-                offset+=bytes;
-                remainingBytes-=bytes;
-                return result;
-            }
-            if (0<firstLength) {
-                result=create(firstArray, firstOffset, firstLength);
-                offset+=firstLength;
-                remainingBytes-=firstLength;
-                firstArray=null;
-                firstLength=0;
-            }
-            else {
-                result=EMPTY;
-            }
-            while (result.size()<bytes) {
-                ByteBuffer byteBuffer=rest;
-                rest=ByteBuffer.EMPTY;
-                while ((result.size()+byteBuffer.size()>bytes) && (byteBuffer instanceof Concat concat)) {
-                    rest=concat.right.append(rest);
-                    byteBuffer=concat.left;
-                }
-                if (result.size()+byteBuffer.size()<=bytes) {
-                    result=result.append(byteBuffer);
-                    offset+=byteBuffer.size();
-                    remainingBytes-=byteBuffer.size();
-                }
-                else {
-                    ByteArray byteArray=(ByteArray)byteBuffer;
-                    int remaining=bytes-result.size();
-                    result=result.append(createCopy(byteArray.array, byteArray.offset, remaining));
-                    firstArray=byteArray.array;
-                    firstLength=byteArray.length-remaining;
-                    firstOffset=byteArray.offset+remaining;
-                    offset+=remaining;
-                    remainingBytes-=remaining;
+                Objects.requireNonNull(first, "first");
+                int size2=Math.min(bytes, remainingFirst);
+                result=result.append(first.subBufferImpl(first.size-remainingFirst, first.size-remainingFirst+size2));
+                bytes-=size2;
+                offset+=size2;
+                remaining-=size2;
+                remainingFirst-=size2;
+                if (0>=remainingFirst) {
+                    first=null;
                 }
             }
             return result;
         }
 
-        public <T> T readBytes(int bytes, @NotNull Function<@NotNull Reader, T> function) throws Throwable {
-            ByteBuffer.Reader reader=readByteBuffer(bytes).reader();
-            T result=function.apply(reader);
-            reader.assertNoRemainingBytes();
-            return result;
+        public @NotNull ByteBuffer readReaminingByteBuffer() throws EOFException {
+            return readByteBuffer(remainingBytes());
         }
 
         public long readLong() throws Throwable {
@@ -218,153 +283,105 @@ public sealed interface ByteBuffer {
                     |(readByte()&255L);
         }
 
-        public ByteBuffer readReaminingByteBuffer() throws Throwable {
-            return readByteBuffer(remainingBytes());
-        }
-
         public int remainingBytes() {
-            return remainingBytes;
-        }
-
-        @Override
-        public String toString() {
-            return "ByteBuffer.Reader(firstArray: "+Arrays.toString(firstArray)
-                    +", firstLength: "+firstLength
-                    +", firstOffset: "+firstOffset
-                    +", offset: "+offset
-                    +", remainingBytes: "+remainingBytes
-                    +", rest: "+rest+")";
+            return remaining;
         }
     }
 
-    interface Writer {
-        class Array implements Writer {
+    public interface Write {
+        class Array implements Write {
             public final byte@NotNull[] array;
-            public int arrayOffset;
+            public int offset;
 
-            public Array(byte@NotNull[] array, int arrayOffset) {
+            public Array(byte @NotNull [] array, int offset) {
                 this.array=Objects.requireNonNull(array, "array");
-                this.arrayOffset=arrayOffset;
-            }
-
-            public Array(int size) {
-                this(new byte[size], 0);
+                this.offset=offset;
             }
 
             @Override
-            public void write(byte[] array, int offset, int length) {
-                if (0<length) {
-                    System.arraycopy(array, offset, this.array, arrayOffset, length);
-                    arrayOffset+=length;
-                }
-            }
-        }
-
-        class NioByteBuffer implements Writer {
-            public final @NotNull java.nio.ByteBuffer byteBuffer;
-
-            public NioByteBuffer(@NotNull java.nio.ByteBuffer byteBuffer) {
-                this.byteBuffer=Objects.requireNonNull(byteBuffer, "byteBuffer");
-            }
-
-            public NioByteBuffer(int size) {
-                this(java.nio.ByteBuffer.allocate(size));
+            public void array(byte @NotNull [] array, int from, int to) {
+                int size=to-from;
+                System.arraycopy(array, from, this.array, offset, size);
+                offset+=size;
             }
 
             @Override
-            public void write(byte[] array, int offset, int length) {
-                if (0<length) {
-                    byteBuffer.put(array, offset, length);
-                }
+            public void nioBuffer(java.nio.@NotNull ByteBuffer buffer) {
+                int size=buffer.remaining();
+                buffer.get(array, offset, size);
+                offset+=size;
             }
         }
 
-        void write(byte[] array, int offset, int length);
-    }
+        class NioBuffer implements Write {
+            public final @NotNull java.nio.ByteBuffer buffer;
 
-    default @NotNull ByteBuffer append(@NotNull ByteBuffer buffer) {
-        return concat(this, buffer);
-    }
+            public NioBuffer(java.nio.ByteBuffer buffer) {
+                this.buffer=Objects.requireNonNull(buffer, "buffer");
+            }
 
-    default @NotNull ByteBuffer appendLong(long value) {
-        return append(createLong(value));
-    }
+            @Override
+            public void array(byte @NotNull [] array, int from, int to) {
+                buffer.put(array, from, to-from);
+            }
 
-    default byte@NotNull[] arrayCopy() {
-        Writer.Array array=new Writer.Array(size());
-        write(array);
-        if (size()!=array.arrayOffset) {
-            throw new IllegalStateException("size() %d != array.arrayOffset %d".formatted(size(), array.arrayOffset));
-        }
-        return array.array;
-    }
-
-    static @NotNull ByteBuffer concat(@NotNull ByteBuffer left, @NotNull ByteBuffer right) {
-        if (left.isEmpty()) {
-            return right;
-        }
-        if (right.isEmpty()) {
-            return left;
-        }
-        if (SMALL_BUFFER_SIZE>=left.size()+right.size()) {
-            return concatCopy(left, right);
-        }
-        if (left instanceof Concat leftConcat) {
-            if (SMALL_BUFFER_SIZE>=leftConcat.right.size()+right.size()) {
-                return new Concat(leftConcat.left, concatCopy(leftConcat.right, right));
+            @Override
+            public void nioBuffer(java.nio.@NotNull ByteBuffer buffer) {
+                this.buffer.put(buffer);
             }
         }
-        if (right instanceof Concat rightConcat) {
-            if (SMALL_BUFFER_SIZE>=left.size()+rightConcat.left.size()) {
-                return new Concat(concatCopy(left, rightConcat.left), rightConcat.right);
-            }
-        }
-        return new Concat(left, right);
+
+        void array(byte@NotNull[] array, int from, int to);
+
+        void nioBuffer(@NotNull java.nio.ByteBuffer buffer);
     }
 
-    static @NotNull ByteBuffer concatCopy(@NotNull ByteBuffer left, @NotNull ByteBuffer right) {
-        int size=left.size()+right.size();
-        if (0>=size) {
-            return EMPTY;
+    static final int HASHCODE_MULTIPLIER=13;
+
+    protected final int hashCode;
+    protected final int size;
+
+    private ByteBuffer(int hashCode, int size) {
+        if (0>size) {
+            throw new IllegalArgumentException("0 > size %,d".formatted(size));
         }
-        Writer.Array writer=new Writer.Array(size);
-        left.write(writer);
-        if (left.size()!=writer.arrayOffset) {
-            throw new IllegalStateException(
-                    "left.size() %d != writer.arrayOffset %d".formatted(left.size(), writer.arrayOffset));
-        }
-        right.write(writer);
-        if (size!=writer.arrayOffset) {
-            throw new IllegalStateException("size %d != writer.arrayOffset %d".formatted(size, writer.arrayOffset));
-        }
-        return new ByteArray(writer.array, size, 0);
+        this.hashCode=hashCode;
+        this.size=size;
     }
 
-    static @NotNull ByteBuffer create(byte... array) {
+    public @NotNull ByteBuffer append(@NotNull ByteBuffer buffer) {
+        if (isEmpty()) {
+            return buffer;
+        }
+        if (buffer.isEmpty()) {
+            return this;
+        }
+        return new Concat(this, buffer);
+    }
+
+    public byte@NotNull[] arrayCopy() {
+        @NotNull Write.Array write=new Write.Array(new byte[size], 0);
+        write(write);
+        return write.array;
+    }
+
+    public static @NotNull ByteBuffer create(byte @NotNull ... array) {
         return create(array, 0, array.length);
     }
 
-    static @NotNull ByteBuffer create(byte[] array, int offset, int length) {
-        if (0>=length) {
-            return EMPTY;
+    public static @NotNull ByteBuffer create(byte @NotNull [] array, int from, int to) {
+        if (from>=to) {
+            return empty();
         }
-        return new ByteArray(array, length, offset);
+        return new Array(array, from, to);
     }
 
-    static @NotNull ByteBuffer create(@NotNull java.nio.ByteBuffer byteBuffer) {
-        if (0>=byteBuffer.remaining()) {
-            return EMPTY;
-        }
-        byte[] array=new byte[byteBuffer.remaining()];
-        byteBuffer.get(array);
-        return create(array);
+    public static @NotNull ByteBuffer create(@NotNull java.nio.ByteBuffer buffer) {
+        return new NioBuffer(buffer, buffer.position(), buffer.limit());
     }
 
-    static @NotNull ByteBuffer createCopy(byte[] array, int offset, int length) {
-        if (0>=length) {
-            return EMPTY;
-        }
-        return new ByteArray(Arrays.copyOfRange(array, offset, offset+length), length, 0);
+    public static @NotNull ByteBuffer createCopy(byte @NotNull [] array, int from, int to) {
+        return create(Arrays.copyOfRange(array, from, to));
     }
 
     static ByteBuffer createLong(long value) {
@@ -377,48 +394,130 @@ public sealed interface ByteBuffer {
         array[5]=(byte)(value >>> 16);
         array[6]=(byte)(value >>> 8);
         array[7]=(byte)value;
-        return new ByteArray(array, 8, 0);
+        return create(array);
     }
 
-    default  boolean isEmpty() {
+    @Override
+    public boolean equals(Object obj) {
+        if (this==obj) {
+            return true;
+        }
+        if (!(obj instanceof ByteBuffer buffer)) {
+            return false;
+        }
+        if ((hashCode!=buffer.hashCode) || (size!=buffer.size)) {
+            return false;
+        }
+        try {
+            for (int ii=size; 0<ii; --ii) {
+                @NotNull Reader reader0=reader();
+                @NotNull Reader reader1=buffer.reader();
+                if (reader0.readByte()!=reader1.readByte()) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        catch (EOFException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    public static @NotNull ByteBuffer empty() {
+        return Array.EMPTY;
+    }
+
+    @Override
+    public int hashCode() {
+        return hashCode;
+    }
+
+    private static int hashMultiplierPower(int exponent) {
+        int base=HASHCODE_MULTIPLIER;
+        int result=1;
+        while (0<exponent) {
+            if (0==(exponent&1)) {
+                base*=base;
+                exponent >>= 1;
+            }
+            else {
+                result*=base;
+                --exponent;
+            }
+        }
+        return result;
+    }
+
+    public boolean isEmpty() {
         return 0>=size();
     }
 
-    default java.nio.ByteBuffer nioByteBufferCopy() {
-        Writer.NioByteBuffer nioByteBuffer=new Writer.NioByteBuffer(size());
-        write(nioByteBuffer);
-        if (nioByteBuffer.byteBuffer.hasRemaining()) {
-            throw new IllegalStateException(
-                    "nioByteBuffer.byteBuffer.hasRemaining(), remaining %d"
-                            .formatted(nioByteBuffer.byteBuffer.remaining()));
-        }
-        return nioByteBuffer.byteBuffer.flip();
+    public @NotNull java.nio.ByteBuffer nioByteBufferCopy() {
+        @NotNull Write.NioBuffer write=new Write.NioBuffer(java.nio.ByteBuffer.allocate(size));
+        write(write);
+        return write.buffer.flip();
     }
 
-    default <T> T read(@NotNull Function<@NotNull Reader, T> function) throws Throwable {
+    public <T> T read(@NotNull Function<@NotNull Reader, T> function) throws Throwable {
         @NotNull Reader reader=reader();
         T result=function.apply(reader);
         reader.assertNoRemainingBytes();
         return result;
     }
 
-    default @NotNull Reader reader() {
+    public @NotNull Reader reader() {
         return new Reader(this);
     }
 
-    int size();
-
-    default @NotNull ByteBuffer subBuffer(int from, int to) throws Throwable {
+    public @NotNull ByteBuffer subBuffer(int from, int to) throws EOFException {
         if (from>=to) {
-            return EMPTY;
+            return empty();
         }
-        if ((0>from) || (size()<to)) {
-            throw new IndexOutOfBoundsException("buffer size: %,d, from %,d, to%,d".formatted(size(), from, to));
+        Direct.checkIndicesAndSize(from, size, to);
+        if ((0==from) && (size==to)) {
+            return this;
         }
-        Reader reader=reader();
-        reader.readByteBuffer(from);
-        return reader.readByteBuffer(to-from);
+        return subBufferImpl(from, to);
     }
 
-    void write(@NotNull Writer writer);
+    protected abstract @NotNull ByteBuffer subBufferImpl(int from, int to) throws EOFException;
+
+    @Override
+    public String toString() {
+        try {
+            @NotNull StringBuilder sb=new StringBuilder(size);
+            @NotNull Reader reader=reader();
+            while (reader.hasRemainingBytes()) {
+                char cc=(char)(reader.readByte()&255);
+                if ((32<=cc) && (127>=cc)) {
+                    sb.append(cc);
+                }
+                else {
+                    sb.append(".");
+                }
+            }
+            return sb.toString();
+        }
+        catch (EOFException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    public int size() {
+        return size;
+    }
+
+    public void write(@NotNull Write write) {
+        @NotNull Deque<@NotNull ByteBuffer> rest=new LinkedList<>();
+        rest.add(this);
+        while (!rest.isEmpty()) {
+            @NotNull ByteBuffer buffer2=rest.removeFirst();
+            while (buffer2 instanceof Concat concat) {
+                rest.addFirst(concat.right);
+                buffer2=concat.left;
+            }
+            @NotNull Direct direct=(Direct)buffer2;
+            direct.writeDirect(write);
+        }
+    }
 }

@@ -38,7 +38,7 @@ public class PasswordModify {
 
     public static @NotNull ControlsMessage<ExtendedRequest> request(
             char @Nullable [] newPasswd, char @Nullable [] oldPasswd, @Nullable String userIdentity) {
-        ByteBuffer buffer=ByteBuffer.EMPTY;
+        ByteBuffer buffer=ByteBuffer.empty();
         if (null!=userIdentity) {
             buffer=buffer.append(BER.writeTag(
                     REQUEST_USER_IDENTITY_TAG,

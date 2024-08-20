@@ -141,7 +141,7 @@ public class ServerSideSorting {
     }
 
     public static @NotNull Control requestControl(boolean criticality, @NotNull List<@NotNull SortKey> sortKeyList) {
-        @NotNull ByteBuffer buffer=ByteBuffer.EMPTY;
+        @NotNull ByteBuffer buffer=ByteBuffer.empty();
         for (@NotNull SortKey sortKey: sortKeyList) {
             buffer=buffer.append(sortKey.write());
         }

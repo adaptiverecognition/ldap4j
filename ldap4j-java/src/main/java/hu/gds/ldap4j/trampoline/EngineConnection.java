@@ -20,11 +20,11 @@ public class EngineConnection implements DuplexConnection {
     private @Nullable Throwable error;
     private final @NotNull InetSocketAddress localAddress;
     private boolean outputShutDown;
-    private @NotNull ByteBuffer readBuffer=ByteBuffer.EMPTY;
+    private @NotNull ByteBuffer readBuffer=ByteBuffer.empty();
     private int readBuffers;
     private final @NotNull InetSocketAddress remoteAddress;
     private final @NotNull SynchronizedWait wait=new SynchronizedWait();
-    private @NotNull ByteBuffer writeBuffer=ByteBuffer.EMPTY;
+    private @NotNull ByteBuffer writeBuffer=ByteBuffer.empty();
 
     public EngineConnection(
             @NotNull InetSocketAddress localAddress,
@@ -65,7 +65,7 @@ public class EngineConnection implements DuplexConnection {
             synchronized (wait.lock) {
                 closed=true;
                 endOfStream=true;
-                readBuffer=ByteBuffer.EMPTY;
+                readBuffer=ByteBuffer.empty();
                 outputShutDown=true;
                 wait.signalAll();
             }
@@ -132,7 +132,7 @@ public class EngineConnection implements DuplexConnection {
             checkClosedAndErrorSynchronized();
             if (!readBuffer.isEmpty()) {
                 @NotNull ByteBuffer result=readBuffer;
-                readBuffer=ByteBuffer.EMPTY;
+                readBuffer=ByteBuffer.empty();
                 --readBuffers;
                 if (0>readBuffers) {
                     readBuffers=0;
@@ -144,10 +144,10 @@ public class EngineConnection implements DuplexConnection {
             }
             if (0<readBuffers) {
                 --readBuffers;
-                return Either.left(ByteBuffer.EMPTY);
+                return Either.left(ByteBuffer.empty());
             }
             if (!context.isEndNanosInTheFuture()) {
-                return Either.left(ByteBuffer.EMPTY);
+                return Either.left(ByteBuffer.empty());
             }
             return Either.right(null);
         });
@@ -165,13 +165,13 @@ public class EngineConnection implements DuplexConnection {
         synchronized (wait.lock) {
             if (!writeBuffer.isEmpty()) {
                 @NotNull ByteBuffer result=writeBuffer;
-                writeBuffer=ByteBuffer.EMPTY;
+                writeBuffer=ByteBuffer.empty();
                 return result;
             }
             if (outputShutDown) {
                 return null;
             }
-            return ByteBuffer.EMPTY;
+            return ByteBuffer.empty();
         }
     }
 

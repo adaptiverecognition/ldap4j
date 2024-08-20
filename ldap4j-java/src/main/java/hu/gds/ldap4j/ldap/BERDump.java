@@ -59,7 +59,7 @@ public class BERDump {
     public interface Format {
         static Format bin() {
             return (stream)->{
-                ByteBuffer byteBuffer=ByteBuffer.EMPTY;
+                ByteBuffer byteBuffer=ByteBuffer.empty();
                 byte[] array=new byte[4096];
                 while (true) {
                     int rr=stream.read(array);
@@ -74,7 +74,7 @@ public class BERDump {
 
         static Format hex() {
             return (stream)->{
-                ByteBuffer byteBuffer=ByteBuffer.EMPTY;
+                ByteBuffer byteBuffer=ByteBuffer.empty();
                 byte[] array=new byte[4096];
                 int bits=0;
                 int bitsSize=0;

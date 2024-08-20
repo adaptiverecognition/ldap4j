@@ -21,7 +21,7 @@ public class MatchedValuesControl {
             boolean criticality,
             @NotNull List<@NotNull Filter> filters)
             throws Throwable {
-        @NotNull ByteBuffer buffer=ByteBuffer.EMPTY;
+        @NotNull ByteBuffer buffer=ByteBuffer.empty();
         for (@NotNull Filter filter: filters) {
             buffer=buffer.append(filter.write());
         }

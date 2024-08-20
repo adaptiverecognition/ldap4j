@@ -53,7 +53,7 @@ public record ModifyRequest(
 
     @Override
     public @NotNull ByteBuffer write() {
-        ByteBuffer changesBuffer=ByteBuffer.EMPTY;
+        ByteBuffer changesBuffer=ByteBuffer.empty();
         for (Change change: changes) {
             changesBuffer=changesBuffer.append(change.write());
         }

@@ -45,7 +45,7 @@ public record PartialAttribute(@NotNull String type, @NotNull List<@NotNull Stri
     }
 
     public @NotNull ByteBuffer write() {
-        ByteBuffer valuesBuffer=ByteBuffer.EMPTY;
+        ByteBuffer valuesBuffer=ByteBuffer.empty();
         for (String value: values) {
             valuesBuffer=valuesBuffer.append(BER.writeUtf8Tag(value));
         }
