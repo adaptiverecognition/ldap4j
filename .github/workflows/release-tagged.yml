@@ -59,8 +59,8 @@ jobs:
           # git branch -a
           echo "git pull"
           git pull
-          echo git tags
-          git tag -l
+          # echo git tags
+          # git tag -l
           echo "git checkout tag"
           git checkout "$VERSION"
 
@@ -133,7 +133,7 @@ jobs:
           echo "maven clean"
           mvn -B -s "$OSSRH_FILE" -Prelease clean
           echo "maven deploy"
-          mvn -B -s "$OSSRH_FILE" -Prelease deploy
+          mvn -B -s "$OSSRH_FILE" -Prelease -DaltDeploymentRepository=central::release::https://central.sonatype.com deploy
           echo "remove gpg home dir"
           rm -rf "$HOMEDIR"
           echo "remove ossrh credentials file"
