@@ -95,6 +95,8 @@ jobs:
           GPG_SIGNING_KEY_PASSWORD: ${{ secrets.GPG_SIGNING_KEY_PASSWORD }}
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
         run: |
+          echo "git checkout tag"
+          git checkout "$VERSION"
           echo "set gpg homedir"
           HOMEDIR="$HOME/.gnupg"
           echo "set ossrh credentials file"
