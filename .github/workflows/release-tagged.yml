@@ -112,7 +112,7 @@ jobs:
           echo "gpg version"
           gpg --version
           echo "import gpg key"
-          echo $GPG_SIGNING_KEY | base64 -d | gpg --homedir "$HOMEDIR" --batch --import -
+          echo $GPG_SIGNING_KEY | gpg --homedir "$HOMEDIR" --batch --import -
           echo "remove ossrh credentials file"
           rm -f "$OSSRH_FILE"
           echo "create ossrh credentials file"
