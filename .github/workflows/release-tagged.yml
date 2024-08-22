@@ -29,12 +29,12 @@ jobs:
         run: |
           echo "date"
           date
-          echo "uname"
-          uname -a
-          echo "lsb release"
-          lsb_release -a
-          echo "git version"
-          git --version
+          # echo "uname"
+          # uname -a
+          # echo "lsb release"
+          # lsb_release -a
+          # echo "git version"
+          # git --version
           echo "get version/tag"
           VERSION=${{ github.event.inputs.version }}
           echo "git status"
@@ -43,26 +43,24 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           echo "set git user"
           git config --global user.name "GitHub Action"
-          #echo "set pom.xml revision"
-          #mvn -B -Prelease versions:set-property -Dproperty=revision "-DnewVersion=$VERSION" -DgenerateBackupPoms=false
-          #echo "git add pom.xml"
-          #git add pom.xml
-          #echo "git commit"
-          #git commit --all --allow-empty --message "Releasing version $VERSION"
-          #echo "git tag"
-          #git tag --annotate --message "Releasing version $VERSION" "$VERSION"
-          #echo "git push"
-          #git push --tags origin master
-          echo "git remotes"
-          git remote -v
-          echo "git branches"
-          git branch -a
+          # echo "set pom.xml revision"
+          # mvn -B -Prelease versions:set-property -Dproperty=revision "-DnewVersion=$VERSION" -DgenerateBackupPoms=false
+          # echo "git add pom.xml"
+          # git add pom.xml
+          # echo "git commit"
+          # git commit --all --allow-empty --message "Releasing version $VERSION"
+          # echo "git tag"
+          # git tag --annotate --message "Releasing version $VERSION" "$VERSION"
+          # echo "git push"
+          # git push --tags origin master
+          # echo "git remotes"
+          # git remote -v
+          # echo "git branches"
+          # git branch -a
           echo "git pull"
           git pull
-          echo git tags
-          git tag -l
-          echo "git log"
-          git log -n 10
+          # echo git tags
+          # git tag -l
           echo "git checkout tag"
           git checkout "$VERSION"
 
@@ -92,12 +90,10 @@ jobs:
 
       - name: Publish package
         env:
-          JRELEASER_NEXUS2_USERNAME: ${{ secrets.JRELEASER_NEXUS2_USERNAME }}
-          JRELEASER_NEXUS2_PASSWORD: ${{ secrets.JRELEASER_NEXUS2_PASSWORD }}
-          JRELEASER_GPG_PASSPHRASE: ${{ secrets.JRELEASER_GPG_PASSPHRASE }}
-          JRELEASER_GPG_SECRET_KEY: ${{ secrets.JRELEASER_GPG_SECRET_KEY }}
-          JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.JRELEASER_GPG_PUBLIC_KEY }}
-          JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CENTRAL_TOKEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
+          CENTRAL_TOKEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
+          GPG_SIGNING_KEY_PASSWORD: ${{ secrets.GPG_SIGNING_KEY_PASSWORD }}
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
         run: |
           echo "set gpg homedir"
           HOMEDIR="$HOME/.gnupg"
@@ -116,17 +112,17 @@ jobs:
           echo "gpg version"
           gpg --version
           echo "import gpg key"
-          echo $JRELEASER_GPG_SECRET_KEY | base64 -d | gpg --homedir "$HOMEDIR" --batch --import -
+          echo $GPG_SIGNING_KEY | base64 -d | gpg --homedir "$HOMEDIR" --batch --import -
           echo "remove ossrh credentials file"
           rm -f "$OSSRH_FILE"
           echo "create ossrh credentials file"
-          cat ./ossrh-settings.xml | sed "s/magic0/$JRELEASER_NEXUS2_USERNAME/g" | sed "s/magic1/$JRELEASER_NEXUS2_PASSWORD/g" > "$OSSRH_FILE"
+          cat ./ossrh-settings.xml | sed "s/magic0/$CENTRAL_TOKEN_USERNAME/g" | sed "s/magic1/$CENTRAL_TOKEN_PASSWORD/g" > "$OSSRH_FILE"
           echo "remove passphrase file"
           rm -f "$PASSPHRASE_FILE"
           echo "create passphrase file"
-          echo $JRELEASER_GPG_PASSPHRASE > "$PASSPHRASE_FILE"
+          echo $GPG_SIGNING_KEY_PASSWORD > "$PASSPHRASE_FILE"
           echo "set MAVEN_GPG_PASSPHRASE"
-          export MAVEN_GPG_PASSPHRASE=$JRELEASER_GPG_PASSPHRASE
+          export MAVEN_GPG_PASSPHRASE=$GPG_SIGNING_KEY_PASSWORD
           echo "maven clean"
           mvn -B -s "$OSSRH_FILE" -Prelease clean
           echo "maven deploy"
