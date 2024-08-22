@@ -116,9 +116,7 @@ jobs:
           echo "remove ossrh credentials file"
           rm -f "$OSSRH_FILE"
           echo "create ossrh credentials file"
-          echo $CENTRAL_TOKEN_USERNAME | base64 | base64 | base64
-          echo $CENTRAL_TOKEN_PASSWORD | base64 | base64 | base64
-          cat ./ossrh-settings.xml | sed "s/magic0/$CENTRAL_TOKEN_USERNAME/g" | sed "s/magic1/$CENTRAL_TOKEN_PASSWORD/g" > "$OSSRH_FILE"
+          cat ./ossrh-settings.xml | sed "s/magic0/$CENTRAL_TOKEN_USERNAME/g" | sed "s#magic1#$CENTRAL_TOKEN_PASSWORD#g" > "$OSSRH_FILE"
           echo "remove passphrase file"
           rm -f "$PASSPHRASE_FILE"
           echo "create passphrase file"
