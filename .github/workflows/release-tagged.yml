@@ -59,8 +59,8 @@ jobs:
           # git branch -a
           echo "git pull"
           git pull
-          # echo git tags
-          # git tag -l
+          echo git tags
+          git tag -l
           echo "git checkout tag"
           git checkout "$VERSION"
 
