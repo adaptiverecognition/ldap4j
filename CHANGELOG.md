@@ -1,4 +1,4 @@
-Version 1.1.1-SNAPSHOT:
+Version 1.2.0:
 - add event-driven LDAP engine support classes
 - add extensions
   - absolute true and false filters
