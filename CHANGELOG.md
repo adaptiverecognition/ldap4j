@@ -1,3 +1,13 @@
+Version 1.2.1:
+- security update:
+  - io.netty:netty-all:4.1.112.Final -> 4.1.116.Final
+  - org.apache.httpcomponents.client5:httpclient5:5.3.1 -> 5.4.1
+  - org.apache.mina:mina-core:2.2.3 -> 2.2.4
+  - org.springframework.boot:spring-boot-starter-webflux:3.3.2 -> 3.4.1
+    - issues remain
+  - org.springframework.boot:spring-boot-starter-test:3.3.2 -> 3.4.1
+    - issues remain
+
 Version 1.2.0:
 - add event-driven LDAP engine support classes
 - add extensions
