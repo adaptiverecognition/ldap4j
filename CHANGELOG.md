@@ -1,3 +1,11 @@
+Version 1.2.2:
+- security update:
+  - io.netty:netty-all:4.1.116.Final -> 4.2.0.Final
+  - org.apache.httpcomponents.client5:httpclient5:5.4.1 -> 5.4.4
+  - org.springframework.boot:spring-boot-starter-test:3.4.1 -> 3.4.5
+  - org.springframework.boot:spring-boot-starter-webflux:3.4.1 -> 3.4.5
+  - org.testcontainers:testcontainers:1.20.1 -> 1.21.0
+
 Version 1.2.1:
 - security update:
   - io.netty:netty-all:4.1.112.Final -> 4.1.116.Final
