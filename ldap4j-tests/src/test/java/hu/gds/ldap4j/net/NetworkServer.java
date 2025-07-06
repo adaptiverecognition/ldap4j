@@ -15,9 +15,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
@@ -28,7 +26,6 @@ class NetworkServer<K, V> implements AutoCloseable, Runnable {
         public final Object lock=new Object();
         private boolean closed;
         private final Map<K, V> map=new HashMap<>();
-        private final Deque<@NotNull Runnable> signals=new LinkedList<>();
 
         private State() {
         }
@@ -58,14 +55,7 @@ class NetworkServer<K, V> implements AutoCloseable, Runnable {
                 }
                 closed=true;
                 lock.notifyAll();
-                fireSignals();
                 return true;
-            }
-        }
-
-        private void fireSignals() {
-            while (!signals.isEmpty()) {
-                signals.removeFirst().run();
             }
         }
 
@@ -79,7 +69,6 @@ class NetworkServer<K, V> implements AutoCloseable, Runnable {
             synchronized (lock) {
                 map.put(key, value);
                 lock.notifyAll();
-                fireSignals();
             }
         }
     }

@@ -1,3 +1,8 @@
+Version 1.2.3-SNAPSHOT:
+- improve duplex connection tests
+  - don't use black holes to test connect timeouts
+  - remove unused code
+
 Version 1.2.2:
 - security update:
   - io.netty:netty-all:4.1.116.Final -> 4.2.0.Final

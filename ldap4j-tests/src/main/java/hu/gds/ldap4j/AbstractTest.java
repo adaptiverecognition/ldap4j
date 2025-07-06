@@ -3,7 +3,6 @@ package hu.gds.ldap4j;
 import java.net.InetSocketAddress;
 
 public abstract class AbstractTest {
-    public static final InetSocketAddress BLACK_HOLE=new InetSocketAddress("198.51.100.1"/*"100::1"*/, 65432);
     public static final int PARALLELISM=8;
     public static final int SERVER_PORT_CLEAR_TEXT=0;//10389;
     public static final int SERVER_PORT_TLS=0;//10636;

@@ -16,7 +16,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.NoRouteToHostException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.StandardSocketOptions;
@@ -33,6 +32,8 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocket;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -45,6 +46,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class DuplexConnectionTest {
+    private static NoAcceptServer noAcceptServer;
+
+    @AfterAll
+    public static void afterAll() throws Throwable {
+        try {
+            if (null!=noAcceptServer) {
+                noAcceptServer.close();
+            }
+        }
+        finally {
+            noAcceptServer=null;
+        }
+    }
+
+    @BeforeAll
+    public static void beforeAll() throws Throwable {
+        noAcceptServer=NoAcceptServer.create();
+        noAcceptServer.start();
+    }
+
     private static boolean contains(byte[] sub, byte[] sup) {
         for (int pi=sup.length-sub.length; 0<=pi; --pi) {
             boolean contains2=true;
@@ -178,47 +199,34 @@ public class DuplexConnectionTest {
     public void testConnectTimeout(NetworkTestParameters parameters) throws Throwable {
         final long timeoutNanos=parameters.networkTimeoutNanos();
         try (TestContext<NetworkTestParameters> context=TestContext.create(parameters)) {
-            for (int ii=32; ; --ii) {
-                if (0>=ii) {
-                    throw new RuntimeException("should have timed out at least once");
-                }
-                try {
-                    context.get(
-                            Lava.supplier(()->{
-                                long nowNanos=context.contextHolder().clock().nowNanos();
-                                long endNanos=Clock.delayNanosToEndNanos(timeoutNanos, nowNanos);
-                                long endNanosMax=Clock.delayNanosToEndNanos(2*timeoutNanos, nowNanos);
-                                long endNanosMin=Clock.delayNanosToEndNanos(timeoutNanos/2, nowNanos);
-                                return Lava.catchErrors(
-                                        (timeout)->{
-                                            long nowNanos2=context.contextHolder().clock().nowNanos();
-                                            if (!Clock.isEndNanosInTheFuture(endNanosMax, nowNanos2)) {
-                                                throw new TimeoutException();
-                                            }
-                                            if (Clock.isEndNanosInTheFuture(endNanosMin, nowNanos2)) {
-                                                throw new TimeoutException("too early");
-                                            }
-                                            return Lava.VOID;
-                                        },
-                                        ()->Lava.endNanos(
-                                                endNanos,
-                                                ()->Closeable.withCloseable(
-                                                        ()->context.parameters().connectionFactory(
-                                                                context, AbstractTest.BLACK_HOLE, Map.of()),
-                                                        (connection)->Lava.fail(new IllegalStateException()))),
-                                        TimeoutException.class);
-                            }));
-                    break;
-                }
-                catch (Throwable throwable) {
-                    if (null==Exceptions.findCause(NoRouteToHostException.class, throwable)) {
-                        String message=throwable.toString().toLowerCase();
-                        if (!message.contains("network is unreachable")) {
-                            throw throwable;
-                        }
-                    }
-                }
-            }
+            context.get(
+                    Lava.supplier(()->{
+                        long nowNanos=context.contextHolder().clock().nowNanos();
+                        long endNanos=Clock.delayNanosToEndNanos(timeoutNanos, nowNanos);
+                        long endNanosMax=Clock.delayNanosToEndNanos(2*timeoutNanos, nowNanos);
+                        long endNanosMin=Clock.delayNanosToEndNanos(timeoutNanos/2, nowNanos);
+                        return Lava.catchErrors(
+                                (timeout)->{
+                                    long nowNanos2=context.contextHolder().clock().nowNanos();
+                                    if (!Clock.isEndNanosInTheFuture(endNanosMax, nowNanos2)) {
+                                        throw new TimeoutException();
+                                    }
+                                    if (Clock.isEndNanosInTheFuture(endNanosMin, nowNanos2)) {
+                                        throw new TimeoutException("too early");
+                                    }
+                                    return Lava.VOID;
+                                },
+                                ()->Lava.endNanos(
+                                        endNanos,
+                                        ()->Closeable.withCloseable(
+                                                ()->context.parameters().connectionFactory(
+                                                        context,
+                                                        noAcceptServer.localAddress(),
+                                                        Map.of()),
+                                                (connection)->
+                                                        Lava.fail(new IllegalStateException()))),
+                                TimeoutException.class);
+                    }));
         }
     }
 
