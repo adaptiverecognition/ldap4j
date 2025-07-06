@@ -9,9 +9,11 @@ import hu.gds.ldap4j.lava.Lava;
 import hu.gds.ldap4j.net.mina.MinaConnection;
 import hu.gds.ldap4j.net.netty.NettyConnection;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.IoHandlerFactory;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.epoll.EpollIoHandler;
 import io.netty.channel.epoll.EpollSocketChannel;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.DuplexChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import java.net.InetSocketAddress;
@@ -224,7 +226,7 @@ public interface NetworkConnectionFactory extends AutoCloseable {
 
     private static @NotNull Supplier<@NotNull NetworkConnectionFactory> netty(
             Class<? extends DuplexChannel> channelType,
-            Function<Integer, EventLoopGroup> eventLoopGroupFactory,
+            IoHandlerFactory ioHandlerFactory,
             boolean mayCloseOnEof) {
         return new Supplier<>() {
             @Override
@@ -252,9 +254,9 @@ public interface NetworkConnectionFactory extends AutoCloseable {
                     public @NotNull Function<@NotNull InetSocketAddress, Lava<@NotNull DuplexConnection>> factory(
                             @NotNull Context blockingIoContext,
                             @NotNull Log log,
-                            @NotNull Map<@NotNull SocketOption<?>, @NotNull Object> socketOptions) throws Throwable {
+                            @NotNull Map<@NotNull SocketOption<?>, @NotNull Object> socketOptions) {
                         if (null==eventLoopGroup) {
-                            eventLoopGroup=eventLoopGroupFactory.apply(8);
+                            eventLoopGroup=new MultiThreadIoEventLoopGroup(8, ioHandlerFactory);
                         }
                         return NettyConnection.factory(channelType, eventLoopGroup, socketOptions);
                     }
@@ -279,10 +281,10 @@ public interface NetworkConnectionFactory extends AutoCloseable {
     }
 
     static @NotNull Supplier<@NotNull NetworkConnectionFactory> nettyEpoll() {
-        return netty(EpollSocketChannel.class, EpollEventLoopGroup::new, true);
+        return netty(EpollSocketChannel.class, EpollIoHandler.newFactory(), true);
     }
 
     static @NotNull Supplier<@NotNull NetworkConnectionFactory> nettyNio() {
-        return netty(NioSocketChannel.class, NioEventLoopGroup::new, false);
+        return netty(NioSocketChannel.class, NioIoHandler.newFactory(), false);
     }
 }

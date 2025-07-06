@@ -12,7 +12,8 @@ import hu.gds.ldap4j.net.TlsSettings;
 import hu.gds.ldap4j.reactor.netty.ReactorLdapConnection;
 import hu.gds.ldap4j.reactor.netty.ReactorLdapPool;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import java.net.InetSocketAddress;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -121,7 +122,7 @@ public class ReactorSample {
     // Netty event loop group for the connection pool, and un-pooled connections
     @Bean
     public EventLoopGroup evenLoopGroup() {
-        return new NioEventLoopGroup(4);
+        return new MultiThreadIoEventLoopGroup(4, NioIoHandler.newFactory());
     }
 
     public static void main(String[] args) {

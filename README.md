@@ -411,7 +411,7 @@ After starting the sample, the application can be reached [here](http://127.0.0.
 
     @Bean
     public EventLoopGroup evenLoopGroup() {
-        return new NioEventLoopGroup(4);
+        return new MultiThreadIoEventLoopGroup(4, NioIoHandler.newFactory());
     }
     
     @Bean
@@ -793,26 +793,24 @@ This is intended for the same use cases as the trampoline, single threaded singl
 #### Netty
 
 A `NettyConnection` requires an
-[EventLoopGroup](https://netty.io/4.1/api/io/netty/channel/EventLoopGroup.html),
+[EventLoopGroup](https://netty.io/4.2/api/io/netty/channel/EventLoopGroup.html),
 and a matching
-[DuplexChannel](https://netty.io/4.1/api/io/netty/channel/socket/DuplexChannel.html)
+[DuplexChannel](https://netty.io/4.2/api/io/netty/channel/socket/DuplexChannel.html)
 class.
+In turn, an `EventLoopGroup` requires an
+[IoHandler](https://netty.io/4.2/api/io/netty/channel/IoHandler.html)
+factory.
 
-- [NioEventLoopGroup](https://netty.io/4.1/api/io/netty/channel/nio/NioEventLoopGroup.html)
+- [NioIoHandler](https://netty.io/4.2/api/io/netty/channel/nio/NioIoHandler.html)
 and 
-[NioSocketChannel](https://netty.io/4.1/api/io/netty/channel/socket/nio/NioSocketChannel.html)
+[NioSocketChannel](https://netty.io/4.2/api/io/netty/channel/socket/nio/NioSocketChannel.html)
 are supported.
 These are available on all platforms.
-- [EpollEventLoopGroup](https://netty.io/4.1/api/io/netty/channel/epoll/EpollEventLoopGroup.html)
+- [EpollIoHandler](https://netty.io/4.2/api/io/netty/channel/epoll/EpollIoHandler.html)
 and
-[EpollSocketChannel](https://netty.io/4.1/api/io/netty/channel/epoll/EpollSocketChannel.html)
+[EpollSocketChannel](https://netty.io/4.2/api/io/netty/channel/epoll/EpollSocketChannel.html)
 are supported.
 These are available on linuxes.
-- [KQueueEventLoopGroup](https://netty.io/4.1/api/io/netty/channel/kqueue/KQueueEventLoopGroup.html)
-and
-[KQueueSocketChannel](https://netty.io/4.1/api/io/netty/channel/kqueue/KQueueSocketChannel.html)
-are untested.
-These are available on macs.
 
 ## License
 

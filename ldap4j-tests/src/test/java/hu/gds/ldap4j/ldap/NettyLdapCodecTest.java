@@ -18,10 +18,11 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollIoHandler;
 import io.netty.channel.epoll.EpollSocketChannel;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.DuplexChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import java.net.InetSocketAddress;
@@ -50,7 +51,7 @@ public class NettyLdapCodecTest {
 
             @Override
             public @NotNull EventLoopGroup createEventLoopGroup(int threads) {
-                return new EpollEventLoopGroup(threads);
+                return new MultiThreadIoEventLoopGroup(threads, EpollIoHandler.newFactory());
             }
 
             @Override
@@ -67,7 +68,7 @@ public class NettyLdapCodecTest {
 
             @Override
             public @NotNull EventLoopGroup createEventLoopGroup(int threads) {
-                return new NioEventLoopGroup(threads);
+                return new MultiThreadIoEventLoopGroup(threads, NioIoHandler.newFactory());
             }
 
             @Override

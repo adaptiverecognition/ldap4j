@@ -2,6 +2,7 @@ Version 1.2.3-SNAPSHOT:
 - improve duplex connection tests
   - don't use black holes to test connect timeouts
   - remove unused code
+- migrate to netty 4.2 API
 
 Version 1.2.2:
 - security update:
